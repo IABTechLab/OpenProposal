@@ -63,7 +63,7 @@ body:
       label: Before you submit
       options:
         - label: >-
-            I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and agree my
+            I have read [CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md) and agree my
             contribution may be published under this repository's licence.
           required: true
         - label: >-

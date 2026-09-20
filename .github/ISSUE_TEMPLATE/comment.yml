@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for commenting on OpenProposal 3.0.
 
-        Before you file, please check [existing issues](../?q=is%3Aissue) — adding to an
+        Before you file, please check [existing issues](https://github.com/IABTechLab/OpenProposal/issues) — adding to an
         existing thread is more useful than a duplicate.
 
         **This repository is public.** Do not include rate cards, deal terms, client
@@ -90,7 +90,7 @@ body:
       label: Before you submit
       options:
         - label: >-
-            I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and agree my
+            I have read [CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md) and agree my
             contribution may be published under this repository's licence.
           required: true
         - label: This comment contains no confidential or commercially sensitive information.

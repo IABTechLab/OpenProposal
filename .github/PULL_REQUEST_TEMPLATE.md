@@ -38,4 +38,4 @@ Closes #
 ---
 
 By opening this pull request I agree my contribution may be published under this
-repository's licence, as set out in [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+repository's licence, as set out in [CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md).

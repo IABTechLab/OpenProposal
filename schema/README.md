@@ -19,6 +19,6 @@ A schema will follow the first revision. Until then, the parseable examples in
 the body of the spec is normative where they disagree.
 
 If you have built a schema against the draft, please file
-[implementation feedback](../../../issues/new?template=implementation-feedback.yml) —
+[implementation feedback](https://github.com/IABTechLab/OpenProposal/issues/new?template=implementation-feedback.yml) —
 what you had to decide in order to write it is exactly the information the
 comment period needs.

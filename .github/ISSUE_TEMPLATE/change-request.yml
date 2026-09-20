@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Use this when you are proposing **specific wording**, not raising a general
-        concern — for that, use [Comment](./comment.yml).
+        concern — for that, use [Comment](https://github.com/IABTechLab/OpenProposal/issues/new?template=comment.yml).
 
         If you already have the diff, open the issue first and link your PR to it.
         Normative changes need a discussion behind them.
@@ -125,7 +125,7 @@ body:
       label: Before you submit
       options:
         - label: >-
-            I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and agree my
+            I have read [CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md) and agree my
             contribution may be published under this repository's licence.
           required: true
         - label: This contains no confidential or commercially sensitive information.
