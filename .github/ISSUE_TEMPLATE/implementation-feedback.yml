@@ -1,0 +1,72 @@
+name: Implementation feedback
+description: You built something against the draft. Tell us what happened.
+title: "[Impl] <one-line summary>"
+labels: ["implementation-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the most valuable kind of comment we receive.** A report from
+        someone who tried to build against the draft outranks an opinion about how
+        it reads.
+
+        You do not need a working implementation. A failed attempt, with the reason
+        it failed, is exactly as useful.
+  - type: dropdown
+    id: role
+    attributes:
+      label: What did you build?
+      options:
+        - Seller side — publishing proposals
+        - Buyer side — parsing and evaluating proposals
+        - Both sides
+        - A mapping to a downstream standard (OpenDirect / Deals API / OpenRTB)
+        - A mapping to an existing OMS / ad server / DSP data model
+        - A validator or schema
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you tried to express, and what happened
+      description: The concrete case, and where the object model ran out.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you did instead
+      description: >-
+        How you worked around it — an extension field, a convention, a round trip
+        the spec says should not be needed, or you gave up. Workarounds tell us
+        exactly where the model is short.
+  - type: textarea
+    id: fields
+    attributes:
+      label: Fields involved
+      description: Which fields, and what was wrong with them — missing, wrong marker, wrong shape, unclear.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How blocking was it?
+      options:
+        - "Blocking — could not express it at all"
+        - "Workaround required, but it works"
+        - "Awkward, but expressible as specified"
+        - "Worked fine — reporting a success case"
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before you submit
+      options:
+        - label: >-
+            I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and agree my
+            contribution may be published under this repository's licence.
+          required: true
+        - label: >-
+            This contains no confidential or commercially sensitive information —
+            no real rate cards, deal terms, client names or inventory data.
+          required: true

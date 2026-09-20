@@ -1,0 +1,97 @@
+name: Comment on the draft
+description: Something in the draft is unclear, wrong, inconsistent, or missing.
+title: "[Comment] § <section> — <one-line summary>"
+labels: ["comment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for commenting on OpenProposal 3.0.
+
+        Before you file, please check [existing issues](../?q=is%3Aissue) — adding to an
+        existing thread is more useful than a duplicate.
+
+        **This repository is public.** Do not include rate cards, deal terms, client
+        names or inventory data. Anonymise your examples.
+  - type: dropdown
+    id: section
+    attributes:
+      label: Which section?
+      description: The section your comment is about.
+      options:
+        - "1 — Preamble and scope"
+        - "2 — Object shape"
+        - "2.1 — Summary and full representations"
+        - "2.2 — Catalog references"
+        - "3 — Field mutability"
+        - "4 — Proposal"
+        - "5.1 — Line item identity"
+        - "5.2 — Inventory composition"
+        - "5.3 — Audience reach"
+        - "5.4 — Creative requirements"
+        - "5.5 — Targeting envelope"
+        - "5.6 — Commercial terms"
+        - "5.7 — Guarantees"
+        - "5.8 — Transaction eligibility"
+        - "5.9 — Execution"
+        - "5.10 — External references and settlement"
+        - "6 — Examples"
+        - "7 — Why this split"
+        - "8 — Open questions"
+        - "Appendix A / B — Field index"
+        - "Whole document / more than one section"
+    validations:
+      required: true
+  - type: input
+    id: fields
+    attributes:
+      label: Field(s) involved
+      description: Comma-separated, if your comment is about specific fields.
+      placeholder: "pricing[].floor, transaction_mechanism"
+  - type: textarea
+    id: comment
+    attributes:
+      label: Your comment
+      description: What is unclear, wrong, inconsistent or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Concrete scenario
+      description: >-
+        A specific case where the draft as written produces the wrong outcome or
+        cannot express what you need. This is what makes a comment actionable.
+      placeholder: >-
+        A seller offering the same inventory as both PG and PMP cannot express a
+        different floor per mechanism, because pricing[] sits above
+        transaction_mechanism.
+  - type: dropdown
+    id: perspective
+    attributes:
+      label: You are commenting as
+      description: Does not weight your comment — tells us where the draft is being read from.
+      options:
+        - Buyer / advertiser
+        - Agency
+        - Publisher / seller
+        - SSP
+        - DSP
+        - Ad server / OMS
+        - Measurement / verification vendor
+        - Standards body / working group participant
+        - Individual, no organisational position
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before you submit
+      options:
+        - label: >-
+            I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and agree my
+            contribution may be published under this repository's licence.
+          required: true
+        - label: This comment contains no confidential or commercially sensitive information.
+          required: true

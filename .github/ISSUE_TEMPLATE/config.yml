@@ -1,0 +1,13 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question / think out loud
+    url: https://github.com/IABTechLab/OpenProposal/discussions
+    about: >-
+      For questions and open-ended debate. Discussions are NOT part of the
+      formal comment record — if it turns into a real point, file an issue.
+  - name: Read the comment process first
+    url: https://github.com/IABTechLab/OpenProposal/blob/main/docs/comment-process.md
+    about: Timeline, dispositions, and what happens to your comment.
+  - name: The seven open questions
+    url: https://github.com/IABTechLab/OpenProposal/blob/main/docs/open-questions.md
+    about: Where the working group is genuinely undecided. Highest-value place to comment.

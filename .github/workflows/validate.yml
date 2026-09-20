@@ -1,0 +1,69 @@
+name: Validate
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  examples:
+    name: Examples parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Parse every example
+        run: |
+          python - <<'PY'
+          import glob, sys, yaml
+          failed = False
+          for f in sorted(glob.glob("examples/*.yaml")):
+              try:
+                  yaml.safe_load(open(f))
+                  print(f"ok   {f}")
+              except yaml.YAMLError as e:
+                  failed = True
+                  print(f"FAIL {f}\n{e}")
+          sys.exit(1 if failed else 0)
+          PY
+
+  issue-forms:
+    name: Issue forms parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Parse issue forms and label definitions
+        run: |
+          python - <<'PY'
+          import glob, sys, yaml
+          failed = False
+          for f in sorted(glob.glob(".github/ISSUE_TEMPLATE/*.yml")) + [".github/labels.yml"]:
+              try:
+                  yaml.safe_load(open(f))
+                  print(f"ok   {f}")
+              except yaml.YAMLError as e:
+                  failed = True
+                  print(f"FAIL {f}\n{e}")
+          sys.exit(1 if failed else 0)
+          PY
+
+  appendix-drift:
+    name: Appendix A matches the body
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check every field in the body appears in Appendix A
+        run: python3 scripts/check_appendix.py

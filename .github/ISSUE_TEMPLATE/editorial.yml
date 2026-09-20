@@ -1,0 +1,23 @@
+name: Editorial fix
+description: Typo, broken link, table formatting, or an appendix that disagrees with the body.
+title: "[Editorial] <one-line summary>"
+labels: ["editorial"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For anything with **no normative effect**. If you can send the one-line fix
+        as a pull request instead, please do — editorial PRs need no issue.
+  - type: input
+    id: location
+    attributes:
+      label: Where
+      placeholder: "spec/openproposal-3.0.md § 5.6, Appendix A row for `hold_status`"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong, and what it should say
+    validations:
+      required: true

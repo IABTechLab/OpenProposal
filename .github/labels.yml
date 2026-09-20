@@ -1,0 +1,85 @@
+# Label definitions for the OpenProposal public comment period.
+# Apply with a label-sync action or by hand. See docs/comment-process.md.
+
+# --- Comment type ---
+- name: comment
+  color: "0366d6"
+  description: General comment on the draft
+- name: change-request
+  color: "0366d6"
+  description: Proposes specific normative wording
+- name: open-question
+  color: "d93f0b"
+  description: Relates to one of the 7 open questions in § 8
+- name: implementation-feedback
+  color: "0e8a16"
+  description: From someone who built against the draft
+- name: editorial
+  color: "c5def5"
+  description: Typo, formatting, broken link — no normative effect
+
+# --- Impact ---
+- name: normative
+  color: "b60205"
+  description: Changes what the spec requires
+- name: breaking
+  color: "b60205"
+  description: Would break an implementation already built to this draft
+
+# --- Triage state ---
+- name: needs-info
+  color: "fbca04"
+  description: Cannot be dispositioned as filed — waiting on the commenter
+- name: post-comment
+  color: "e4e669"
+  description: Filed after the comment period closed
+
+# --- Disposition ---
+- name: "disposition:accepted"
+  color: "0e8a16"
+  description: Change made as proposed
+- name: "disposition:accepted-modified"
+  color: "0e8a16"
+  description: Point valid; fix differs from what was proposed
+- name: "disposition:rejected"
+  color: "5319e7"
+  description: No change — reason given in the closing comment
+- name: "disposition:deferred"
+  color: "5319e7"
+  description: Valid, but not for 3.0
+- name: "disposition:duplicate"
+  color: "cfd3d7"
+  description: Covered by another issue
+- name: "disposition:withdrawn"
+  color: "cfd3d7"
+  description: Withdrawn by the commenter
+
+# --- Section ---
+- name: "section:1-scope"
+  color: "bfd4f2"
+- name: "section:2-object-shape"
+  color: "bfd4f2"
+- name: "section:2.2-catalog-refs"
+  color: "bfd4f2"
+- name: "section:3-mutability"
+  color: "bfd4f2"
+- name: "section:4-proposal"
+  color: "bfd4f2"
+- name: "section:5.2-inventory"
+  color: "bfd4f2"
+- name: "section:5.3-audience"
+  color: "bfd4f2"
+- name: "section:5.4-creative"
+  color: "bfd4f2"
+- name: "section:5.5-targeting"
+  color: "bfd4f2"
+- name: "section:5.6-commercial"
+  color: "bfd4f2"
+- name: "section:5.7-guarantees"
+  color: "bfd4f2"
+- name: "section:5.8-eligibility"
+  color: "bfd4f2"
+- name: "section:5.9-execution"
+  color: "bfd4f2"
+- name: "section:5.10-settlement"
+  color: "bfd4f2"

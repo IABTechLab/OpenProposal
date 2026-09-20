@@ -1,0 +1,132 @@
+name: Change request
+description: Propose specific normative wording — a new field, a changed marker, a removal.
+title: "[Change] § <section> — <one-line summary>"
+labels: ["change-request", "normative"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when you are proposing **specific wording**, not raising a general
+        concern — for that, use [Comment](./comment.yml).
+
+        If you already have the diff, open the issue first and link your PR to it.
+        Normative changes need a discussion behind them.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of change?
+      options:
+        - Add a new field
+        - Remove a field
+        - Change a field's mutability marker
+        - Change a field's type or shape
+        - Change a normative requirement (MUST / SHOULD / MAY)
+        - Add or change an enum value
+        - Restructure a section
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: section
+    attributes:
+      label: Which section?
+      options:
+        - "1 — Preamble and scope"
+        - "2 — Object shape"
+        - "2.1 — Summary and full representations"
+        - "2.2 — Catalog references"
+        - "3 — Field mutability"
+        - "4 — Proposal"
+        - "5.1 — Line item identity"
+        - "5.2 — Inventory composition"
+        - "5.3 — Audience reach"
+        - "5.4 — Creative requirements"
+        - "5.5 — Targeting envelope"
+        - "5.6 — Commercial terms"
+        - "5.7 — Guarantees"
+        - "5.8 — Transaction eligibility"
+        - "5.9 — Execution"
+        - "5.10 — External references and settlement"
+        - "6 — Examples"
+        - "Appendix A / B — Field index"
+        - "Whole document / more than one section"
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+      description: Quote the draft as it stands. Write "n/a — new field" if you are adding one.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed text
+      description: >-
+        The exact replacement wording. Use RFC 2119 keywords deliberately —
+        MUST, SHOULD and MAY are not synonyms.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Why
+      description: What does the draft fail to do today, and what does this let you do?
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Knock-on effects
+      description: >-
+        What else moves? Other sections, the examples in § 6, Appendix A/B,
+        downstream standards (OpenDirect, Deals API, OpenRTB), the no-inheritance
+        rule, or the "resolves without a round trip" guarantee in § 3.
+    validations:
+      required: true
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Would this break an implementation already built to this draft?
+      options:
+        - "No — additive or editorial"
+        - "Yes — breaking"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered and rejected
+      description: A rejected alternative is often more useful to the working group than the proposal.
+  - type: dropdown
+    id: perspective
+    attributes:
+      label: You are commenting as
+      options:
+        - Buyer / advertiser
+        - Agency
+        - Publisher / seller
+        - SSP
+        - DSP
+        - Ad server / OMS
+        - Measurement / verification vendor
+        - Standards body / working group participant
+        - Individual, no organisational position
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before you submit
+      options:
+        - label: >-
+            I have read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) and agree my
+            contribution may be published under this repository's licence.
+          required: true
+        - label: This contains no confidential or commercially sensitive information.
+          required: true
