@@ -96,7 +96,7 @@ reference in place of an inline value:
 
 ```
 catalog_ref: "<seller_namespace>/<collection>/<entry_id>@<version>"
-example:     "newscorp/audiences/smb-decision-makers@3"
+example:     "examplepub/audiences/smb-decision-makers@3"
 ```
 
 - A field MUST carry either an inline value or a `catalog_ref`, never both.

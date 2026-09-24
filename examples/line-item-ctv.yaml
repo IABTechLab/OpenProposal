@@ -1,8 +1,8 @@
 # OpenProposal 3.0 — Example: CTV line item (spec § 6.3)
-line_item_id:   "fox-ctv"
+line_item_id:   "weather-app-ctv"
 status:         published
 channel:        ctv
-properties:     { available: [{ id: "fox-weather-app" }], included: ["fox-weather-app"] }
+properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
 environments:   { available: ["ctv"], included: ["ctv"] }
 formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
                   included: ["ctv/instream-15s"],
@@ -22,7 +22,7 @@ commitment:
   currency: USD
   flight_start: "2026-10-06"
   flight_end:   "2026-12-21"
-  idempotency_key: "wpp-volt2-fox-ctv-3b7e0d52"
+  idempotency_key: "agency-a-camp1-weather-app-ctv-3b7e0d52"
 
 hold_status:    { hold_available: true, hold_duration: "P14D",
                   hold_scope: line_item, state: held,
@@ -32,4 +32,4 @@ committed_metrics: [{ metric: completion_rate, value: 0.95, basis: seller_report
 buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["PRIVATE_AUCTION"], included: ["PRIVATE_AUCTION"] }
 serving_mode:      ssai
-correlation_id:    "nc-q4-2026-commitment/fox-ctv"
+correlation_id:    "ep-q4-2026-commitment/weather-app-ctv"
