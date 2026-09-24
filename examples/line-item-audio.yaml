@@ -1,5 +1,5 @@
 # OpenProposal 3.0 — Example: Audio line item (spec § 6.4)
-line_item_id:   "iheart-audio"
+line_item_id:   "streaming-audio"
 status:         published
 channel:        audio
 environments:   { available: ["audio_streaming"], included: ["audio_streaming"] }
@@ -26,10 +26,10 @@ commitment:
   currency: USD
   flight_start: "2026-10-06"
   flight_end:   "2026-12-21"
-  idempotency_key: "wpp-volt2-iheart-audio-a7c33e10"
+  idempotency_key: "agency-a-camp1-streaming-audio-a7c33e10"
 
 committed_metrics: [{ metric: completion_rate, value: 0.92, basis: seller_reported }]
 buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["PREFERRED_DEAL"], included: ["PREFERRED_DEAL"] }
 serving_mode:      dai
-correlation_id:    "nc-q4-2026-commitment/iheart-audio"
+correlation_id:    "ep-q4-2026-commitment/streaming-audio"

@@ -1,15 +1,15 @@
 # OpenProposal 3.0 — Example: Display line item, fully worked (spec § 6.2)
 # Shows selectable audiences with per-option pricing, a catalog reference,
 # a buyer commitment, and settable bounds.
-line_item_id:   "wsj-display"
+line_item_id:   "business-daily-display"
 status:         published
 channel:        display
 
 properties:
-  available:    [{ id: "wsj", domains: ["wsj.com"] },
-                 { id: "barrons", domains: ["barrons.com"] }]
-  included:     ["wsj"]
-  pricing:      { barrons: { delta_cpm: 2.00 } }
+  available:    [{ id: "business-daily", domains: ["business-daily.example"] },
+                 { id: "markets-weekly", domains: ["markets-weekly.example"] }]
+  included:     ["business-daily"]
+  pricing:      { markets-weekly: { delta_cpm: 2.00 } }
   max_select:   2
 
 environments:
@@ -18,12 +18,12 @@ environments:
 
 audiences:
   available:
-    - catalog_ref: "newscorp/audiences/smb-decision-makers@3"
-    - { id: "nc:hnw-investors", provenance: modeled, addressable_scale: 1100000 }
-    - { id: "nc:cfo-finance-leaders", provenance: first_party, addressable_scale: 480000 }
-  included:     ["nc:smb-decision-makers"]
-  pricing:      { "nc:hnw-investors":       { delta_cpm: 4.00 },
-                  "nc:cfo-finance-leaders": { delta_cpm: 6.50 } }
+    - catalog_ref: "examplepub/audiences/smb-decision-makers@3"
+    - { id: "ep:hnw-investors", provenance: modeled, addressable_scale: 1100000 }
+    - { id: "ep:cfo-finance-leaders", provenance: first_party, addressable_scale: 480000 }
+  included:     ["ep:smb-decision-makers"]
+  pricing:      { "ep:hnw-investors":       { delta_cpm: 4.00 },
+                  "ep:cfo-finance-leaders": { delta_cpm: 6.50 } }
   max_select:   2
 
 addressable_scale: 3200000            # derived; recomputed on selection
@@ -68,7 +68,7 @@ commitment:
   flight_start:    "2026-10-06"
   flight_end:      "2026-12-21"
   derived_units:   3137254             # derived
-  idempotency_key: "wpp-volt2-wsj-display-8f42c1a9"
+  idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9"
 
 hold_status:    { hold_available: true, hold_duration: "P7D",
                   hold_scope: line_item, state: none }
@@ -88,14 +88,14 @@ reporting:
 
 visibility:            registry_gated
 required_credentials:  [{ type: dsp_seat, scheme: jwt_keypair,
-                          issuer: "thetradedesk", id_required: true }]
+                          issuer: "dsp-a", id_required: true }]
 
 buying_route:           PUBLISHER_AD_SERVER
 transaction_mechanism:  { available: ["PROGRAMMATIC_GUARANTEED", "PREFERRED_DEAL"],
                           included: ["PROGRAMMATIC_GUARANTEED"] }
 serving_mode:           client_side
-buyer_requirements:     { seat_required: true, dsp_allowed: ["ttd", "dv360"],
-                          dsp_seat_id: "seat-99812", dsp_id: "ttd-prod",
-                          seat_owner_entity: "Agency Alpha" }
+buyer_requirements:     { seat_required: true, dsp_allowed: ["dsp-a", "dsp-b"],
+                          dsp_seat_id: "seat-99812", dsp_id: "dsp-a-prod",
+                          seat_owner_entity: "Agency A" }
 
-correlation_id:  "nc-q4-2026-commitment/wsj-display"
+correlation_id:  "ep-q4-2026-commitment/business-daily-display"
