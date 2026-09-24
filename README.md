@@ -17,6 +17,7 @@ server.
 | **Comment period opens** | 2026-09-22 |
 | **Comment period closes** | 2026-10-22 |
 | **Announcement** | [IAB Tech Lab introduces AAMP 3.0 with OpenProposal](https://iabtechlab.com/press-releases/iab-tech-lab-introduces-aamp-3-0-with-openproposal/) |
+| **Short link** | [iabtechlab.com/AAMPv3](https://iabtechlab.com/AAMPv3) (points to this repository) |
 | **How to comment** | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | **Open questions we especially want answered** | [docs/open-questions.md](docs/open-questions.md) |
 
@@ -80,10 +81,9 @@ them. Until then, [`examples/`](examples/) is the best reference for shape. See
 
 ## For maintainers
 
-Before this repository is announced, work through
-[docs/repo-setup.md](docs/repo-setup.md). It covers the settings that cannot
-be committed — branch protection, Discussions, labels, the tagged draft — and
-the placeholders that must be filled, starting with the licence.
+[docs/repo-setup.md](docs/repo-setup.md) lists the settings that cannot be
+committed — branch protection, Discussions, labels, the tagged draft — and the
+placeholders still to be filled.
 
 ## Licence and IPR
 
