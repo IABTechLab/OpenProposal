@@ -1,6 +1,7 @@
 # Machine-readable schema
 
-**Not yet published.**
+**Coming.** Schemas are not published with this first draft; they will follow
+the first revision after the comment period closes on 2026-10-22.
 
 The draft in [`../spec/openproposal-3.0.md`](../spec/openproposal-3.0.md) is
 prose and tables. A JSON Schema is deliberately not published alongside this

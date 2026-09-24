@@ -5,7 +5,7 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
-## [3.0-draft-1] — TBD
+## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
 document with no normative changes.
