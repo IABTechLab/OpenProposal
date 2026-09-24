@@ -107,6 +107,6 @@ reporting what does not fit.
 ## Not on this list but worth saying
 
 If you think the draft has a problem it has not asked about, file it as a
-[Comment](../../../issues/new?template=comment.yml) or a
-[Change request](../../../issues/new?template=change-request.yml). The seven
+[Comment](https://github.com/IABTechLab/OpenProposal/issues/new?template=comment.yml) or a
+[Change request](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml). The seven
 above are where we know we are undecided, not the limit of what we will consider.

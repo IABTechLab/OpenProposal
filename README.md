@@ -41,11 +41,11 @@ Pick the route that matches what you have to say:
 
 | You want to… | Do this |
 | :--- | :--- |
-| Flag something unclear, wrong, or missing | [Open a **Comment**](../../issues/new?template=comment.yml) |
-| Propose specific normative wording | [Open a **Change request**](../../issues/new?template=change-request.yml), or send a pull request against `spec/openproposal-3.0.md` |
+| Flag something unclear, wrong, or missing | [Open a **Comment**](https://github.com/IABTechLab/OpenProposal/issues/new?template=comment.yml) |
+| Propose specific normative wording | [Open a **Change request**](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml), or send a pull request against `spec/openproposal-3.0.md` |
 | Answer one of the 7 open questions | Comment on that question's [tracking issue](docs/open-questions.md) |
-| Report what happened when you tried to implement it | [Open **Implementation feedback**](../../issues/new?template=implementation-feedback.yml) |
-| Ask a question rather than raise an issue | Use [Discussions](../../discussions) |
+| Report what happened when you tried to implement it | [Open **Implementation feedback**](https://github.com/IABTechLab/OpenProposal/issues/new?template=implementation-feedback.yml) |
+| Ask a question rather than raise an issue | Use [Discussions](https://github.com/IABTechLab/OpenProposal/discussions) |
 
 Every comment filed during the comment period gets a written disposition —
 accepted, accepted with modification, rejected with reason, or deferred — logged
