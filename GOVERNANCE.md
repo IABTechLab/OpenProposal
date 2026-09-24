@@ -1,7 +1,7 @@
 # Governance
 
-> **This document is a scaffold. Maintainers must fill the `TBD` sections before
-> the repository is announced.** A public comment period without a named
+> **The names and decision rule below are still `TBD` and will be filled in
+> during the comment period.** A public comment period without a named
 > decision-maker and a stated decision rule is not credible — the first question
 > a commenter asks is "who decides, and how do I know my comment was read?"
 
@@ -51,8 +51,8 @@ The illustrative rates in [`examples/`](examples/) are fictional and exist to
 demonstrate field shape.
 
 IPR terms are in [CONTRIBUTING.md § 6](CONTRIBUTING.md#ipr) and
-[LICENSE](LICENSE). `TBD — confirm the IAB Tech Lab IPR policy applicable to
-this working group and link it here.`
+[LICENSE](LICENSE). IAB Tech Lab members are also subject to the
+[IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/).
 
 ## Changing this document
 

@@ -1,25 +1,26 @@
 # Repository setup checklist
 
 Everything in this list is a **GitHub settings change that cannot be committed
-to the repository.** Work through it before announcing the comment period.
+to the repository.** The comment period opened on 2026-09-22; items still
+unchecked are outstanding.
 
-## Must do before announcing
+## Must do
 
 - [x] **Replace `LICENSE`.** Specification: CC BY 3.0; code: Apache-2.0
       (`LICENSE-CODE`). `CONTRIBUTING.md § 6` and `GOVERNANCE.md` updated to
       match.
 - [ ] **Fill every `TBD`.** Grep for it:
       `grep -rn 'TBD' --include='*.md' --include='*.yml' .`
-      The comment-period dates, the working group, the chair(s), the decision
-      rule and the conduct contact are all placeholders.
+      The working group, the chair(s), the decision rule, the adjudication
+      dates and the conduct contact are still placeholders.
 - [x] **Set the default branch to `main`** and make it the published draft.
 - [ ] **Replace `.github/CODEOWNERS`** with the real team or usernames. A public
       comment period needs a named owner who responds.
 
 ## Repository settings
 
-- [ ] **Visibility: public.** It is currently empty and unannounced; make it
-      public only once the licence is real.
+- [x] **Visibility: public.** It is the announced comment channel
+      (`iabtechlab.com/AAMPv3` redirects here).
 - [ ] **Issues: on.** They are the formal comment record.
 - [ ] **Discussions: on.** For questions and thinking out loud.
       `.github/ISSUE_TEMPLATE/config.yml` already links to it, so the link is

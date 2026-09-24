@@ -14,8 +14,8 @@ or a documented decision not to change it.
 | **5. Disposition published** | `TBD` | [disposition-log.md](disposition-log.md) published in full. Commenters notified on their issue. |
 | **6. Revised draft** | `TBD` | New draft tagged. Either ratification or a second comment period, depending on how much moved. |
 
-> **Maintainers: fill every `TBD` above before announcing.** A public comment
-> period with no closing date is not a comment period.
+> **Maintainers: phases 4–6 are still `TBD`.** Fill them before the comment
+> period closes on 2026-10-22.
 
 ## Dispositions
 
