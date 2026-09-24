@@ -14,8 +14,9 @@ server.
 | | |
 | :--- | :--- |
 | **Current draft** | [`spec/openproposal-3.0.md`](spec/openproposal-3.0.md) |
-| **Comment period opens** | `TBD — set before announcing` |
-| **Comment period closes** | `TBD — set before announcing` |
+| **Comment period opens** | 2026-09-22 |
+| **Comment period closes** | 2026-10-22 |
+| **Announcement** | [IAB Tech Lab introduces AAMP 3.0 with OpenProposal](https://iabtechlab.com/press-releases/iab-tech-lab-introduces-aamp-3-0-with-openproposal/) |
 | **How to comment** | [CONTRIBUTING.md](CONTRIBUTING.md) |
 | **Open questions we especially want answered** | [docs/open-questions.md](docs/open-questions.md) |
 
@@ -26,7 +27,7 @@ server.
 ```
 spec/openproposal-3.0.md   The normative draft. The single source of truth.
 examples/                  Worked examples from § 6, as parseable YAML.
-schema/                    Machine-readable schema (not yet published — see schema/README.md).
+schema/                    Machine-readable schema (coming — see schema/README.md).
 docs/                      Comment process, open questions, disposition log.
 ```
 
@@ -70,6 +71,13 @@ OpenProposal does not replace IAB Tech Lab execution standards — each line ite
 lands in the one its `transaction_mechanism` maps to (OpenDirect 2.1, Deals API,
 OpenRTB 2.6). See § 1.1.
 
+## Schemas
+
+Machine-readable schemas are coming. They are not published with this first
+draft, because the comment period is still deciding questions that shape
+them. Until then, [`examples/`](examples/) is the best reference for shape. See
+[schema/README.md](schema/README.md).
+
 ## For maintainers
 
 Before this repository is announced, work through
@@ -79,6 +87,13 @@ the placeholders that must be filled, starting with the licence.
 
 ## Licence and IPR
 
-See [LICENSE](LICENSE). Contributions are subject to the IAB Tech Lab
-intellectual property policy — read [CONTRIBUTING.md](CONTRIBUTING.md#ipr)
-before filing anything.
+The OpenProposal specification is licensed under a
+[Creative Commons Attribution 3.0 License](https://creativecommons.org/licenses/by/3.0/).
+Code in `scripts/` and `.github/workflows/` is licensed under
+[Apache-2.0](LICENSE-CODE). Full terms and the disclaimer are in
+[LICENSE](LICENSE).
+
+By submitting anything to this repository you license it to IAB Tech Lab under
+the same Creative Commons licence. IAB Tech Lab members are also subject to the
+[IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/).
+Read [CONTRIBUTING.md](CONTRIBUTING.md#ipr) before filing anything.

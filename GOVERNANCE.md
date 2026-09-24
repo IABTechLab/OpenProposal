@@ -51,8 +51,8 @@ The illustrative rates in [`examples/`](examples/) are fictional and exist to
 demonstrate field shape.
 
 IPR terms are in [CONTRIBUTING.md § 6](CONTRIBUTING.md#ipr) and
-[LICENSE](LICENSE). `TBD — confirm the IAB Tech Lab IPR policy applicable to
-this working group and link it here.`
+[LICENSE](LICENSE). IAB Tech Lab members are also subject to the
+[IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/).
 
 ## Changing this document
 

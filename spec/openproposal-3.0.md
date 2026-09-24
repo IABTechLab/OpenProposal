@@ -2,11 +2,18 @@
 
 **AAMP 3.0 · Draft for public comment**
 
+**Version 3.0 draft 1** · *Published for comment 2026-09-22*
+
 > **Status:** Draft. This document is open for public comment. It is not a
 > ratified IAB Tech Lab standard and MUST NOT be treated as one. See
 > [CONTRIBUTING.md](../CONTRIBUTING.md) for how to comment and
 > [docs/comment-process.md](../docs/comment-process.md) for what happens to
 > your comment.
+
+**License.** OpenProposal Specification by IAB Tech Lab is licensed under a
+Creative Commons Attribution 3.0 License. To view a copy of this license, visit
+[creativecommons.org/licenses/by/3.0/](https://creativecommons.org/licenses/by/3.0/).
+See [LICENSE](../LICENSE).
 
 OpenProposal is the core AAMP 3.0 object: the descriptive specification for
 what is being bought and sold, engineered so a buying agent can parse and

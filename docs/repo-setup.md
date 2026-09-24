@@ -5,14 +5,14 @@ to the repository.** Work through it before announcing the comment period.
 
 ## Must do before announcing
 
-- [ ] **Replace `LICENSE`.** It is a placeholder that grants no rights. Confirm
-      the licence and the IAB Tech Lab IPR policy applicable to this working
-      group, then update `CONTRIBUTING.md § 6` and `GOVERNANCE.md` to match.
+- [x] **Replace `LICENSE`.** Specification: CC BY 3.0; code: Apache-2.0
+      (`LICENSE-CODE`). `CONTRIBUTING.md § 6` and `GOVERNANCE.md` updated to
+      match.
 - [ ] **Fill every `TBD`.** Grep for it:
       `grep -rn 'TBD' --include='*.md' --include='*.yml' .`
       The comment-period dates, the working group, the chair(s), the decision
       rule and the conduct contact are all placeholders.
-- [ ] **Set the default branch to `main`** and make it the published draft.
+- [x] **Set the default branch to `main`** and make it the published draft.
 - [ ] **Replace `.github/CODEOWNERS`** with the real team or usernames. A public
       comment period needs a named owner who responds.
 

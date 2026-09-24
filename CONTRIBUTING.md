@@ -81,20 +81,22 @@ adjudicates, and what each disposition means.
 
 **Read this before filing.**
 
-- This repository is published under the terms in [LICENSE](LICENSE).
-- By filing an issue, comment, or pull request, you agree that your contribution
-  may be incorporated into the OpenProposal specification and published under
-  that licence, and you confirm you have the right to make the contribution.
-- Contributions from IAB Tech Lab member organisations are additionally subject
-  to the IAB Tech Lab intellectual property rights policy applicable to this
-  working group.
+- The specification is licensed under a
+  [Creative Commons Attribution 3.0 License](https://creativecommons.org/licenses/by/3.0/).
+  Code in `scripts/` and `.github/workflows/` is licensed under Apache-2.0
+  ([LICENSE-CODE](LICENSE-CODE)). Full terms are in [LICENSE](LICENSE).
+- By submitting an idea, specification, software code, document, file, or other
+  material (a "Submission") — including an issue, comment, or pull request — you
+  license that Submission to IAB Tech Lab under the Creative Commons
+  Attribution 3.0 License, agree it may be made available to the public under
+  that licence, and confirm you have the right to make it.
+- If you are a member of IAB Tech Lab, the
+  [IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/)
+  may also apply to your Submission, and where it applies it controls in the
+  event of a conflict with the Creative Commons Attribution 3.0 License.
 - **Do not file anything you consider confidential.** This repository is public.
   Rate cards, deal terms, client names and inventory data filed here are public
   the moment you press submit. Anonymise your examples.
-
-> **Maintainers: `LICENSE` is a placeholder pending confirmation of the correct
-> IAB Tech Lab licence and IPR policy for this working group. Confirm it before
-> the repository is announced.**
 
 ## 7. Code of conduct
 
