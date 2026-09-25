@@ -35,7 +35,7 @@ See [GOVERNANCE.md](GOVERNANCE.md#anti-trust-and-ipr).
 
 ## Reporting
 
-Report a problem to `TBD — maintainer contact address`. Reports are handled
+Report a problem to [support@iabtechlab.com](mailto:support@iabtechlab.com). Reports are handled
 confidentially. Maintainers may edit, hide, or delete comments, and may block
 accounts, for conduct that breaches this document.
 

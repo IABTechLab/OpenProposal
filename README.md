@@ -32,10 +32,23 @@ schema/                    Machine-readable schema (coming — see schema/README
 docs/                      Comment process, open questions, disposition log.
 ```
 
+## About this repository
+
+`main` always holds the current draft. Each published draft is tagged; the
+draft announced for public comment is
+[`v3.0-draft-1`](https://github.com/IABTechLab/OpenProposal/releases/tag/v3.0-draft-1).
+Changes to `main` go through pull requests, and every normative change is
+recorded in [spec/CHANGELOG.md](spec/CHANGELOG.md) with the issue behind it.
+
 ## How to comment
 
 **You do not need to be an IAB Tech Lab member to comment.** All you need is a
 GitHub account.
+
+Commenting and deciding are separate. Anyone may comment; the working group
+reviews every comment and decides its disposition. See
+[GOVERNANCE.md](GOVERNANCE.md) for who is on the working group and how
+decisions are made.
 
 Pick the route that matches what you have to say:
 
@@ -76,8 +89,30 @@ OpenRTB 2.6). See § 1.1.
 
 Machine-readable schemas are coming. They are not published with this first
 draft, because the comment period is still deciding questions that shape
-them. Until then, [`examples/`](examples/) is the best reference for shape. See
-[schema/README.md](schema/README.md).
+them. They will follow the first revision, after the comment period closes on
+2026-10-22. Until then, [`examples/`](examples/) is the best reference for
+shape. See [schema/README.md](schema/README.md).
+
+## Contributors and governance
+
+OpenProposal is developed by an IAB Tech Lab working group. Roles, the decision
+rule and how comments are adjudicated are in [GOVERNANCE.md](GOVERNANCE.md) and
+[docs/comment-process.md](docs/comment-process.md).
+
+## Contact
+
+For more information, or to get involved, email
+[support@iabtechlab.com](mailto:support@iabtechlab.com).
+
+## About IAB Tech Lab
+
+The IAB Technology Laboratory is a nonprofit research and development
+consortium charged with producing and helping companies implement global
+industry technical standards and solutions. The goal of the Tech Lab is to
+reduce friction associated with the digital advertising and marketing supply
+chain while contributing to the safe growth of an industry.
+
+Learn more at [iabtechlab.com](https://iabtechlab.com).
 
 ## For maintainers
 
@@ -87,13 +122,14 @@ placeholders still to be filled.
 
 ## Licence and IPR
 
-The OpenProposal specification is licensed under a
-[Creative Commons Attribution 3.0 License](https://creativecommons.org/licenses/by/3.0/).
-Code in `scripts/` and `.github/workflows/` is licensed under
-[Apache-2.0](LICENSE-CODE). Full terms and the disclaimer are in
-[LICENSE](LICENSE).
+OpenProposal Specification by IAB Tech Lab is licensed under a Creative Commons Attribution 3.0 License. To view a copy of this license, visit [creativecommons.org/licenses/by/3.0/](https://creativecommons.org/licenses/by/3.0/) or write to Creative Commons, 171 Second Street, Suite 300, San Francisco, CA 94105, USA.
 
-By submitting anything to this repository you license it to IAB Tech Lab under
-the same Creative Commons licence. IAB Tech Lab members are also subject to the
-[IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/).
+By submitting an idea, specification, software code, document, file, or other material (each, a "Submission") to the OpenProposal repository, to any member of the IAB Tech Lab working group responsible for OpenProposal, or to the IAB Tech Lab in relation to OpenProposal / AAMP 3.0 you agree to and hereby license such Submission to the IAB Tech Lab under the Creative Commons Attribution 3.0 License and agree that such Submission may be used and made available to the public under the terms of such license. If you are a member of the IAB Tech Lab then the terms and conditions of the [IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/) may also be applicable to your Submission, and if the IPR Policy is applicable to your Submission then the IPR Policy will control in the event of a conflict between the Creative Commons Attribution 3.0 License and the IPR Policy.
+
+Software code in this repository (scripts/ and .github/workflows/) is licensed under the Apache License, Version 2.0. See [LICENSE-CODE](LICENSE-CODE).
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md#ipr) before filing anything.
+
+## Disclaimer
+
+THE STANDARDS, THE SPECIFICATIONS, THE MEASUREMENT GUIDELINES, AND ANY OTHER MATERIALS OR SERVICES PROVIDED TO OR USED BY YOU HEREUNDER (THE "PRODUCTS AND SERVICES") ARE PROVIDED "AS IS" AND "AS AVAILABLE," AND IAB TECHNOLOGY LABORATORY, INC. ("TECH LAB") MAKES NO WARRANTY WITH RESPECT TO THE SAME AND HEREBY DISCLAIMS ANY AND ALL EXPRESS, IMPLIED, OR STATUTORY WARRANTIES, INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AVAILABILITY, ERROR-FREE OR UNINTERRUPTED OPERATION, AND ANY WARRANTIES ARISING FROM A COURSE OF DEALING, COURSE OF PERFORMANCE, OR USAGE OF TRADE. TO THE EXTENT THAT TECH LAB MAY NOT AS A MATTER OF APPLICABLE LAW DISCLAIM ANY IMPLIED WARRANTY, THE SCOPE AND DURATION OF SUCH WARRANTY WILL BE THE MINIMUM PERMITTED UNDER SUCH LAW. THE PRODUCTS AND SERVICES DO NOT CONSTITUTE BUSINESS OR LEGAL ADVICE. TECH LAB DOES NOT WARRANT THAT THE PRODUCTS AND SERVICES PROVIDED TO OR USED BY YOU HEREUNDER SHALL CAUSE YOU AND/OR YOUR PRODUCTS OR SERVICES TO BE IN COMPLIANCE WITH ANY APPLICABLE LAWS, REGULATIONS, OR SELF-REGULATORY FRAMEWORKS, AND YOU ARE SOLELY RESPONSIBLE FOR COMPLIANCE WITH THE SAME, INCLUDING, BUT NOT LIMITED TO, DATA PROTECTION LAWS, SUCH AS THE PERSONAL INFORMATION PROTECTION AND ELECTRONIC DOCUMENTS ACT (CANADA), THE DATA PROTECTION DIRECTIVE (EU), THE E-PRIVACY DIRECTIVE (EU), THE GENERAL DATA PROTECTION REGULATION (EU), AND THE E-PRIVACY REGULATION (EU) AS AND WHEN THEY BECOME EFFECTIVE.
