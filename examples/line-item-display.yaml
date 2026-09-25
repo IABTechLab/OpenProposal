@@ -53,7 +53,7 @@ frequency_cap:  { max: { min: 1, max: 5 }, period: "day", basis: device }
 pricing:
   - cost_method:       CPM
     gross_rate:        24.00
-    agreed_rate:       25.50          # derived: base 24.00 + clean_room 1.50
+    agreed_rate:       24.00          # derived: no priced options included
     seller_rate:       20.40
     floor:             21.00
     price_valid_until: "2026-11-15T23:59:59Z"
@@ -67,7 +67,7 @@ commitment:
   currency:        USD
   flight_start:    "2026-10-06"
   flight_end:      "2026-12-21"
-  derived_units:   3137254             # derived
+  derived_units:   3333333             # derived: 80000.00 / 24.00 × 1000
   idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9"
 
 hold_status:    { hold_available: true, hold_duration: "P7D",
