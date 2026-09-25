@@ -32,10 +32,23 @@ schema/                    Machine-readable schema (coming — see schema/README
 docs/                      Comment process, open questions, disposition log.
 ```
 
+## About this repository
+
+`main` always holds the current draft. Each published draft is tagged; the
+draft announced for public comment is
+[`v3.0-draft-1`](https://github.com/IABTechLab/OpenProposal/releases/tag/v3.0-draft-1).
+Changes to `main` go through pull requests, and every normative change is
+recorded in [spec/CHANGELOG.md](spec/CHANGELOG.md) with the issue behind it.
+
 ## How to comment
 
 **You do not need to be an IAB Tech Lab member to comment.** All you need is a
 GitHub account.
+
+Commenting and deciding are separate. Anyone may comment; the working group
+reviews every comment and decides its disposition. See
+[GOVERNANCE.md](GOVERNANCE.md) for who is on the working group and how
+decisions are made.
 
 Pick the route that matches what you have to say:
 
@@ -79,6 +92,27 @@ draft, because the comment period is still deciding questions that shape
 them. Until then, [`examples/`](examples/) is the best reference for shape. See
 [schema/README.md](schema/README.md).
 
+## Contributors and governance
+
+OpenProposal is developed by an IAB Tech Lab working group. Roles, the decision
+rule and how comments are adjudicated are in [GOVERNANCE.md](GOVERNANCE.md) and
+[docs/comment-process.md](docs/comment-process.md).
+
+## Contact
+
+For more information, or to get involved, email
+[support@iabtechlab.com](mailto:support@iabtechlab.com).
+
+## About IAB Tech Lab
+
+The IAB Technology Laboratory is a nonprofit research and development
+consortium charged with producing and helping companies implement global
+industry technical standards and solutions. The goal of the Tech Lab is to
+reduce friction associated with the digital advertising and marketing supply
+chain while contributing to the safe growth of an industry.
+
+Learn more at [iabtechlab.com](https://iabtechlab.com).
+
 ## For maintainers
 
 [docs/repo-setup.md](docs/repo-setup.md) lists the settings that cannot be
@@ -97,3 +131,9 @@ By submitting anything to this repository you license it to IAB Tech Lab under
 the same Creative Commons licence. IAB Tech Lab members are also subject to the
 [IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/).
 Read [CONTRIBUTING.md](CONTRIBUTING.md#ipr) before filing anything.
+
+## Disclaimer
+
+The specification and all related materials are provided "as is" and "as
+available", without warranty of any kind. They do not constitute business or
+legal advice. The full disclaimer is in [LICENSE](LICENSE).
