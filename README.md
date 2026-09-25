@@ -89,8 +89,9 @@ OpenRTB 2.6). See § 1.1.
 
 Machine-readable schemas are coming. They are not published with this first
 draft, because the comment period is still deciding questions that shape
-them. Until then, [`examples/`](examples/) is the best reference for shape. See
-[schema/README.md](schema/README.md).
+them. They will follow the first revision, after the comment period closes on
+2026-10-22. Until then, [`examples/`](examples/) is the best reference for
+shape. See [schema/README.md](schema/README.md).
 
 ## Contributors and governance
 
