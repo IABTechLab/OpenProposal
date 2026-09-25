@@ -122,19 +122,14 @@ placeholders still to be filled.
 
 ## Licence and IPR
 
-The OpenProposal specification is licensed under a
-[Creative Commons Attribution 3.0 License](https://creativecommons.org/licenses/by/3.0/).
-Code in `scripts/` and `.github/workflows/` is licensed under
-[Apache-2.0](LICENSE-CODE). Full terms and the disclaimer are in
-[LICENSE](LICENSE).
+OpenProposal Specification by IAB Tech Lab is licensed under a Creative Commons Attribution 3.0 License. To view a copy of this license, visit [creativecommons.org/licenses/by/3.0/](https://creativecommons.org/licenses/by/3.0/) or write to Creative Commons, 171 Second Street, Suite 300, San Francisco, CA 94105, USA.
 
-By submitting anything to this repository you license it to IAB Tech Lab under
-the same Creative Commons licence. IAB Tech Lab members are also subject to the
-[IAB Tech Lab IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/).
+By submitting an idea, specification, software code, document, file, or other material (each, a "Submission") to the OpenProposal repository, to any member of the IAB Tech Lab working group responsible for OpenProposal, or to the IAB Tech Lab in relation to OpenProposal / AAMP 3.0 you agree to and hereby license such Submission to the IAB Tech Lab under the Creative Commons Attribution 3.0 License and agree that such Submission may be used and made available to the public under the terms of such license. If you are a member of the IAB Tech Lab then the terms and conditions of the [IPR Policy](https://iabtechlab.com/ipr-iab-techlab/acknowledge-ipr/) may also be applicable to your Submission, and if the IPR Policy is applicable to your Submission then the IPR Policy will control in the event of a conflict between the Creative Commons Attribution 3.0 License and the IPR Policy.
+
+Software code in this repository (scripts/ and .github/workflows/) is licensed under the Apache License, Version 2.0. See [LICENSE-CODE](LICENSE-CODE).
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md#ipr) before filing anything.
 
 ## Disclaimer
 
-The specification and all related materials are provided "as is" and "as
-available", without warranty of any kind. They do not constitute business or
-legal advice. The full disclaimer is in [LICENSE](LICENSE).
+THE STANDARDS, THE SPECIFICATIONS, THE MEASUREMENT GUIDELINES, AND ANY OTHER MATERIALS OR SERVICES PROVIDED TO OR USED BY YOU HEREUNDER (THE "PRODUCTS AND SERVICES") ARE PROVIDED "AS IS" AND "AS AVAILABLE," AND IAB TECHNOLOGY LABORATORY, INC. ("TECH LAB") MAKES NO WARRANTY WITH RESPECT TO THE SAME AND HEREBY DISCLAIMS ANY AND ALL EXPRESS, IMPLIED, OR STATUTORY WARRANTIES, INCLUDING, WITHOUT LIMITATION, ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AVAILABILITY, ERROR-FREE OR UNINTERRUPTED OPERATION, AND ANY WARRANTIES ARISING FROM A COURSE OF DEALING, COURSE OF PERFORMANCE, OR USAGE OF TRADE. TO THE EXTENT THAT TECH LAB MAY NOT AS A MATTER OF APPLICABLE LAW DISCLAIM ANY IMPLIED WARRANTY, THE SCOPE AND DURATION OF SUCH WARRANTY WILL BE THE MINIMUM PERMITTED UNDER SUCH LAW. THE PRODUCTS AND SERVICES DO NOT CONSTITUTE BUSINESS OR LEGAL ADVICE. TECH LAB DOES NOT WARRANT THAT THE PRODUCTS AND SERVICES PROVIDED TO OR USED BY YOU HEREUNDER SHALL CAUSE YOU AND/OR YOUR PRODUCTS OR SERVICES TO BE IN COMPLIANCE WITH ANY APPLICABLE LAWS, REGULATIONS, OR SELF-REGULATORY FRAMEWORKS, AND YOU ARE SOLELY RESPONSIBLE FOR COMPLIANCE WITH THE SAME, INCLUDING, BUT NOT LIMITED TO, DATA PROTECTION LAWS, SUCH AS THE PERSONAL INFORMATION PROTECTION AND ELECTRONIC DOCUMENTS ACT (CANADA), THE DATA PROTECTION DIRECTIVE (EU), THE E-PRIVACY DIRECTIVE (EU), THE GENERAL DATA PROTECTION REGULATION (EU), AND THE E-PRIVACY REGULATION (EU) AS AND WHEN THEY BECOME EFFECTIVE.
