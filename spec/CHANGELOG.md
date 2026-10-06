@@ -5,6 +5,9 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 5.6 — `pricing[].floor` is the offer floor, not the downstream auction
+  floor. Editorial clarification ([#16](https://github.com/IABTechLab/OpenProposal/issues/16)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
