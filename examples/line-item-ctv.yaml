@@ -2,7 +2,14 @@
 line_item_id:   "weather-app-ctv"
 status:         published
 channel:        ctv
-properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+properties:
+  available:
+    - id: "weather-app"
+      apps:
+        - { platform: roku, bundle: "000000",
+            storeurl: "https://channelstore.roku.com/details/000000/weather-app",
+            domain: "weather-app.example" }
+  included: ["weather-app"]
 environments:   { available: ["ctv"], included: ["ctv"] }
 formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
                   included: ["ctv/instream-15s"],
