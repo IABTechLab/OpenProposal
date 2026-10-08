@@ -235,7 +235,7 @@ exists.
 | `platform` | REQUIRED | `ios` \| `android` \| `roku` \| `fire_tv` \| `samsung_tv` and other store platforms. No OpenRTB equivalent |
 | `bundle` | REQUIRED | Store ID. As OpenRTB 2.6 `app.bundle` |
 | `storeurl` | OPTIONAL | Store listing URL. As `app.storeurl` |
-| `domain` | OPTIONAL | Developer domain. As `app.domain` |
+| `domain` | RECOMMENDED | Developer domain, against which `app-ads.txt` is checked. As `app.domain` |
 
 Seller authorisation for an app is checked through `app-ads.txt` on its
 developer domain, not through the property's `domains`.
