@@ -83,3 +83,8 @@
   color: "bfd4f2"
 - name: "section:5.10-settlement"
   color: "bfd4f2"
+
+# --- Source ---
+- name: "bootcamp-2026-09-24"
+  color: "fbca04"
+  description: Raised at the Agentic Bootcamp, 24 September 2026
