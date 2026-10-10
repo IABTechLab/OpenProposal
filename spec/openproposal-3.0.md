@@ -222,9 +222,23 @@ channel.
 
 | Field | Type | Mutability | Description |
 | :--- | :--- | :--- | :--- |
-| `properties` | Object | selectable | `available[]` of `{ id, name, domains, supported_formats }`, `included[]`, `pricing`, `max_select` |
+| `properties` | Object | selectable | `available[]` of `{ id, name, domains, apps, supported_formats }`, `included[]`, `pricing`, `max_select`. Each property MUST carry `domains`, `apps` or both |
 | `content_detail` | Object | seller-set | Shows, series, sections, network verticals |
 | `environments` | Object | selectable | `available[]` from `web_desktop` \| `web_mobile` \| `app_mobile` \| `ctv` \| `dooh` \| `audio_streaming` |
+
+**App identity.** `apps[]` identifies the apps behind a property sold in
+`app_mobile` or `ctv`. Keys follow the OpenRTB 2.6 `app` object where one
+exists.
+
+| Key | Required | Meaning |
+| :--- | :--- | :--- |
+| `platform` | REQUIRED | `ios` \| `android` \| `roku` \| `fire_tv` \| `samsung_tv` and other store platforms. No OpenRTB equivalent |
+| `bundle` | REQUIRED | Store ID. As OpenRTB 2.6 `app.bundle` |
+| `storeurl` | OPTIONAL | Store listing URL. As `app.storeurl` |
+| `domain` | RECOMMENDED | Developer domain, against which `app-ads.txt` is checked. As `app.domain` |
+
+Seller authorisation for an app is checked through `app-ads.txt` on its
+developer domain, not through the property's `domains`.
 
 ### 5.3 Audience reach
 
