@@ -271,7 +271,7 @@ Each field declares bounds, not a value. A bare value means the field is
 | `pricing[].seller_rate` | Number | seller-set | What the publisher receives |
 | `pricing[].price_valid_until` | Timestamp | seller-set | How long the posted rate holds. Distinct from the proposal's `valid_until` |
 | `pricing[].currency` | String | seller-set | ISO-4217 |
-| `pricing[].floor` | Number | seller-set | OPTIONAL. The lowest rate the seller will consider. Enables a `requestable` counter to be evaluated without a round trip |
+| `pricing[].floor` | Number | seller-set | OPTIONAL. The seller's offer floor: the lowest rate it will consider at proposal time, so a `requestable` counter can be evaluated without a round trip. Not the downstream auction floor, and not a guarantee that bids at or above it will clear |
 | `availability` | Object | derived | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`. Recomputed against the buyer's selection |
 | `commitment_bounds` | Object | seller-set | The envelope inside which a buyer may commit: `{ min_impressions, max_impressions, min_budget, max_budget }` |
 | `commitment` | Object | settable | **The buyer's actual commitment.** See 5.6.1 |
