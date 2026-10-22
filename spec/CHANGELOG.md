@@ -5,6 +5,9 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 5.5 — `geo` may be `selectable`, with per-market price deltas
+  ([#14](https://github.com/IABTechLab/OpenProposal/issues/14)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group

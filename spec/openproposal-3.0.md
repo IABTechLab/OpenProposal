@@ -163,8 +163,9 @@ treated as `seller-set`.
 
 ### 3.3 Re-computation
 
-Because audiences, properties and formats are `selectable`, `addressable_scale`
-and `availability` MUST be recomputed against the buyer's actual selection. A
+Because audiences, properties, formats and, where it is selectable, `geo` are
+`selectable`, `addressable_scale` and `availability` MUST be recomputed against
+the buyer's actual selection. A
 single declared figure is correct only for the default composition.
 
 ---
@@ -251,14 +252,32 @@ channel.
 ### 5.5 Targeting envelope
 
 Each field declares bounds, not a value. A bare value means the field is
-`seller-set`.
+`seller-set`. `geo` MAY instead declare the selectable structure of § 3.1, so a
+line item can be priced by market.
 
 | Field | Type | Mutability | Description |
 | :--- | :--- | :--- | :--- |
-| `geo` | Object | settable | `allowed[]` of geo codes the buyer may select within |
+| `geo` | Object | selectable | `available[]` of geo codes with `included[]`, `pricing` deltas and `max_select` (§ 3.1), for a line item priced by market. A `geo` that declares only `allowed[]` is `settable`. See below |
 | `device` | Object | settable | `allowed[]` of device categories |
 | `daypart` | Object | settable | `allowed[]` of time windows |
 | `frequency_cap` | Object | settable | `{ max: { min, max }, period, basis: device \| household \| listener }`. Basis matters: CTV typically caps at household, audio at listener |
+
+**Market-priced lines.** A seller whose rate differs by market MAY declare `geo`
+with the selectable structure of § 3.1:
+
+```yaml
+geo:
+  available:  ["SGP", "THA", "IDN", "MYS"]
+  included:   ["SGP", "THA"]
+  pricing:    { "IDN": { delta_cpm: 18.00 }, "MYS": { delta_cpm: 21.00 } }
+  max_select: 4
+```
+
+- A `geo` that declares `allowed[]` and no `available[]` MUST be treated as
+  `settable` (§ 3.2). A `geo` MUST NOT declare both.
+- `pricing` deltas add to `agreed_rate` as for any selectable field (§ 3.1).
+  When the buyer selects more than one priced option, the highest delta among
+  them applies.
 
 ### 5.6 Commercial terms
 
@@ -466,7 +485,7 @@ body is normative.**
 | `materials_due` | 5.4 Creative requirements | Timestamp/Offset | requestable |
 | `approval` | 5.4 Creative requirements | Object | seller-set |
 | `production` | 5.4 Creative requirements | Object | selectable |
-| `geo` | 5.5 Targeting envelope | Object | settable |
+| `geo` | 5.5 Targeting envelope | Object | selectable |
 | `device` | 5.5 Targeting envelope | Object | settable |
 | `daypart` | 5.5 Targeting envelope | Object | settable |
 | `frequency_cap` | 5.5 Targeting envelope | Object | settable |
@@ -513,8 +532,8 @@ body is normative.**
 | :--- | :--- | :--- | :--- |
 | immutable | 6 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `line_item_id`, `channel` |
 | seller-set | 29 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
-| selectable | 12 | Buyer chooses from a declared set. Resolves without assent. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
-| settable | 5 | Buyer sets a value within declared bounds. Resolves without assent. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
+| selectable | 13 | Buyer chooses from a declared set. Resolves without assent. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `geo`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
+| settable | 4 | Buyer sets a value within declared bounds. Resolves without assent. | `device`, `daypart`, `frequency_cap`, `commitment` |
 | supplied | 3 | Buyer provides data or an artifact. | `brief_ref`, `buyer_supplied`, `assets[]` |
 | requestable | 3 | Buyer may ask outside the declared space. Requires seller assent. | `materials_due`, `hold_status`, `committed_metrics[]` |
 | derived | 11 | Computed. Neither party sets it directly. | `version`, `status` (proposal), `assent`, `negotiation_history[]`, `status` (line item), `addressable_scale`, `pricing[].agreed_rate`, `availability`, `deal_id_issuance`, `external_references[]`, `correlation_id` |
@@ -522,7 +541,7 @@ body is normative.**
 
 ### What the distribution says
 
-Of 71 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
+Of 71 fields, **23 are touched by the buyer** — 13 `selectable`, 4 `settable`, 3
 `supplied` and 3 `requestable`. The remaining 48 are `seller-set`, `immutable`,
 `derived` or `mixed`.
 

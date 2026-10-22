@@ -13,6 +13,12 @@ production:
   included:     ["buyer_supplied"]
   pricing:      { seller_built: { delta_flat: 12000.00 } }
 
+geo:                                   # priced by market (§ 5.5)
+  available:    ["USA", "CAN", "GBR"]
+  included:     ["USA"]
+  pricing:      { "CAN": { delta_cpm: 1.50 }, "GBR": { delta_cpm: 3.00 } }
+  max_select:   3
+
 frequency_cap:  { max: { min: 1, max: 6 }, period: "day", basis: listener }
 
 pricing:
