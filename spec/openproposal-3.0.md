@@ -185,11 +185,17 @@ items.
 | `seller_id` | String | immutable | IAB Tech Lab registry reference |
 | `seller_name` | String | immutable | Canonical legal seller entity name, from the registry |
 | `type` | Enum | immutable | `standard` \| `custom` |
+| `proposal_template_id` | String | immutable | OPTIONAL. Links an issued proposal to the seller's template. Opaque to buyers; used for the seller's reporting |
 | `status` | Enum | derived | `draft` \| `published` \| `under_review` \| `agreed` \| `withdrawn` \| `expired` |
 | `assent` | Object | derived | Buyer and seller assent records and timestamps for the binding version. Signature scheme is WS1 |
 | `valid_from` · `valid_until` | Timestamp | seller-set | ISO-8601 window the offer holds. **This is the offer window, not the campaign flight** |
 | `brief_ref` | String | supplied | Reference to the buyer's brief. REQUIRED when `type` is `custom` |
 | `negotiation_history[]` | Array[Object] | derived | Ordered, append-only. `{ version, actor: buyer \| seller, action: proposed \| countered \| accepted \| declined \| withdrawn, fields_changed[], at }`. Entries MUST NOT be edited or removed |
+
+- Each issued proposal has an independent `status`, `version` and
+  `negotiation_history[]`.
+- `proposal_template_id` MUST NOT be required for a buyer to transact. Buyers
+  never resolve it.
 
 ### 4.2 Agent comprehension
 
@@ -396,6 +402,18 @@ See [`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
   satisfaction rather than negotiation. Only genuinely out-of-envelope asks
   require the counterparty to respond.
 
+**Templates and issued proposals (non-normative).**
+
+- **Template:** seller-side only. It lives in the seller's own systems (its
+  proposal store), is not part of the public object, and is never transacted
+  directly.
+- **Issued proposal:** what buyers see and commit against. Each has its own
+  `proposal_id` per counterparty or destination, and may carry
+  `proposal_template_id` (§ 4.1) to trace it back to its template.
+- Buyer-specific terms, such as annual rates and named visibility, live on the
+  issued proposal's line items: `visibility: named`, `eligible_bidders[]` and
+  their own `pricing[]`.
+
 ---
 
 ## 8. Open questions
@@ -438,6 +456,7 @@ body is normative.**
 | `seller_id` | 4.1 Identity and lifecycle | String | immutable |
 | `seller_name` | 4.1 Identity and lifecycle | String | immutable |
 | `type` | 4.1 Identity and lifecycle | Enum | immutable |
+| `proposal_template_id` | 4.1 Identity and lifecycle | String | immutable |
 | `status` | 4.1 Identity and lifecycle | Enum | derived |
 | `assent` | 4.1 Identity and lifecycle | Object | derived |
 | `valid_from` · `valid_until` | 4.1 Identity and lifecycle | Timestamp | seller-set |
@@ -511,7 +530,7 @@ body is normative.**
 
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
-| immutable | 6 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `line_item_id`, `channel` |
+| immutable | 7 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `proposal_template_id`, `line_item_id`, `channel` |
 | seller-set | 29 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | Buyer chooses from a declared set. Resolves without assent. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | Buyer sets a value within declared bounds. Resolves without assent. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
@@ -522,8 +541,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 71 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
-`supplied` and 3 `requestable`. The remaining 48 are `seller-set`, `immutable`,
+Of 72 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
+`supplied` and 3 `requestable`. The remaining 49 are `seller-set`, `immutable`,
 `derived` or `mixed`.
 
 Only the 3 `requestable` fields require a round trip. Everything else the buyer
