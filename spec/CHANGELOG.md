@@ -5,6 +5,11 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2.3 — a seller MAY publish its public standard line items as a static
+  manifest at `/.well-known/openproposal.json`, for a two-phase
+  discover-then-propose flow
+  ([#29](https://github.com/IABTechLab/OpenProposal/issues/29)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group

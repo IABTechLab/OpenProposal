@@ -29,6 +29,7 @@ hold_status:    { hold_available: true, hold_duration: "P14D",
                   hold_expires_at: "2026-10-01T00:00:00Z" }
 
 committed_metrics: [{ metric: completion_rate, value: 0.95, basis: seller_reported }]
+visibility:        public
 buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["PRIVATE_AUCTION"], included: ["PRIVATE_AUCTION"] }
 serving_mode:      ssai
