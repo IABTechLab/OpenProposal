@@ -110,6 +110,31 @@ example:     "examplepub/audiences/smb-decision-makers@3"
   by its resolved value in the stored record, so the committed artifact is
   self-contained and immutable.
 
+### 2.3 Publication
+
+A seller MAY publish `https://<seller domain>/.well-known/openproposal.json`.
+
+Contents: `{ seller_id, generated_at, spec_version, proposals[] }`, where each
+entry in `proposals[]` carries `proposal_id`, `version`, the Summary
+Representation (§ 2.1) of each line item, and a `full_url` for the second
+phase.
+
+- `ETag` / `Last-Modified` are REQUIRED, so buyers can poll cheaply.
+- Only standard proposals appear, and within them only line items whose
+  `visibility` (§ 5.8) is `public`. `registry_gated` and `named` line items do
+  not.
+- Manifest entries MUST match the current version of each proposal. A stale
+  entry is a seller error.
+- Property lists stay as names in the summary; large lists use `catalog_ref`
+  (§ 2.2).
+
+Two-phase flow:
+
+1. **Discover:** fetch the manifest and screen the summaries. No language model
+   is required.
+2. **Propose:** fetch the Full Representation of shortlisted line items from
+   `full_url`, then compose and commit as usual.
+
 ---
 
 ## 3. Field mutability
@@ -374,6 +399,12 @@ See [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
 ### 6.4 Audio line item
 
 See [`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
+
+### 6.5 Publication manifest
+
+A manifest (§ 2.3) listing the public line items of the example proposal. The
+display line item is `registry_gated`, so it is not listed. See
+[`examples/manifest.json`](../examples/manifest.json).
 
 ---
 

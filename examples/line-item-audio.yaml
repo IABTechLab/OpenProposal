@@ -29,6 +29,7 @@ commitment:
   idempotency_key: "agency-a-camp1-streaming-audio-a7c33e10"
 
 committed_metrics: [{ metric: completion_rate, value: 0.92, basis: seller_reported }]
+visibility:        public
 buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["PREFERRED_DEAL"], included: ["PREFERRED_DEAL"] }
 serving_mode:      dai
