@@ -5,6 +5,11 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 4.1, § 7 — `proposal_template_id` links an issued proposal to the
+  seller's template; each issued proposal has its own `status`, `version` and
+  `negotiation_history[]`
+  ([#26](https://github.com/IABTechLab/OpenProposal/issues/26)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
