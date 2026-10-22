@@ -163,8 +163,9 @@ treated as `seller-set`.
 
 ### 3.3 Re-computation
 
-Because audiences, properties and formats are `selectable`, `addressable_scale`
-and `availability` MUST be recomputed against the buyer's actual selection. A
+Because audiences, properties and formats are `selectable`, and buyer
+`exclusions` (§ 5.5) narrow delivery, `addressable_scale` and `availability`
+MUST be recomputed against the buyer's actual selection and exclusions. A
 single declared figure is correct only for the default composition.
 
 ---
@@ -251,7 +252,8 @@ channel.
 ### 5.5 Targeting envelope
 
 Each field declares bounds, not a value. A bare value means the field is
-`seller-set`.
+`seller-set`. `exclusions_accepted` and `exclusions` are the exception: the
+seller declares what it can enforce, and the buyer supplies its lists.
 
 | Field | Type | Mutability | Description |
 | :--- | :--- | :--- | :--- |
@@ -259,6 +261,42 @@ Each field declares bounds, not a value. A bare value means the field is
 | `device` | Object | settable | `allowed[]` of device categories |
 | `daypart` | Object | settable | `allowed[]` of time windows |
 | `frequency_cap` | Object | settable | `{ max: { min, max }, period, basis: device \| household \| listener }`. Basis matters: CTV typically caps at household, audio at listener |
+| `exclusions_accepted` | Object | seller-set | What the seller can enforce: `{ types[], max_entries, enforcement, verification[] }`. See below |
+| `exclusions` | Object | supplied | The buyer's block lists: `{ domain[], app_bundle[], content_category, keyword[], list_ref }`. See below |
+
+**Block lists.** The seller declares which exclusion types it accepts and how it
+enforces each; the buyer supplies its lists within that declaration.
+
+```yaml
+exclusions_accepted:
+  types:        [domain, app_bundle, content_category, keyword]
+  max_entries:  { domain: 5000, keyword: 500 }
+  enforcement:  { domain: pre_serve, app_bundle: pre_serve,
+                  content_category: pre_serve, keyword: best_effort }
+  verification: ["IAS", "DoubleVerify"]
+
+exclusions:
+  domain:           ["example-gambling.example"]
+  app_bundle:       [{ platform: roku, bundle: "123456" }]
+  content_category: { taxonomy_ref: "<version-pinned content taxonomy>", ids: ["<id>"] }
+  keyword:          ["crypto"]
+  list_ref:         { url: "<url>", sha256: "<hash>" }
+```
+
+- Each `app_bundle[]` entry is `{ platform, bundle }`. `bundle` is the OpenRTB
+  2.6 `app.bundle` value; `platform` names the store (`ios` \| `android` \|
+  `roku` \| `fire_tv` \| `samsung_tv` and other store platforms). A seller MUST
+  reject an entry whose platform it cannot determine, rather than apply it
+  across stores.
+- `content_category` ids come from the taxonomy named in `taxonomy_ref`, which
+  MUST be version-pinned.
+- `enforcement` is `pre_serve` or `best_effort` per type.
+- A buyer MUST NOT supply an exclusion type absent from
+  `exclusions_accepted.types`. A seller MUST reject it deterministically
+  rather than ignore it.
+- A seller MUST NOT present `best_effort` enforcement as a guarantee.
+- `list_ref` MUST be hash-pinned, and resolved into the stored record at
+  `agreed`, as for `catalog_ref` (§ 2.2).
 
 ### 5.6 Commercial terms
 
@@ -330,6 +368,9 @@ Transitions: `none` → `requested` → `held` → (`expired` | `released` |
 | `required_credentials[]` | Array[Object] | seller-set | `{ type: iab_registry \| dsp_seat \| custom, scheme: api_key \| oauth2_client_credentials \| jwt_keypair \| oidc_federated \| none, issuer, id_required }` |
 | `eligible_bidders[]` | Array[String] | seller-set | Permitted seat or buyer ids |
 | `terms_acceptance_required` | Boolean | seller-set | Whether legal terms must be accepted before assent |
+
+`exclusions` (§ 5.5) reveal the buyer's strategy. A seller MUST NOT disclose a
+buyer's `exclusions` to any party other than that buyer.
 
 ### 5.9 Execution
 
@@ -470,6 +511,8 @@ body is normative.**
 | `device` | 5.5 Targeting envelope | Object | settable |
 | `daypart` | 5.5 Targeting envelope | Object | settable |
 | `frequency_cap` | 5.5 Targeting envelope | Object | settable |
+| `exclusions_accepted` | 5.5 Targeting envelope | Object | seller-set |
+| `exclusions` | 5.5 Targeting envelope | Object | supplied |
 | `pricing[]` | 5.6 Commercial terms | Array[Object] | mixed |
 | `pricing[].cost_method` | 5.6 Commercial terms | Enum | seller-set |
 | `pricing[].gross_rate` | 5.6 Commercial terms | Number | seller-set |
@@ -512,21 +555,21 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 6 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `line_item_id`, `channel` |
-| seller-set | 29 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
+| seller-set | 30 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | Buyer chooses from a declared set. Resolves without assent. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | Buyer sets a value within declared bounds. Resolves without assent. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
-| supplied | 3 | Buyer provides data or an artifact. | `brief_ref`, `buyer_supplied`, `assets[]` |
+| supplied | 4 | Buyer provides data or an artifact. | `brief_ref`, `buyer_supplied`, `assets[]`, `exclusions` |
 | requestable | 3 | Buyer may ask outside the declared space. Requires seller assent. | `materials_due`, `hold_status`, `committed_metrics[]` |
 | derived | 11 | Computed. Neither party sets it directly. | `version`, `status` (proposal), `assent`, `negotiation_history[]`, `status` (line item), `addressable_scale`, `pricing[].agreed_rate`, `availability`, `deal_id_issuance`, `external_references[]`, `correlation_id` |
 | mixed | 2 | Sub-fields carry different markers; see the section. | `pricing[]`, `buyer_requirements` |
 
 ### What the distribution says
 
-Of 71 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
-`supplied` and 3 `requestable`. The remaining 48 are `seller-set`, `immutable`,
+Of 73 fields, **24 are touched by the buyer** — 12 `selectable`, 5 `settable`, 4
+`supplied` and 3 `requestable`. The remaining 49 are `seller-set`, `immutable`,
 `derived` or `mixed`.
 
 Only the 3 `requestable` fields require a round trip. Everything else the buyer
-touches — 20 fields — resolves against bounds the seller declared up front. That
+touches — 21 fields — resolves against bounds the seller declared up front. That
 ratio is the design claim: composition is constraint satisfaction, and
 negotiation is the exception.

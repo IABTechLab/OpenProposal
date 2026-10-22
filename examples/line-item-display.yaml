@@ -50,6 +50,14 @@ materials_due:     "2026-09-24"
 geo:            { allowed: ["US-NY", "US-CA", "US-IL", "US-TX"] }
 frequency_cap:  { max: { min: 1, max: 5 }, period: "day", basis: device }
 
+exclusions_accepted:                   # what this seller can enforce (§ 5.5)
+  types:        [domain, content_category, keyword]
+  max_entries:  { domain: 5000, keyword: 500 }
+  enforcement:  { domain: pre_serve, content_category: pre_serve, keyword: best_effort }
+exclusions:                            # supplied by the buyer
+  domain:       ["example-gambling.example"]
+  keyword:      ["crypto"]
+
 pricing:
   - cost_method:       CPM
     gross_rate:        24.00

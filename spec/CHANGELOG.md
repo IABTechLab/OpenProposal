@@ -5,6 +5,10 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 5.5 — Buyer-supplied block lists: `exclusions_accepted` (what the seller
+  can enforce) and `exclusions` (the buyer's lists)
+  ([#25](https://github.com/IABTechLab/OpenProposal/issues/25)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
