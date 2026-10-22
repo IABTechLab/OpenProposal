@@ -5,6 +5,11 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 5.8, § 5.10, § 7 — `terms_ref` for the exact terms accepted at assent,
+  `agreement_ref` for the agreement a line item is priced under, and `io` and
+  `agreement` roles on `external_references[]`. Breaking
+  ([#27](https://github.com/IABTechLab/OpenProposal/issues/27)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group

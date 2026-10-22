@@ -89,6 +89,9 @@ reporting:
 visibility:            registry_gated
 required_credentials:  [{ type: dsp_seat, scheme: jwt_keypair,
                           issuer: "dsp-a", id_required: true }]
+terms_acceptance_required: true
+terms_ref:             { url: "https://examplepub.example/legal/io-terms-2026.pdf",
+                         sha256: "<sha256 of the terms document>", version: "2026.1" }
 
 buying_route:           PUBLISHER_AD_SERVER
 transaction_mechanism:  { available: ["PROGRAMMATIC_GUARANTEED", "PREFERRED_DEAL"],
