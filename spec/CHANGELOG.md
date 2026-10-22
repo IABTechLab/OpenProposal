@@ -5,6 +5,10 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2, § 4.1, § 5.6 — `linked_execution` on the proposal and `requires` on
+  line items, for linked execution and bonus line items
+  ([#23](https://github.com/IABTechLab/OpenProposal/issues/23)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
