@@ -307,9 +307,9 @@ current version of the proposal named by `proposal_id`, whose proposal is past
 MUST return the current version number, so the buyer can fetch it again. These
 checks MUST be deterministic, as for `idempotency_key`.
 
-For an authenticated replay of a commitment attempt the seller has already
-processed, with the same `idempotency_key` and the same commitment terms, the
-seller MUST return the original result and MUST NOT create a second
+For a replay from the same buyer of a commitment attempt the seller has
+already processed, with the same `idempotency_key` and the same commitment
+terms, the seller MUST return the original result and MUST NOT create a second
 commitment. The version and expiry checks apply to a new attempt, not to
 returning a stored result. Reusing an `idempotency_key` with different
 commitment terms MUST produce an explicit conflict and MUST NOT create or
