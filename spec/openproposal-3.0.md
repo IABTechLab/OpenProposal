@@ -351,8 +351,6 @@ self-contained.
   dependent line item's `cancellation_policy`.
 - A seller MUST reject a proposal at publication if `requires` references
   form a cycle.
-- When `linked_execution` is `all`, a hold MUST use `hold_scope: proposal`
-  (§ 5.6.2).
 
 ### 5.7 Guarantees
 
