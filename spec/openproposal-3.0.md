@@ -276,8 +276,6 @@ geo:
 - A `geo` that declares `allowed[]` and no `available[]` MUST be treated as
   `settable` (§ 3.2). A `geo` MUST NOT declare both.
 - `pricing` deltas add to `agreed_rate` as for any selectable field (§ 3.1).
-  When the buyer selects more than one priced option, the highest delta among
-  them applies.
 
 ### 5.6 Commercial terms
 
