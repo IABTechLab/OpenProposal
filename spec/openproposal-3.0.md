@@ -262,23 +262,23 @@ seller declares what it can enforce, and the buyer supplies its lists.
 | `daypart` | Object | settable | `allowed[]` of time windows |
 | `frequency_cap` | Object | settable | `{ max: { min, max }, period, basis: device \| household \| listener }`. Basis matters: CTV typically caps at household, audio at listener |
 | `exclusions_accepted` | Object | seller-set | What the seller can enforce: `{ types[], max_entries, enforcement, verification[] }`. See below |
-| `exclusions` | Object | supplied | The buyer's block lists: `{ domain[], app_bundle[], content_category, keyword[], list_ref }`. See below |
+| `exclusions` | Object | supplied | The buyer's block lists: `{ domain[], app_bundle[], iab_content_category[], keyword[], list_ref }`. See below |
 
 **Block lists.** The seller declares which exclusion types it accepts and how it
 enforces each; the buyer supplies its lists within that declaration.
 
 ```yaml
 exclusions_accepted:
-  types:        [domain, app_bundle, content_category, keyword]
+  types:        [domain, app_bundle, iab_content_category, keyword]
   max_entries:  { domain: 5000, keyword: 500 }
   enforcement:  { domain: pre_serve, app_bundle: pre_serve,
-                  content_category: pre_serve, keyword: best_effort }
+                  iab_content_category: pre_serve, keyword: best_effort }
   verification: ["IAS", "DoubleVerify"]
 
 exclusions:
   domain:           ["example-gambling.example"]
   app_bundle:       [{ platform: roku, bundle: "123456" }]
-  content_category: { taxonomy_ref: "<version-pinned content taxonomy>", ids: ["<id>"] }
+  iab_content_category: ["IAB-CT3.0:<id>"]   # IAB Content Taxonomy ids
   keyword:          ["crypto"]
   list_ref:         { url: "<url>", sha256: "<hash>" }
 ```
@@ -288,8 +288,7 @@ exclusions:
   `roku` \| `fire_tv` \| `samsung_tv` and other store platforms). A seller MUST
   reject an entry whose platform it cannot determine, rather than apply it
   across stores.
-- `content_category` ids come from the taxonomy named in `taxonomy_ref`, which
-  MUST be version-pinned.
+- `iab_content_category[]` entries are IAB Content Taxonomy ids.
 - `enforcement` is `pre_serve` or `best_effort` per type.
 - A buyer MUST NOT supply an exclusion type absent from
   `exclusions_accepted.types`. A seller MUST reject it deterministically
