@@ -65,8 +65,9 @@ item. There is no "overridable unless restated" semantics anywhere in this
 specification.
 
 **Subsettable proposals.** A buyer MAY select and commit a subset of a
-proposal's line items, unless the proposal explicitly mandates linked execution
-through its binding terms.
+proposal's line items, unless the proposal sets `linked_execution` to `all`
+(§ 4.1). A line item that declares `requires` (§ 5.6.3) may be committed only
+when its conditions are met.
 
 ### 2.1 Summary and full representations
 
@@ -79,10 +80,13 @@ item:
 `line_item_id` · `channel` · `content_detail` · property names ·
 `formats.included[]` · `pricing.cost_method` · `pricing.gross_rate` ·
 `min_spend` · `addressable_scale` · `committed_metrics[]` ·
-`transaction_mechanism`
+`transaction_mechanism` · `has_requires`
 
 plus, from the parent proposal: `proposal_id` · `seller_name` · `description` ·
-`valid_from` · `valid_until`.
+`valid_from` · `valid_until` · `linked_execution`.
+
+`has_requires` is `true` when the line item declares `requires` (§ 5.6.3), so a
+screening agent does not recommend a line item that cannot be bought on its own.
 
 `catalog_ref` values MUST remain unresolved in a summary.
 
@@ -190,6 +194,7 @@ items.
 | `valid_from` · `valid_until` | Timestamp | seller-set | ISO-8601 window the offer holds. **This is the offer window, not the campaign flight** |
 | `brief_ref` | String | supplied | Reference to the buyer's brief. REQUIRED when `type` is `custom` |
 | `negotiation_history[]` | Array[Object] | derived | Ordered, append-only. `{ version, actor: buyer \| seller, action: proposed \| countered \| accepted \| declined \| withdrawn, fields_changed[], at }`. Entries MUST NOT be edited or removed |
+| `linked_execution` | Enum | seller-set | `none` (default, subsettable) \| `all` (every published line item must be committed together) |
 
 ### 4.2 Agent comprehension
 
@@ -280,6 +285,7 @@ Each field declares bounds, not a value. A bare value means the field is
 | `cancellation_policy` | Object | selectable | `available[]` of cancellation rights with `pricing` per option |
 | `exclusivity` | Object | selectable | `available[]` of exclusivity terms with `pricing` |
 | `creative_policy` | Object | seller-set | Content and category restrictions on creative |
+| `requires` | Object | seller-set | OPTIONAL. Conditions that must hold in the same commitment for this line item to be committable. See 5.6.3 |
 
 #### 5.6.1 commitment
 
@@ -312,6 +318,39 @@ result and MUST NOT create a second commitment.
 Transitions: `none` → `requested` → `held` → (`expired` | `released` |
 `converted`). `converted` is terminal and occurs when the line item reaches
 `agreed`.
+
+#### 5.6.3 requires
+
+| Key | Meaning |
+| :--- | :--- |
+| `all_of[]` | Line items that MUST all be in the same commitment |
+| `any_of[]` | Line items of which at least one MUST be in the same commitment |
+| `min_commitment[]` | Purchase-level thresholds: `{ line_item_id, basis, amount, currency }` |
+
+```yaml
+requires:
+  all_of:  ["business-daily-display", "weather-app-ctv"]
+  any_of:  []
+  min_commitment:
+    - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00, currency: USD }
+```
+
+A bonus line item is a line item with `requires` and its own pricing, such as
+a discounted `gross_rate` or `cost_method: flat` at 0. A conditional discount
+is modelled as a separate line item that `requires` unlocks, not as a price
+that changes according to the other line items selected. Every price remains
+self-contained.
+
+- References in `requires` MUST point to line items in the same proposal and
+  version.
+- A seller MUST reject a commitment that includes a line item whose `requires`
+  is unmet. This check MUST be deterministic.
+- If a line item referenced in `requires` becomes `sold_out` or `withdrawn`
+  before commitment, the dependent line item becomes non-committable. After
+  `agreed`, cancellation of a referenced line item is governed by the
+  dependent line item's `cancellation_policy`.
+- A seller MUST reject a proposal at publication if `requires` references
+  form a cycle.
 
 ### 5.7 Guarantees
 
@@ -374,6 +413,12 @@ See [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
 ### 6.4 Audio line item
 
 See [`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
+
+### 6.5 Bonus line item
+
+A CTV line item unlocked by buying the display and CTV line items together,
+priced on its own. See
+[`examples/line-item-ctv-bonus.yaml`](../examples/line-item-ctv-bonus.yaml).
 
 ---
 
@@ -443,6 +488,7 @@ body is normative.**
 | `valid_from` · `valid_until` | 4.1 Identity and lifecycle | Timestamp | seller-set |
 | `brief_ref` | 4.1 Identity and lifecycle | String | supplied |
 | `negotiation_history[]` | 4.1 Identity and lifecycle | Array[Object] | derived |
+| `linked_execution` | 4.1 Identity and lifecycle | Enum | seller-set |
 | `description` | 4.2 Agent comprehension | String | seller-set |
 | `specifications` | 4.2 Agent comprehension | String/Object | seller-set |
 | `best_for[]` | 4.2 Agent comprehension | Array[String] | seller-set |
@@ -486,6 +532,7 @@ body is normative.**
 | `cancellation_policy` | 5.6 Commercial terms | Object | selectable |
 | `exclusivity` | 5.6 Commercial terms | Object | selectable |
 | `creative_policy` | 5.6 Commercial terms | Object | seller-set |
+| `requires` | 5.6 Commercial terms | Object | seller-set |
 | `committed_metrics[]` | 5.7 Guarantees | Array[Object] | requestable |
 | `measurement_source` | 5.7 Guarantees | Object | selectable |
 | `shortfall_remedy` | 5.7 Guarantees | Object | selectable |
@@ -512,7 +559,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 6 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `line_item_id`, `channel` |
-| seller-set | 29 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
+| seller-set | 31 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `linked_execution`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | Buyer chooses from a declared set. Resolves without assent. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | Buyer sets a value within declared bounds. Resolves without assent. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
 | supplied | 3 | Buyer provides data or an artifact. | `brief_ref`, `buyer_supplied`, `assets[]` |
@@ -522,8 +569,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 71 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
-`supplied` and 3 `requestable`. The remaining 48 are `seller-set`, `immutable`,
+Of 73 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
+`supplied` and 3 `requestable`. The remaining 50 are `seller-set`, `immutable`,
 `derived` or `mixed`.
 
 Only the 3 `requestable` fields require a round trip. Everything else the buyer
