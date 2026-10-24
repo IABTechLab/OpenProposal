@@ -23,12 +23,29 @@ every request, including requests to synthetic notification traps. Nothing
 loads a campaign URL. The two VAST templates use fixture substitution tokens
 that the runner replaces with the server's loopback address.
 
-The reference inspector retrieves only exact document URLs listed by the test
-harness. It follows a single-ad wrapper chain, hashes retrieved bytes and
+The reference inspector retrieves only document request identities listed by
+the test harness. It follows a single-ad wrapper chain, hashes retrieved bytes and
 parses XML. It does not execute code, fetch media, probe event URLs, expand
 macros, use proxy environment variables, or automatically follow redirects.
 An HTTP redirect can itself target an event endpoint. It must not become an
 unchecked route around the retrieval policy.
+
+The allowlist, event guard and cycle detection share one HTTP URL identity
+function. It removes fragments, normalizes scheme/host spelling, IPv6 spelling
+and default ports, and supplies `/` for an empty path. The transport sends that
+same normalized URL. Path spelling, query order, percent encodings and an empty
+query delimiter are preserved. A receipt retains both the supplied document URL
+and the actual request URL. Unsupported schemes, credentials, control characters
+and non-ASCII URLs are blocked in this deliberately limited fixture profile.
+
+The event-role set includes linear, companion, non-linear and icon tracking,
+viewability, verification and error URIs. Clickthrough destinations are also
+excluded from wrapper retrieval. Regression cases deliberately allowlist targets
+that are also declared as events, so an absent allowlist entry cannot hide a
+broken event guard. Fragment aliases are tested on both sides of that comparison.
+This does not infer server-side URL aliases, custom extension semantics or
+resource intent. The caller must establish that its initial resource allowlist
+is appropriate. It is not a production fetch policy.
 
 Successful wrapper traversal reaches the inline document with no requests to
 its impression, playback, click, viewability, verification or error endpoints.
@@ -53,6 +70,7 @@ directory. The directory must already exist. The profile is removed on exit.
 ```
 node scripts/check_creative_preview.mjs
 node scripts/check_creative_preview.mjs --json
+node scripts/check_preview_observations.mjs
 ```
 
 The browser runs synthetic creative that attempts a GET, HEAD, POST, beacon,
@@ -63,6 +81,24 @@ Each isolated case must execute the same attempt and produce zero requests
 at that trap. A receipt includes the browser version, attempted operation,
 server observations, blocked requests and a 500 ms observation interval
 after the synchronous attempt.
+
+The assertion checks the entire notification-trap log for that case, including
+unexpected paths and methods. The receipt preserves every observation and its
+full URL. Control cases must reach only their expected notification endpoint;
+isolated cases must produce no notification at all. The assertion regression
+tests run without a browser and are included in CI.
+
+An integration negative control checks that an unexpected notification cannot
+disappear from the result:
+
+```
+node scripts/check_creative_preview.mjs --json --inject-notification-canary
+```
+
+That command intentionally exits with status 1. The test driver injects one
+loopback event at an unexpected path in `fetch-get/isolated`; that case must
+fail and its receipt must contain the event. This is a check of the assertion,
+not a browser escape or a live campaign notification.
 
 The isolated preview combines a sandboxed frame, a restrictive Content
 Security Policy, browser request interception and an independent HTTP proxy

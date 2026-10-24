@@ -7,6 +7,7 @@ import { mkdtemp, readFile, rm, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
+import { assessNotifications } from './creative_preview_observations.mjs';
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const attempts = {
@@ -25,6 +26,7 @@ const attempts = {
   websocket: `const x = new WebSocket(url.replace('http:', 'ws:')); x.onerror = () => {}`,
 };
 const jsonMode = process.argv.includes('--json');
+const injectCanary = process.argv.includes('--inject-notification-canary');
 const csp = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
 const escapeAttribute = value => value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 let base;
@@ -99,7 +101,7 @@ const server = createServer((request, response) => {
     response.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' });
     response.end(html);
   } else if (url.pathname.startsWith('/events/')) {
-    received.push({ method: request.method, path: url.pathname });
+    received.push({ method: request.method, path: url.pathname, url: url.href });
     response.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
     response.end('synthetic notification trap');
   } else {
@@ -107,7 +109,8 @@ const server = createServer((request, response) => {
   }
 });
 server.on('upgrade', (request, socket) => {
-  received.push({ method: 'UPGRADE', path: new URL(request.url, base).pathname });
+  const url = new URL(request.url, base);
+  received.push({ method: 'UPGRADE', path: url.pathname, url: url.href });
   socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');
 });
 
@@ -204,7 +207,7 @@ try {
       });
       await cdp.call('Page.enable'); await cdp.call('Runtime.enable');
       if (mode === 'isolated') await guard();
-      received.length = 0;
+      const observationStart = received.length;
       await cdp.call('Page.navigate', {url: previewUrl});
       let messages = [];
       for (let i = 0; i < 100; i++) {
@@ -219,9 +222,18 @@ try {
       await Promise.all([...pendingEvents]);
       const state = await cdp.call('Runtime.evaluate', {expression: 'window.fixtureMessages || []', returnByValue: true});
       messages = state.result.value || [];
-      const notifications = received.filter(request => request.path === '/events/' + id);
+      // Negative control for the assertion itself, sent by this test driver.
+      // A run with this flag must fail and retain the unexpected event.
+      if (injectCanary && mode === 'isolated' && id === 'fetch-get') {
+        await fetch(base + '/events/unexpected-audit-canary');
+      }
+      const observation = assessNotifications(received.slice(observationStart), {
+        isolated, expectedPath: '/events/' + id, expectedMethod,
+      });
+      const notifications = observation.notifications;
       const attempted = messages.some(message => message.attempted === id);
-      const passed = attempted && protocolErrors.length === 0 && (isolated ? notifications.length === 0 : notifications.some(request => request.method === expectedMethod));
+      const unexpectedScriptError = messages.some(message => message.error && message.error !== 'SecurityError');
+      const passed = attempted && !unexpectedScriptError && protocolErrors.length === 0 && observation.passed;
       cases.push({id: id + '/' + mode, passed, attempted, expected_method: expectedMethod,
         server_notifications: notifications, blocked_requests: blocked,
         network_gate_blocks: gateBlocked.slice(), messages,
@@ -230,7 +242,8 @@ try {
       cdp.close(); cdp = null;
     }
   }
-  const report = {profile: 'synthetic-browser-inspection-1', browser: browser.Browser,
+  const report = {profile: 'synthetic-browser-inspection-2', browser: browser.Browser,
+    assertion_canary_injected: injectCanary,
     tested_at: new Date().toISOString(), passed: cases.filter(item => item.passed).length,
     total: cases.length, cases};
   if (jsonMode) console.log(JSON.stringify(report, null, 2));
