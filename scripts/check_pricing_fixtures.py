@@ -99,7 +99,8 @@ def resolve(case):
     require(rate > 0, "nonpositive_rate")
     floor = number(row.get("floor", "0"))
     require(floor >= 0, "negative_floor")
-    require(rate >= floor, "below_floor")
+    # A posted automatic-resolution floor cannot veto explicit acceptance.
+    # This arithmetic adapter does not choose or evaluate floor semantics.
     rate_per = 1000 if method in ("CPM", "CPMV") else 1
     if case["basis"] == "spend":
         total = amount
@@ -126,7 +127,7 @@ def resolve(case):
             actual = units
         require(actual >= value if name.startswith("min_") else actual <= value,
                 "outside_" + name)
-    return {"pricing_id": chosen, "currency": row["currency"],
+    return {"pricing_id": chosen, "currency": row["currency"], "floor_check": "not_checked",
             **{key: str(value) for key, value in {
                 "agreed_rate": rate, "flat_charges": flat, "media_spend": media,
                 "seller_total": total, "units": units}.items()}}

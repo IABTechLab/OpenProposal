@@ -1,5 +1,5 @@
 {
-  "profile": "pricing-discussion-1",
+  "profile": "pricing-discussion-2",
   "cases": [
     {
       "id": "cpm-no-fees",
@@ -26,7 +26,8 @@
           "flat_charges": "0",
           "media_spend": "50000",
           "seller_total": "50000",
-          "units": "2000000"
+          "units": "2000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -60,7 +61,8 @@
           "flat_charges": "2500",
           "media_spend": "47500",
           "seller_total": "50000",
-          "units": "1900000"
+          "units": "1900000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -94,7 +96,8 @@
           "flat_charges": "2500",
           "media_spend": "50000",
           "seller_total": "52500",
-          "units": "2000000"
+          "units": "2000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -162,7 +165,8 @@
           "flat_charges": "2500",
           "media_spend": "47500",
           "seller_total": "50000",
-          "units": "1900000"
+          "units": "1900000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -222,7 +226,8 @@
           "flat_charges": "2500",
           "media_spend": "0",
           "seller_total": "2500",
-          "units": "0"
+          "units": "0",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -260,7 +265,8 @@
           "flat_charges": "3000",
           "media_spend": "47000",
           "seller_total": "50000",
-          "units": "1880000"
+          "units": "1880000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -358,7 +364,8 @@
           "flat_charges": "0",
           "media_spend": "38500",
           "seller_total": "38500",
-          "units": "1000000"
+          "units": "1000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -405,7 +412,8 @@
           "flat_charges": "0",
           "media_spend": "30000",
           "seller_total": "30000",
-          "units": "1000000"
+          "units": "1000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -456,7 +464,8 @@
           "flat_charges": "2500",
           "media_spend": "30000",
           "seller_total": "32500",
-          "units": "1000000"
+          "units": "1000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -525,7 +534,7 @@
       }
     },
     {
-      "id": "counter-below-final-floor",
+      "id": "accepted-counter-below-posted-floor",
       "input": {
         "pricing": [
           {
@@ -560,11 +569,20 @@
         }
       },
       "expected": {
-        "error": "below_floor"
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "19",
+          "flat_charges": "0",
+          "media_spend": "30000",
+          "seller_total": "30000",
+          "units": "30000000/19",
+          "floor_check": "not_checked"
+        }
       }
     },
     {
-      "id": "floor-equality-allowed",
+      "id": "accepted-counter-at-posted-floor",
       "input": {
         "pricing": [
           {
@@ -606,7 +624,8 @@
           "flat_charges": "0",
           "media_spend": "30000",
           "seller_total": "30000",
-          "units": "1500000"
+          "units": "1500000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -644,7 +663,8 @@
           "flat_charges": "0",
           "media_spend": "36000",
           "seller_total": "36000",
-          "units": "1000000"
+          "units": "1000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -686,7 +706,8 @@
           "flat_charges": "2500",
           "media_spend": "27000",
           "seller_total": "29500",
-          "units": "1000000"
+          "units": "1000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -763,7 +784,8 @@
           "flat_charges": "0",
           "media_spend": "30000",
           "seller_total": "30000",
-          "units": "1000000"
+          "units": "1000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -831,7 +853,8 @@
           "flat_charges": "2500",
           "media_spend": "47500",
           "seller_total": "50000",
-          "units": "23750"
+          "units": "23750",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -867,7 +890,8 @@
           "flat_charges": "0",
           "media_spend": "50000",
           "seller_total": "50000",
-          "units": "2000000"
+          "units": "2000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -1037,7 +1061,8 @@
           "flat_charges": "0",
           "media_spend": "50000",
           "seller_total": "50000",
-          "units": "2500000"
+          "units": "2500000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -1192,7 +1217,8 @@
           "flat_charges": "0",
           "media_spend": "3/10",
           "seller_total": "3/10",
-          "units": "3000"
+          "units": "3000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -1221,7 +1247,8 @@
           "flat_charges": "0",
           "media_spend": "1",
           "seller_total": "1",
-          "units": "1000/3"
+          "units": "1000/3",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -1418,7 +1445,8 @@
           "flat_charges": "0",
           "media_spend": "50000",
           "seller_total": "50000",
-          "units": "2000000"
+          "units": "2000000",
+          "floor_check": "not_checked"
         }
       }
     },
@@ -1444,6 +1472,57 @@
       },
       "expected": {
         "error": "unsupported_impression_bound"
+      }
+    },
+    {
+      "id": "posted-floor-does-not-establish-eligibility",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "30"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "0",
+          "media_spend": "50000",
+          "seller_total": "50000",
+          "units": "2000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "negative-posted-floor-is-malformed-metadata",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "-1"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "negative_floor"
       }
     }
   ]
