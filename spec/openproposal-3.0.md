@@ -248,6 +248,42 @@ channel.
 | `approval` | Object | seller-set | Review SLA and revision policy |
 | `production` | Object | selectable | Custom units. `available[]` of build options with `pricing` and `lead_time`; `{ custom_unit, build_owner, lead_time, cost }` |
 
+#### Creative inspection and previews
+
+For this section, inspection means evaluating a creative outside live campaign
+delivery, including discovery, composition, submission checks and previews. A
+production notification is an event report intended for a campaign's live
+measurement or delivery diagnostics.
+
+An implementation performing inspection MUST NOT send production impression,
+playback, click, viewability, verification or ad-error notifications. This
+includes requesting an event URL solely to check its availability, regardless
+of the HTTP method used.
+
+An implementation MAY retrieve creative documents, follow VAST wrappers and
+inspect referenced media as needed for its checks. Permission to retrieve these
+resources does not extend to firing their event URLs. Retrieval can itself be
+logged by the resource owner; this requirement does not imply that inspection
+produces no server activity.
+
+A preview that executes creative or verification code MUST prevent that code
+from sending production notifications. Synthetic events MAY be sent to test
+endpoints, or through a test mode that the receiving service documents as
+excluding those events from production measurement and delivery diagnostics. An
+inspector's own test flag is insufficient unless the receiving service supports
+it.
+
+Inspection failures MUST be returned through the inspection result or a
+separate diagnostic channel. They MUST NOT be reported by firing a production
+VAST `<Error>` or `verificationNotExecuted` URL.
+
+A skipped or blocked check MUST NOT be reported as passed. This section does
+not waive any required checks.
+
+These requirements apply to inspection only. During live delivery,
+implementations remain subject to the tracking and error-reporting requirements
+of the applicable execution standard.
+
 ### 5.5 Targeting envelope
 
 Each field declares bounds, not a value. A bare value means the field is
@@ -370,6 +406,10 @@ buyer commitment, and `settable` bounds. See
 ### 6.3 CTV line item
 
 See [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
+
+Inspection of this line item's VAST creative, including wrapper retrieval and
+previews, MUST follow the inspection requirements in section 5.4. Inspection
+MUST NOT send production tracking or error notifications.
 
 ### 6.4 Audio line item
 
