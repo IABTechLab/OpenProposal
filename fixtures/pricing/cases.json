@@ -1,0 +1,1529 @@
+{
+  "profile": "pricing-discussion-2",
+  "cases": [
+    {
+      "id": "cpm-no-fees",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "0",
+          "media_spend": "50000",
+          "seller_total": "50000",
+          "units": "2000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "seller-fee-inside-spend",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "2500",
+          "media_spend": "47500",
+          "seller_total": "50000",
+          "units": "1900000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "units-add-fee-to-total",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "2000000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "2500",
+          "media_spend": "50000",
+          "seller_total": "52500",
+          "units": "2000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "units-total-exceeds-budget",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "2000000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ],
+        "bounds": {
+          "max_budget": "50000"
+        }
+      },
+      "expected": {
+        "error": "outside_max_budget"
+      }
+    },
+    {
+      "id": "spend-fee-does-not-increase-total",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ],
+        "bounds": {
+          "max_budget": "50000",
+          "min_budget": "50000",
+          "min_spend": "50000"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "2500",
+          "media_spend": "47500",
+          "seller_total": "50000",
+          "units": "1900000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "fees-exceed-spend",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "2499",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ]
+      },
+      "expected": {
+        "error": "fees_exceed_spend"
+      }
+    },
+    {
+      "id": "fees-equal-spend-zero-media",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "2500",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "2500",
+          "media_spend": "0",
+          "seller_total": "2500",
+          "units": "0",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "two-fees-count-once",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          },
+          {
+            "id": "data/package",
+            "delta_flat": "500"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "3000",
+          "media_spend": "47000",
+          "seller_total": "50000",
+          "units": "1880000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "duplicate-adjustment-rejected",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          },
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ]
+      },
+      "expected": {
+        "error": "duplicate_adjustment"
+      }
+    },
+    {
+      "id": "flat-credit-out-of-scope",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "rebate",
+            "delta_flat": "-1"
+          }
+        ]
+      },
+      "expected": {
+        "error": "unsupported_flat_credit"
+      }
+    },
+    {
+      "id": "three-rate-deltas",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "38500",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "77/2",
+          "flat_charges": "0",
+          "media_spend": "38500",
+          "seller_total": "38500",
+          "units": "1000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "accepted-final-counter-no-double-add",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "30000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          }
+        ],
+        "selection_key": "revision-7/cpm-usd/options-abc",
+        "accepted_counter": {
+          "rate": "30",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "30",
+          "flat_charges": "0",
+          "media_spend": "30000",
+          "seller_total": "30000",
+          "units": "1000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "counter-keeps-flat-fees",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "32500",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          },
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ],
+        "selection_key": "revision-7/cpm-usd/options-abc",
+        "accepted_counter": {
+          "rate": "30",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "30",
+          "flat_charges": "2500",
+          "media_spend": "30000",
+          "seller_total": "32500",
+          "units": "1000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "counter-on-changed-selection",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "30000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          }
+        ],
+        "selection_key": "revision-7/cpm-usd/options-abcd",
+        "accepted_counter": {
+          "rate": "30",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "error": "stale_counter"
+      }
+    },
+    {
+      "id": "counter-without-binding",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "accepted_counter": {
+          "rate": "30",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "error": "counter_binding_required"
+      }
+    },
+    {
+      "id": "accepted-counter-below-posted-floor",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "30000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          }
+        ],
+        "selection_key": "revision-7/cpm-usd/options-abc",
+        "accepted_counter": {
+          "rate": "19",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "19",
+          "flat_charges": "0",
+          "media_spend": "30000",
+          "seller_total": "30000",
+          "units": "30000000/19",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "accepted-counter-at-posted-floor",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "30000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          }
+        ],
+        "selection_key": "revision-7/cpm-usd/options-abc",
+        "accepted_counter": {
+          "rate": "20",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "20",
+          "flat_charges": "0",
+          "media_spend": "30000",
+          "seller_total": "30000",
+          "units": "1500000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "percent-after-cpm-delta",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "36000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "format",
+            "delta_cpm": "5"
+          },
+          {
+            "id": "rights",
+            "delta_pct": "0.20"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "36",
+          "flat_charges": "0",
+          "media_spend": "36000",
+          "seller_total": "36000",
+          "units": "1000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "percentage-compounds-and-excludes-flat",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "29500",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "rights",
+            "delta_pct": "0.20"
+          },
+          {
+            "id": "discount",
+            "delta_pct": "-0.10"
+          },
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "27",
+          "flat_charges": "2500",
+          "media_spend": "27000",
+          "seller_total": "29500",
+          "units": "1000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "zero-percentage-factor",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "discount",
+            "delta_pct": "-1"
+          }
+        ]
+      },
+      "expected": {
+        "error": "nonpositive_percentage_factor"
+      }
+    },
+    {
+      "id": "percent-not-reapplied-to-counter",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "30",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "30000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          },
+          {
+            "id": "rights",
+            "delta_pct": "0.20"
+          }
+        ],
+        "selection_key": "revision-7/cpm-usd/options-abc",
+        "accepted_counter": {
+          "rate": "30",
+          "selection_key": "revision-7/cpm-usd/options-abc"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "30",
+          "flat_charges": "0",
+          "media_spend": "30000",
+          "seller_total": "30000",
+          "units": "1000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "alternatives-require-choice",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          },
+          {
+            "pricing_id": "cpc-usd",
+            "cost_method": "CPC",
+            "gross_rate": "2",
+            "currency": "USD"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "pricing_choice_required"
+      }
+    },
+    {
+      "id": "choose-cpc-without-summing-cpm",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          },
+          {
+            "pricing_id": "cpc-usd",
+            "cost_method": "CPC",
+            "gross_rate": "2",
+            "currency": "USD"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ],
+        "pricing_id": "cpc-usd"
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpc-usd",
+          "currency": "USD",
+          "agreed_rate": "2",
+          "flat_charges": "2500",
+          "media_spend": "47500",
+          "seller_total": "50000",
+          "units": "23750",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "choose-cpm-without-summing-cpc",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          },
+          {
+            "pricing_id": "cpc-usd",
+            "cost_method": "CPC",
+            "gross_rate": "2",
+            "currency": "USD"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "pricing_id": "cpm-usd"
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "0",
+          "media_spend": "50000",
+          "seller_total": "50000",
+          "units": "2000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "cpc-rejects-cpm-delta",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpc-usd",
+            "cost_method": "CPC",
+            "gross_rate": "2",
+            "currency": "USD"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "audiences/a",
+            "delta_cpm": "4"
+          },
+          {
+            "id": "audiences/b",
+            "delta_cpm": "1.5"
+          },
+          {
+            "id": "formats/30s",
+            "delta_cpm": "3"
+          }
+        ]
+      },
+      "expected": {
+        "error": "incompatible_delta_cpm"
+      }
+    },
+    {
+      "id": "cpc-does-not-treat-clicks-as-impressions",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpc-usd",
+            "cost_method": "CPC",
+            "gross_rate": "2",
+            "currency": "USD"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "bounds": {
+          "min_impressions": "1"
+        }
+      },
+      "expected": {
+        "error": "unsupported_impression_bound"
+      }
+    },
+    {
+      "id": "duplicate-pricing-id",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          },
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "pricing_id": "cpm-usd"
+      },
+      "expected": {
+        "error": "duplicate_pricing_id"
+      }
+    },
+    {
+      "id": "unknown-pricing-id",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "pricing_id": "absent"
+      },
+      "expected": {
+        "error": "unknown_pricing_id"
+      }
+    },
+    {
+      "id": "currency-mismatch",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "EUR",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "currency_mismatch"
+      }
+    },
+    {
+      "id": "select-eur-alternative",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          },
+          {
+            "pricing_id": "cpc-usd",
+            "cost_method": "CPC",
+            "gross_rate": "2",
+            "currency": "USD"
+          },
+          {
+            "pricing_id": "cpm-eur",
+            "cost_method": "cpm",
+            "gross_rate": "20",
+            "currency": "EUR"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "EUR",
+        "adjustments": [],
+        "pricing_id": "cpm-eur"
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-eur",
+          "currency": "EUR",
+          "agreed_rate": "20",
+          "flat_charges": "0",
+          "media_spend": "50000",
+          "seller_total": "50000",
+          "units": "2500000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "zero-rate",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "0",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "nonpositive_rate"
+      }
+    },
+    {
+      "id": "negative-rate",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "-1",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "nonpositive_rate"
+      }
+    },
+    {
+      "id": "zero-spend",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "0",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "nonpositive_amount"
+      }
+    },
+    {
+      "id": "negative-units",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "-1",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "nonpositive_amount"
+      }
+    },
+    {
+      "id": "float-not-fixture-decimal",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": 50000.0,
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "invalid_number"
+      }
+    },
+    {
+      "id": "nonfinite-number",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "NaN",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "invalid_number"
+      }
+    },
+    {
+      "id": "exact-decimal-no-binary-rounding",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "0.1",
+            "currency": "USD",
+            "floor": "0"
+          }
+        ],
+        "basis": "spend",
+        "amount": "0.3",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "1/10",
+          "flat_charges": "0",
+          "media_spend": "3/10",
+          "seller_total": "3/10",
+          "units": "3000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "fractional-units-not-rounded-up",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "3",
+            "currency": "USD",
+            "floor": "0"
+          }
+        ],
+        "basis": "spend",
+        "amount": "1",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "3",
+          "flat_charges": "0",
+          "media_spend": "1",
+          "seller_total": "1",
+          "units": "1000/3",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "impression-minimum-after-fees",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "2500"
+          }
+        ],
+        "bounds": {
+          "min_impressions": "2000000"
+        }
+      },
+      "expected": {
+        "error": "outside_min_impressions"
+      }
+    },
+    {
+      "id": "impression-maximum",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "bounds": {
+          "max_impressions": "1999999"
+        }
+      },
+      "expected": {
+        "error": "outside_max_impressions"
+      }
+    },
+    {
+      "id": "inverted-budget-bounds",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "bounds": {
+          "min_budget": "60000",
+          "max_budget": "50000"
+        }
+      },
+      "expected": {
+        "error": "inverted_bounds"
+      }
+    },
+    {
+      "id": "unknown-extension-is-not-implemented",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "seller.example:engagement",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "unsupported_cost_method"
+      }
+    },
+    {
+      "id": "flat-cost-method-is-not-a-flat-fee",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "FLAT",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "unsupported_cost_method"
+      }
+    },
+    {
+      "id": "tax-inclusive-needs-separate-rule",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "tax_inclusive": true
+      },
+      "expected": {
+        "error": "unsupported_field"
+      }
+    },
+    {
+      "id": "print-adjustments-need-separate-rule",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "agency",
+            "value_pct": "-15"
+          }
+        ]
+      },
+      "expected": {
+        "error": "unsupported_field"
+      }
+    },
+    {
+      "id": "cpmv-uses-thousand-viewable-units",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPMV",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "0",
+          "media_spend": "50000",
+          "seller_total": "50000",
+          "units": "2000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "cpmv-does-not-imply-all-impressions",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPMV",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": [],
+        "bounds": {
+          "min_impressions": "1"
+        }
+      },
+      "expected": {
+        "error": "unsupported_impression_bound"
+      }
+    },
+    {
+      "id": "posted-floor-does-not-establish-eligibility",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "30"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "agreed_rate": "25",
+          "flat_charges": "0",
+          "media_spend": "50000",
+          "seller_total": "50000",
+          "units": "2000000",
+          "floor_check": "not_checked"
+        }
+      }
+    },
+    {
+      "id": "negative-posted-floor-is-malformed-metadata",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "-1"
+          }
+        ],
+        "basis": "spend",
+        "amount": "50000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "error": "negative_floor"
+      }
+    }
+  ]
+}
