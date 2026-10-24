@@ -33,3 +33,6 @@ buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["PRIVATE_AUCTION"], included: ["PRIVATE_AUCTION"] }
 serving_mode:      ssai
 correlation_id:    "ep-q4-2026-commitment/weather-app-ctv"
+
+# Inspection and previews must not send production tracking or error notifications.
+# See the creative inspection requirements in spec section 5.4.
