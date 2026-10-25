@@ -76,9 +76,10 @@ Every line item has two representations.
 sellers' shelves. A catalog response MAY return it. It MUST contain, per line
 item:
 
-`line_item_id` · `channel` · `environments.available[]` · `content_detail` ·
-property names · `formats.included[]` · `pricing.cost_method` ·
-`pricing.gross_rate` · `min_spend` · `addressable_scale` · `committed_metrics[]` ·
+`line_item_id` · `channel` · `environments.available[]` ·
+`content_detail` · property names ·
+`formats.included[]` · `pricing.cost_method` · `pricing.gross_rate` ·
+`min_spend` · `addressable_scale` · `committed_metrics[]` ·
 `transaction_mechanism`
 
 plus, from the parent proposal: `proposal_id` · `seller_name` · `description` ·
@@ -227,8 +228,10 @@ terms: the
 [distribution channel](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#abstract_distributionchannel),
 the ad's media
 ([`Placement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_placement)
-subtypes), and the
+subtypes) and the
 [device type](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_devicetypes).
+Where an impression accepts more than one medium, its media is that of the ad
+served.
 
 | `channel` | Condition |
 | :--- | :--- |
@@ -242,11 +245,14 @@ subtypes), and the
 Device types are values of AdCOM 1.0 List: Device Types, each written as its
 name followed by its code.
 
-- A line item MUST serve only impressions of its `channel`. Placement type,
-  such as interstitial or rewarded, does not change the channel.
+- The seller MUST serve a line item only on impressions of its `channel`.
+  Placement type, such as interstitial or rewarded
+  ([OpenRTB 2.6](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectimp)
+  `video.plcmt`, `imp.instl` and `imp.rwdd`), does not change the channel.
 - A consumer MUST skip a line item whose `channel` it does not recognise, and
   MUST NOT reject the proposal because of it.
-- Linear TV, including addressable linear, has no `channel` value in 3.0.
+- Impressions in linear TV, including addressable linear, are outside this
+  table: they have no `channel` value in 3.0.
 
 ### 5.2 Inventory composition
 
@@ -258,8 +264,10 @@ name followed by its code.
 
 #### 5.2.1 environments
 
-Each environment value is a set of distribution channels and device types, in
-AdCOM 1.0 terms. Device types are as in 5.1.1.
+Each environment value is the set of (distribution channel, device type) pairs
+formed from its row, in AdCOM 1.0 terms. An impression matches the value when
+both its distribution channel and its device type are in the row. Device types
+are as in 5.1.1.
 
 | Value | Distribution channel | Device types |
 | :--- | :--- | :--- |
@@ -269,8 +277,8 @@ AdCOM 1.0 terms. Device types are as in 5.1.1.
 | `ctv` | `Site` or `App` | Connected TV (3), Connected Device (6), Set Top Box (7) |
 | `dooh` | `Dooh` | Any |
 
-Each `environments.available[]` value MUST match an impression that the line
-item's `channel` admits (5.1.1).
+Each `environments.available[]` value MUST match at least one impression to
+which 5.1.1 gives the line item's `channel`.
 
 ### 5.3 Audience reach
 
