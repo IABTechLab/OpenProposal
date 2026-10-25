@@ -4,6 +4,7 @@ status:         published
 channel:        ctv
 properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
 environments:   { available: ["ctv"], included: ["ctv"] }
+placement:      { plcmt: 1, skip: 0 }      # Instream (1), not skippable (§ 5.2.1)
 formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
                   included: ["ctv/instream-15s"],
                   pricing: { "ctv/instream-30s": { delta_cpm: 8.00 } } }
