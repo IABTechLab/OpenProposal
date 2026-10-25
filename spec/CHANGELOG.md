@@ -6,7 +6,7 @@ issue that caused it, so the comment record and the spec history line up.
 ## [Unreleased]
 
 - Define the boundary between creative inspection and production notifications
-  in section 5.4, with a CTV example note and executable synthetic fixtures
+  in section 5.4, with an informative CTV example note
   ([#42](https://github.com/IABTechLab/OpenProposal/issues/42)).
 
 ## [3.0-draft-1] — 2026-09-22
