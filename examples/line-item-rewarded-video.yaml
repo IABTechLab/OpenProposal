@@ -6,7 +6,7 @@ channel:        video
 properties:     { available: [{ id: "puzzle-pack", name: "Puzzle game pack" }],
                   included: ["puzzle-pack"] }
 environments:   { available: ["app_mobile"], included: ["app_mobile"] }
-placement:                             # every impression of this line item (§ 5.2.1)
+placement:                             # every impression of this line item (§ 5.2)
   reward:       1
   instl:        1
   plcmt:        3                      # Interstitial (3)

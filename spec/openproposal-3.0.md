@@ -79,13 +79,16 @@ item:
 `line_item_id` · `channel` · `content_detail` · property names ·
 `formats.included[]` · `pricing.cost_method` · `pricing.gross_rate` ·
 `min_spend` · `addressable_scale` · `committed_metrics[]` ·
-`transaction_mechanism`, and, when present, `placement.reward` ·
-`placement.instl` · `placement.plcmt` · `placement.skip`
+`transaction_mechanism`
 
 plus, from the parent proposal: `proposal_id` · `seller_name` · `description` ·
 `valid_from` · `valid_until`.
 
 `catalog_ref` values MUST remain unresolved in a summary.
+
+A line item that carries `placement` (§ 5.2) MUST also give, in its summary,
+whichever of `placement.reward` · `placement.instl` · `placement.plcmt` ·
+`placement.skip` it declares.
 
 **Full Representation** — every field, with all `catalog_ref` values resolved.
 A full fetch MUST return it.
@@ -234,11 +237,16 @@ Keys follow [AdCOM 1.0 `Placement`](https://github.com/InteractiveAdvertisingBur
 [`DisplayPlacement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_displayplacement),
 [`VideoPlacement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_videoplacement) and
 [`AudioPlacement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_audioplacement) subtypes, and the matching
-[OpenRTB 2.6 `Imp`](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectimp) attributes. Codes are values of
+[OpenRTB 2.6 `Imp`](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectimp) attributes.
+
+Each key takes an integer, except `playmethod[]` and `api[]`, which take
+arrays of integers, and `refresh`, an object whose `min_interval_s` is a
+REQUIRED integer. `plcmt`, `playmethod[]` and `api[]` take any code in
 [List: Plcmt Subtypes - Video](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_plcmtsubtypesvideo),
 [List: Playback Methods](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_playbackmethods) and
-[List: API Frameworks](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_apiframeworks), each written as its name
-followed by its code.
+[List: API Frameworks](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_apiframeworks) respectively. This
+section names each code by its AdCOM name followed by the code, such as
+Instream (1).
 
 | Key | Required | Meaning | AdCOM 1.0, OpenRTB 2.6 |
 | :--- | :--- | :--- | :--- |
@@ -261,7 +269,11 @@ only.
   interstitial and non-interstitial impressions alike. AdCOM 1.0 reads an
   absent `reward` or `instl` as `0`; here it means either value.
 - The seller MUST NOT deliver the line item to an impression that does not
-  match a key that is present.
+  match a key that is present. An impression matches `api[]` when it supports
+  every listed framework, `playmethod[]` when its playback method is one of the
+  listed values, and `refresh` when the slot renders each creative for at least
+  `min_interval_s` seconds before it refreshes, or does not refresh. It matches
+  any other key when its value is equal.
 - Unless `api[]` includes OMID 1.0 (7), a line item whose `committed_metrics[]`
   includes `viewable_rate` and whose `environments.available[]` includes
   `app_mobile` or `ctv` SHOULD NOT offer a `measurement_source` vendor other
