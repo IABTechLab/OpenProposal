@@ -14,6 +14,7 @@ production:
   pricing:      { seller_built: { delta_flat: 12000.00 } }
 
 frequency_cap:  { max: { min: 1, max: 6 }, period: "day", basis: listener }
+time_zone:      viewer_local
 
 pricing:
   - { cost_method: CPM, gross_rate: 18.00, floor: 15.84,
