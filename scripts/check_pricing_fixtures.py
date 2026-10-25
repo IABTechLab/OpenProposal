@@ -62,7 +62,7 @@ def resolve(case):
     amount = number(case["amount"])
     require(amount > 0, "nonpositive_amount")
     rate = number(row["gross_rate"])
-    require(rate > 0, "nonpositive_rate")
+    require(rate >= 0, "nonpositive_rate")
     cpm_delta, flat, factors = Fraction(0), Fraction(0), []
     adjustments = case["adjustments"]
     require(isinstance(adjustments, list), "invalid_shape")
@@ -96,7 +96,7 @@ def resolve(case):
         require(counter["selection_key"] == case["selection_key"], "stale_counter")
         # The accepted counter is the final composed rate, not a new base rate.
         rate = number(counter["rate"])
-    require(rate > 0, "nonpositive_rate")
+    require(rate > 0 if case["basis"] == "spend" else rate >= 0, "nonpositive_rate")
     floor = number(row.get("floor", "0"))
     require(floor >= 0, "negative_floor")
     # A posted automatic-resolution floor cannot veto explicit acceptance.

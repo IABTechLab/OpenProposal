@@ -36,13 +36,14 @@ entries to compute the buyer's charge.
 
 A selected option's `delta_flat` is a one-time seller charge for that line
 item commitment. It MUST NOT enter the unit rate or become another pricing
-alternative solely to make it additive. A cost already included in the unit
-rate MUST NOT also be added as a flat charge. Each selected option that is not
+alternative. A seller fee MUST NOT be a `pricing[]` entry. A cost already
+included in the unit rate MUST NOT also be added as a flat charge. Each selected option that is not
 already included contributes its charge once.
 
-For `basis = spend`, `amount` is the total pre-tax amount payable to the seller
-for this line item, including applicable seller flat charges. It excludes
-amounts payable by the buyer to other parties. For a selected unit-rate method:
+For `basis = spend`, `amount` is the seller total, on the same terms as
+`agreed_rate`, including selected `delta_flat` charges (section 3.1). This does
+not choose gross or net commission treatment, or decide the tax question in
+#115. For a selected unit-rate method:
 
 ```
 flat_charges  = sum of applicable one-time seller charges
@@ -50,21 +51,22 @@ media_spend   = commitment.amount - flat_charges
 derived_units = media_spend / agreed_rate * rate_per
 ```
 
-`rate_per` is 1,000 for CPM and CPMV, and 1 for CPC. The agreed rate MUST be
-positive. Flat charges MUST NOT exceed the spend commitment. Zero remaining
-media spend yields zero informative units and still has to satisfy any
+`rate_per` is 1,000 for CPM and CPMV, and 1 for CPC. For `basis = spend`, the
+agreed rate MUST be positive. Flat charges MUST NOT exceed the spend commitment.
+Zero remaining media spend yields zero informative units and still has to satisfy any
 applicable minimum-unit requirement.
 
-For `basis = units`, the committed units remain binding:
+For `basis = units`, the committed units remain binding. The agreed rate MAY
+be zero for added-value units, and MUST NOT be negative:
 
 ```
 media_spend   = commitment.amount / rate_per * agreed_rate
 seller_total  = media_spend + flat_charges
 ```
 
-`min_spend` and budget bounds apply to the seller total on the same pre-tax
-basis. The selected entry's currency applies to rates, flat charges and budget
-bounds. No currency conversion is implied. Informative unit estimates MUST NOT
+`min_spend` and budget bounds apply to the seller total on the same basis as
+`agreed_rate`. The selected entry's currency applies to rates, flat charges and
+budget bounds. No currency conversion is implied. Informative unit estimates MUST NOT
 be rounded in a way that changes the committed amount or authorizes extra spend.
 
 ## Arithmetic inputs do not establish acceptance
@@ -104,7 +106,8 @@ outputs avoid binary floating point rounding. `"1000/3"` is an exact informative
 quantity, not a proposed JSON wire type. Currency checks cover agreement and
 shape, not ISO-4217 membership. The caller supplies a mechanism-eligible choice.
 
-The profile implements CPM, CPMV and CPC only. It rejects unsupported tax-inclusive
+The profile implements CPM, CPMV and CPC on a tax-exclusive basis only. That
+fixture limit does not decide the normative tax basis. It rejects tax-inclusive
 inputs, #103 print adjustments and flat credits. It cannot infer a mandatory fee
 that is not represented by the resolved options. General fee objects, tax amounts,
 invoice rounding and cost-method extensions need separate decisions. Impression

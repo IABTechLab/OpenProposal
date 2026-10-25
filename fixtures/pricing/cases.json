@@ -1,5 +1,5 @@
 {
-  "profile": "pricing-discussion-2",
+  "profile": "pricing-discussion-3",
   "cases": [
     {
       "id": "cpm-no-fees",
@@ -1523,6 +1523,378 @@
       },
       "expected": {
         "error": "negative_floor"
+      }
+    },
+    {
+      "id": "units-fee-inclusive-min_spend-11000",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "bounds": {
+          "min_spend": "11000"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "25",
+          "flat_charges": "1500",
+          "media_spend": "10000",
+          "seller_total": "11500",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "units-fee-inclusive-min_spend-11500",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "bounds": {
+          "min_spend": "11500"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "25",
+          "flat_charges": "1500",
+          "media_spend": "10000",
+          "seller_total": "11500",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "units-fee-inclusive-min_spend-12000",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "bounds": {
+          "min_spend": "12000"
+        }
+      },
+      "expected": {
+        "error": "outside_min_spend"
+      }
+    },
+    {
+      "id": "units-fee-inclusive-min_budget-11000",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "bounds": {
+          "min_budget": "11000"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "25",
+          "flat_charges": "1500",
+          "media_spend": "10000",
+          "seller_total": "11500",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "units-fee-inclusive-min_budget-11500",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "bounds": {
+          "min_budget": "11500"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "25",
+          "flat_charges": "1500",
+          "media_spend": "10000",
+          "seller_total": "11500",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "units-fee-inclusive-min_budget-12000",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "bounds": {
+          "min_budget": "12000"
+        }
+      },
+      "expected": {
+        "error": "outside_min_budget"
+      }
+    },
+    {
+      "id": "zero-rate-added-value-units-fee-0",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "0",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": []
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "0",
+          "flat_charges": "0",
+          "media_spend": "0",
+          "seller_total": "0",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "zero-rate-added-value-units-fee-1500",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "0",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ]
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "0",
+          "flat_charges": "1500",
+          "media_spend": "0",
+          "seller_total": "1500",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "units-accepted-counter-zero",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "selection_key": "accepted-free-units",
+        "accepted_counter": {
+          "rate": "0",
+          "selection_key": "accepted-free-units"
+        }
+      },
+      "expected": {
+        "result": {
+          "pricing_id": "cpm-usd",
+          "currency": "USD",
+          "floor_check": "not_checked",
+          "agreed_rate": "0",
+          "flat_charges": "1500",
+          "media_spend": "0",
+          "seller_total": "1500",
+          "units": "400000"
+        }
+      }
+    },
+    {
+      "id": "units-accepted-counter-negative",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "25",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ],
+        "selection_key": "accepted-free-units",
+        "accepted_counter": {
+          "rate": "-1",
+          "selection_key": "accepted-free-units"
+        }
+      },
+      "expected": {
+        "error": "nonpositive_rate"
+      }
+    },
+    {
+      "id": "negative-rate-units",
+      "input": {
+        "pricing": [
+          {
+            "pricing_id": "cpm-usd",
+            "cost_method": "CPM",
+            "gross_rate": "-1",
+            "currency": "USD",
+            "floor": "20"
+          }
+        ],
+        "basis": "units",
+        "amount": "400000",
+        "currency": "USD",
+        "adjustments": [
+          {
+            "id": "production/build",
+            "delta_flat": "1500"
+          }
+        ]
+      },
+      "expected": {
+        "error": "nonpositive_rate"
       }
     }
   ]
