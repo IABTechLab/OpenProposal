@@ -5,6 +5,13 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2.1, § 5.1, § 5.2 — `channel` and `environments` are defined in AdCOM 1.0
+  terms. Each impression has one `channel`, the first match in § 5.1.1, and
+  each environment is a set of distribution channels and device types.
+  `audio_streaming` is removed, and the Summary Representation carries
+  `environments.available[]`
+  ([#90](https://github.com/IABTechLab/OpenProposal/issues/90)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
