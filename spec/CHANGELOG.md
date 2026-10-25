@@ -5,6 +5,12 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2.1, § 5.1, § 5.2 — `channel` and `environments` defined in AdCOM 1.0
+  terms, with a first-match channel table, a skip rule for unknown channels
+  and a channel and environment consistency rule. `audio_streaming` removed;
+  the summary carries `environments.available[]`
+  ([#90](https://github.com/IABTechLab/OpenProposal/issues/90)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
