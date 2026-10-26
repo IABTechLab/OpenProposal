@@ -257,12 +257,12 @@ value means the field is `seller-set`.
 | :--- | :--- | :--- | :--- |
 | `geo` | Object | settable | `allowed[]` of geo codes the buyer may select within |
 | `device` | Object | settable | `allowed[]` of device categories |
-| `daypart` | Object | settable | `allowed[]` of `{ days[], start, end }`: `monday`–`sunday`, `HH:MM` civil time, `end` exclusive, up to `24:00` |
+| `daypart` | Object | settable | `allowed[]` of `{ days[], start, end }`: `days[]` from `monday` \| `tuesday` \| `wednesday` \| `thursday` \| `friday` \| `saturday` \| `sunday`, HH:MM civil time, `end` exclusive, up to `24:00` |
 | `time_zone` | String | seller-set | IANA time zone name, or `viewer_local` (where the ad renders). The clock for `daypart` and `frequency_cap.period`. REQUIRED with either |
 | `frequency_cap` | Object | settable | `{ max: { min, max }, period, basis: device \| household \| listener }`. Basis matters: CTV typically caps at household, audio at listener |
 
 **Window shape.** A `daypart` window is `{ days[], start, end }`, with `days[]`
-from `monday` to `sunday`, `start` and `end` as `HH:MM`, and `end` exclusive,
+from Monday to Sunday, `start` and `end` as HH:MM, and `end` exclusive,
 later than `start`, and allowed to be `24:00`. A window that crosses midnight
 is two windows:
 
@@ -277,7 +277,7 @@ time_zone: "America/New_York"
 
 **Clock.** `time_zone` names a zone in the
 [IANA time zone database](https://www.iana.org/time-zones), such as
-`America/New_York` or `UTC`. Windows follow daylight-saving rules: a skipped
+America/New_York or UTC. Windows follow daylight-saving rules: a skipped
 hour matches no instant; a repeated hour matches both. Like the calendar Day of
 [OpenDirect 2.1 `Line.frequencyinterval`](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_line),
 `frequency_cap.period` is a calendar period in `time_zone`; weeks start on
