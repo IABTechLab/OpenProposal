@@ -250,15 +250,38 @@ channel.
 
 ### 5.5 Targeting envelope
 
-Each field declares bounds, not a value. A bare value means the field is
-`seller-set`.
+Each targeting field except `time_zone` declares bounds, not a value. A bare
+value means the field is `seller-set`.
 
 | Field | Type | Mutability | Description |
 | :--- | :--- | :--- | :--- |
 | `geo` | Object | settable | `allowed[]` of geo codes the buyer may select within |
 | `device` | Object | settable | `allowed[]` of device categories |
-| `daypart` | Object | settable | `allowed[]` of time windows |
+| `daypart` | Object | settable | `allowed[]` of `{ days[], start, end }`: `days[]` from `monday` \| `tuesday` \| `wednesday` \| `thursday` \| `friday` \| `saturday` \| `sunday`, HH:MM civil time, `end` exclusive, up to `24:00` |
+| `time_zone` | String | seller-set | IANA time zone name, or `viewer_local` (where the ad renders). The clock for `daypart` and `frequency_cap.period`. REQUIRED with either |
 | `frequency_cap` | Object | settable | `{ max: { min, max }, period, basis: device \| household \| listener }`. Basis matters: CTV typically caps at household, audio at listener |
+
+**Window shape.** A `daypart` window is `{ days[], start, end }`, with `days[]`
+from Monday to Sunday, `start` and `end` as HH:MM, and `end` exclusive,
+later than `start`, and allowed to be `24:00`. A window that crosses midnight
+is two windows:
+
+```yaml
+# Late fringe, 23:00 to 01:00, Monday night into Tuesday
+daypart:
+  allowed:
+    - { days: [monday],  start: "23:00", end: "24:00" }
+    - { days: [tuesday], start: "00:00", end: "01:00" }
+time_zone: "America/New_York"
+```
+
+**Clock.** `time_zone` names a zone in the
+[IANA time zone database](https://www.iana.org/time-zones), such as
+America/New_York or UTC. Windows follow daylight-saving rules: a skipped
+hour matches no instant; a repeated hour matches both. Like the calendar Day of
+[OpenDirect 2.1 `Line.frequencyinterval`](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_line),
+`frequency_cap.period` is a calendar period in `time_zone`; weeks start on
+Monday.
 
 ### 5.6 Commercial terms
 
@@ -469,6 +492,7 @@ body is normative.**
 | `geo` | 5.5 Targeting envelope | Object | settable |
 | `device` | 5.5 Targeting envelope | Object | settable |
 | `daypart` | 5.5 Targeting envelope | Object | settable |
+| `time_zone` | 5.5 Targeting envelope | String | seller-set |
 | `frequency_cap` | 5.5 Targeting envelope | Object | settable |
 | `pricing[]` | 5.6 Commercial terms | Array[Object] | mixed |
 | `pricing[].cost_method` | 5.6 Commercial terms | Enum | seller-set |
@@ -512,7 +536,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 6 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `line_item_id`, `channel` |
-| seller-set | 29 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
+| seller-set | 30 | Seller sets and may revise while `draft` or `published`. | `valid_from` · `valid_until`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | Buyer chooses from a declared set. Resolves without assent. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | Buyer sets a value within declared bounds. Resolves without assent. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
 | supplied | 3 | Buyer provides data or an artifact. | `brief_ref`, `buyer_supplied`, `assets[]` |
@@ -522,8 +546,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 71 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
-`supplied` and 3 `requestable`. The remaining 48 are `seller-set`, `immutable`,
+Of 72 fields, **23 are touched by the buyer** — 12 `selectable`, 5 `settable`, 3
+`supplied` and 3 `requestable`. The remaining 49 are `seller-set`, `immutable`,
 `derived` or `mixed`.
 
 Only the 3 `requestable` fields require a round trip. Everything else the buyer
