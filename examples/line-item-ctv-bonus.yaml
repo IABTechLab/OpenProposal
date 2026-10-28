@@ -14,7 +14,6 @@ frequency_cap:  { max: { min: 1, max: 2 }, period: "day", basis: household }
 
 requires:
   all_of:  ["business-daily-display", "weather-app-ctv"]
-  any_of:  []
   min_commitment:
     - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00, currency: USD }
 

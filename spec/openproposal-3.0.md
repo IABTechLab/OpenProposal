@@ -330,7 +330,6 @@ Transitions: `none` → `requested` → `held` → (`expired` | `released` |
 ```yaml
 requires:
   all_of:  ["business-daily-display", "weather-app-ctv"]
-  any_of:  []
   min_commitment:
     - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00, currency: USD }
 ```
