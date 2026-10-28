@@ -76,7 +76,8 @@ Every line item has two representations.
 sellers' shelves. A catalog response MAY return it. It MUST contain, per line
 item:
 
-`line_item_id` · `channel` · `content_detail` · property names ·
+`line_item_id` · `channel` · `content_detail` · property names and
+`apps[].platform` / `apps[].bundle` ·
 `formats.included[]` · `pricing.cost_method` · `pricing.gross_rate` ·
 `min_spend` · `addressable_scale` · `committed_metrics[]` ·
 `transaction_mechanism`
@@ -222,9 +223,23 @@ channel.
 
 | Field | Type | Mutability | Description |
 | :--- | :--- | :--- | :--- |
-| `properties` | Object | selectable | `available[]` of `{ id, name, domains, supported_formats }`, `included[]`, `pricing`, `max_select` |
+| `properties` | Object | selectable | `available[]` of `{ id, name, domains, apps, supported_formats }`, `included[]`, `pricing`, `max_select`. Each property MUST carry `domains`, `apps` or both |
 | `content_detail` | Object | seller-set | Shows, series, sections, network verticals |
 | `environments` | Object | selectable | `available[]` from `web_desktop` \| `web_mobile` \| `app_mobile` \| `ctv` \| `dooh` \| `audio_streaming` |
+
+**App identity.** `apps[]` identifies the apps behind a property sold in
+`app_mobile` or `ctv`. Keys follow the OpenRTB 2.6 `app` object where one
+exists.
+
+| Key | Required | Meaning |
+| :--- | :--- | :--- |
+| `platform` | REQUIRED | The app store that issued `bundle`: `ios` (Apple App Store) \| `android` (Google Play) \| `roku` (Roku Channel Store) \| `fire_tv` (Amazon Appstore) \| `samsung_tv` (Samsung Apps TV) and other stores. A `bundle` is unique only within its store. No OpenRTB equivalent |
+| `bundle` | REQUIRED | Store ID. As OpenRTB 2.6 `app.bundle` |
+| `storeurl` | OPTIONAL | Store listing URL. As `app.storeurl` |
+| `developer_domain` | RECOMMENDED | Developer domain from the store listing, against which `app-ads.txt` is checked. No OpenRTB equivalent: not `app.domain`, which is the domain of the app |
+
+Seller authorisation for an app is checked through `app-ads.txt` on its
+developer domain, not through the property's `domains`.
 
 ### 5.3 Audience reach
 
