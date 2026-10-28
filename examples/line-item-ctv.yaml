@@ -8,7 +8,7 @@ properties:
       apps:
         - { platform: roku, bundle: "000000",
             storeurl: "https://channelstore.roku.com/details/000000/weather-app",
-            domain: "weather-app.example" }
+            developer_domain: "weather-app.example" }
   included: ["weather-app"]
 environments:   { available: ["ctv"], included: ["ctv"] }
 formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
