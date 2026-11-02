@@ -35,7 +35,6 @@ Closes #
 <!-- Other sections, downstream standards (OpenDirect / Deals API / OpenRTB),
      the "resolves without a round trip" guarantee, the field counts in Appendix B. -->
 
----
+## Contribution terms
 
-By opening this pull request I agree my contribution may be published under this
-repository's licence, as set out in [CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md).
+- [ ] I have read and agree to the Contribution Terms in [CONTRIBUTING.md](../CONTRIBUTING.md#ipr), including the patent license, on behalf of myself and any entity I represent.
