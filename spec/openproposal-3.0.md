@@ -548,6 +548,7 @@ items.
 | `seller` | Party | REQUIRED | immutable | The selling entity. `seller.domain` is the seller's identifier for all purposes, including `assent`. `legal_name` is REQUIRED here |
 | `buyer` | Party | REQUIRED when `assent` is present | immutable | The entity that assents, usually the agency. Absent until the seller issues the proposal to one buyer. Whom the spend is for is `commitment.advertisers[]` (§ 5.6.1), and whether the buyer may bind that advertiser is authorization (§ 1.2). `legal_name` is REQUIRED here |
 | `type` | Enum | REQUIRED | immutable | `standard` \| `custom` |
+| `proposal_template_id` | String | OPTIONAL | immutable | Links an issued proposal to the seller's template. Opaque to buyers; used for the seller's reporting |
 | `status` | Enum | REQUIRED | derived | `draft` \| `published` \| `under_review` \| `agreed` \| `withdrawn` \| `expired` |
 | `assent` | Object | OPTIONAL | derived | Buyer and seller assent records and timestamps for the binding version. Signature scheme is WS1 |
 | `offer_window` | Interval | OPTIONAL | seller-set | The window the offer holds. **This is the offer window, not the campaign flight** |
@@ -570,6 +571,11 @@ entity's own registrable domain, never the host's. Continuity of a legal entity
 across domains, rebrands, or acquisitions is a fact the Agent Registry attests; this
 object does not encode it. Whether to deal with a seller that has no Agent
 Registry entry is buyer policy.
+
+- Each issued proposal has an independent `status`, `version` and
+  `negotiation_history[]`.
+- `proposal_template_id` MUST NOT be required for a buyer to transact. Buyers
+  never resolve it.
 
 ### 4.2 Agent comprehension
 
@@ -1152,6 +1158,18 @@ display line item is `registry_gated`, so it is not listed. See
   satisfaction rather than negotiation. Only genuinely out-of-envelope asks
   require the counterparty to respond.
 
+**Templates and issued proposals (non-normative).**
+
+- **Template:** seller-side only. It lives in the seller's own systems (its
+  proposal store), is not part of the public object, and is never transacted
+  directly.
+- **Issued proposal:** what buyers see and commit against. Each has its own
+  `proposal_id` per counterparty or destination, and may carry
+  `proposal_template_id` (§ 4.1) to trace it back to its template.
+- Buyer-specific terms, such as annual rates and named visibility, live on the
+  issued proposal's line items: `visibility: named`, `eligible_buyers[]` and
+  their own `pricing[]`.
+
 **Relationships, agreements and IOs (non-normative).** Buyer–seller
 relationships are expressed as issued proposals (`visibility: named`,
 `eligible_buyers[]` set to that buyer, with the negotiated `pricing[]`) plus
@@ -1210,6 +1228,7 @@ body is normative.**
 | `seller` | 4.1 Identity and lifecycle | Party | REQUIRED | immutable |
 | `buyer` | 4.1 Identity and lifecycle | Party | REQUIRED when `assent` is present | immutable |
 | `type` | 4.1 Identity and lifecycle | Enum | REQUIRED | immutable |
+| `proposal_template_id` | 4.1 Identity and lifecycle | String | OPTIONAL | immutable |
 | `status` | 4.1 Identity and lifecycle | Enum | REQUIRED | derived |
 | `assent` | 4.1 Identity and lifecycle | Object | OPTIONAL | derived |
 | `offer_window` | 4.1 Identity and lifecycle | Interval | OPTIONAL | seller-set |
@@ -1293,7 +1312,7 @@ body is normative.**
 
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
-| immutable | 7 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `brief_id`, `line_item_id`, `channel` |
+| immutable | 8 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `brief_id`, `line_item_id`, `channel` |
 | seller-set | 39 | The seller sets it and MAY revise it while status is `draft` or `published`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
@@ -1307,8 +1326,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 82 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
-`supplied` and 2 `requestable`. The remaining 62 are `seller-set`, `immutable`,
+Of 83 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
+`supplied` and 2 `requestable`. The remaining 63 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`.
 
 Only the 2 `requestable` fields require a round trip to resolve (§ 5.6.1).
