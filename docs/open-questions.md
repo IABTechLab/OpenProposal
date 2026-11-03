@@ -96,8 +96,8 @@ property).
 
 **Issue:** [#8](https://github.com/IABTechLab/OpenProposal/issues/8)  ·  **Spec:** § 5.2
 
-The enum — `web_desktop`, `web_mobile`, `app_mobile`, `ctv`, `dooh`,
-`audio_streaming` — is proposed, not derived from implementation experience.
+The enum — `web_desktop`, `web_mobile`, `app_mobile`, `ctv`, `dooh`, each
+defined in § 5.2.1 — is proposed, not derived from implementation experience.
 
 **What would settle it:** sellers mapping their real inventory onto the enum and
 reporting what does not fit.

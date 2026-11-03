@@ -76,7 +76,8 @@ Every line item has two representations.
 sellers' shelves. A catalog response MAY return it. It MUST contain, per line
 item:
 
-`line_item_id` · `channel` · `content_detail` · property names ·
+`line_item_id` · `channel` · `environments.available[]` ·
+`content_detail` · property names ·
 `formats.included[]` · `pricing.cost_method` · `pricing.gross_rate` ·
 `min_spend` · `addressable_scale` · `committed_metrics[]` ·
 `transaction_mechanism`
@@ -216,7 +217,42 @@ channel.
 | :--- | :--- | :--- | :--- |
 | `line_item_id` | String | immutable | Identity within the proposal |
 | `status` | Enum | derived | `draft` \| `published` \| `under_review` \| `agreed` \| `withdrawn` \| `sold_out` \| `expired`. Independent of the proposal's status, so one line item may sell out while the rest of the shelf stays live |
-| `channel` | Enum | immutable | `display` \| `video` \| `audio` \| `ctv` \| `dooh` \| `native`. The discriminator for how the rest of the line item is read |
+| `channel` | Enum | immutable | `display` \| `video` \| `audio` \| `ctv` \| `dooh` \| `native`, each defined in 5.1.1. The discriminator for how the rest of the line item is read |
+
+#### 5.1.1 channel
+
+An impression's channel is the first row of this table that the impression
+matches. Conditions are stated in
+[AdCOM 1.0](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md)
+terms: the
+[distribution channel](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#abstract_distributionchannel),
+the ad's media
+([`Placement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_placement)
+subtypes) and the
+[device type](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_devicetypes).
+Where an impression accepts more than one medium, its media is that of the ad
+served.
+
+| `channel` | Condition |
+| :--- | :--- |
+| `dooh` | Distribution channel `Dooh` |
+| `audio` | Audio ad (`AudioPlacement`) |
+| `ctv` | Device type Connected TV (3), Connected Device (6) or Set Top Box (7) |
+| `native` | Native ad (`DisplayPlacement.nativefmt`), including native ads with video assets |
+| `video` | Video ad (`VideoPlacement`) |
+| `display` | Any other display ad (`DisplayPlacement`) |
+
+Device types are values of AdCOM 1.0 List: Device Types, each written as its
+name followed by its code.
+
+- The seller MUST serve a line item only on impressions of its `channel`.
+  Placement type, such as interstitial or rewarded
+  ([OpenRTB 2.6](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectimp)
+  `video.plcmt`, `imp.instl` and `imp.rwdd`), does not change the channel.
+- A consumer MUST skip a line item whose `channel` it does not recognise, and
+  MUST NOT reject the proposal because of it.
+- Impressions in linear TV, including addressable linear, are outside this
+  table: they have no `channel` value in 3.0.
 
 ### 5.2 Inventory composition
 
@@ -224,7 +260,25 @@ channel.
 | :--- | :--- | :--- | :--- |
 | `properties` | Object | selectable | `available[]` of `{ id, name, domains, supported_formats }`, `included[]`, `pricing`, `max_select` |
 | `content_detail` | Object | seller-set | Shows, series, sections, network verticals |
-| `environments` | Object | selectable | `available[]` from `web_desktop` \| `web_mobile` \| `app_mobile` \| `ctv` \| `dooh` \| `audio_streaming` |
+| `environments` | Object | selectable | `available[]` from `web_desktop` \| `web_mobile` \| `app_mobile` \| `ctv` \| `dooh`, each defined in 5.2.1 |
+
+#### 5.2.1 environments
+
+Each environment value is the set of (distribution channel, device type) pairs
+formed from its row, in AdCOM 1.0 terms. An impression matches the value when
+both its distribution channel and its device type are in the row. Device types
+are as in 5.1.1.
+
+| Value | Distribution channel | Device types |
+| :--- | :--- | :--- |
+| `web_desktop` | `Site` | Personal Computer (2) |
+| `web_mobile` | `Site` | Mobile/Tablet - General (1), Phone (4), Tablet (5) |
+| `app_mobile` | `App` | Mobile/Tablet - General (1), Phone (4), Tablet (5) |
+| `ctv` | `Site` or `App` | Connected TV (3), Connected Device (6), Set Top Box (7) |
+| `dooh` | `Dooh` | Any |
+
+Each `environments.available[]` value MUST match at least one impression to
+which 5.1.1 gives the line item's `channel`.
 
 ### 5.3 Audience reach
 
