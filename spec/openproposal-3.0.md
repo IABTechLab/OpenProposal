@@ -411,7 +411,7 @@ items.
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `proposal_id` | String | REQUIRED | immutable | Unique identity for the proposal object |
-| `version` | Integer | REQUIRED | derived | Monotonically increasing revision number |
+| `version` | Integer | REQUIRED | derived | Monotonically increasing revision number. Each revision of the proposal increments it |
 | `seller_id` | String | REQUIRED | immutable | IAB Tech Lab registry reference |
 | `seller_name` | String | OPTIONAL | immutable | Canonical legal seller entity name, from the registry |
 | `type` | Enum | REQUIRED | immutable | `standard` \| `custom` |
@@ -706,13 +706,33 @@ when status becomes `agreed`.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
+| `proposal_id` | String | REQUIRED | The proposal the commitment is made against |
+| `version` | Integer | REQUIRED | The proposal `version` the commitment was priced against |
 | `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** |
 | `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding |
 | `idempotency_key` | String | REQUIRED | Buyer-generated, unique per commitment attempt |
 
-A request carrying an `idempotency_key` already seen MUST return the original
-result and MUST NOT create a second commitment.
+An `idempotency_key` is opaque and scoped to one buyer and seller pair. The
+seller MUST NOT interpret it.
+
+The seller MUST reject a new commitment attempt whose `version` is not the
+current version of the proposal named by `proposal_id`, whose proposal is past
+`offer_window.end`, or where the `pricing[]` entry the commitment is priced against
+is past its `price_valid_until`. The rejection MUST return the current version
+number, so the buyer can fetch it again. These checks MUST be deterministic:
+they depend only on the stored proposal and the time the seller receives the
+attempt.
+
+For a replay from the same buyer of a commitment attempt the seller has
+already processed, with the same `idempotency_key` and the same body (every
+value the buyer sent with the attempt except `idempotency_key`), the seller
+MUST return the original result, whether an acceptance or a rejection, and
+MUST NOT create a second commitment. The version and expiry checks apply to a
+new attempt, not to returning a stored result. Reusing an `idempotency_key`
+with a different body MUST produce an explicit conflict and MUST NOT create or
+modify a commitment. A retry against a new `version` is a new attempt, with a
+new `idempotency_key`.
 
 #### 5.6.2 hold_status
 
@@ -845,7 +865,9 @@ Shows `selectable` audiences with per-option pricing, a buyer commitment, and
 
 ### 6.3 CTV line item
 
-See [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
+Shows a buyer commitment naming the `proposal_id` and `version` it was priced
+against (§ 5.6.1). See
+[`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
 
 Inspecting this line item's VAST creative is subject to § 5.4.1.
 

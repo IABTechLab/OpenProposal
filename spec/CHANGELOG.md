@@ -45,6 +45,10 @@ issue that caused it, so the comment record and the spec history line up.
 - § 5.5 — Buyer-supplied block lists: `exclusions_accepted` (what the seller
   can enforce) and `exclusions` (the buyer's lists)
   ([#25](https://github.com/IABTechLab/OpenProposal/issues/25)).
+- § 4.1, § 5.6.1 — commitments carry `proposal_id` and `version`; a new
+  attempt on a stale version, or past `valid_until` or `price_valid_until`, is
+  rejected, and a replay returns the stored result. Breaking
+  ([#24](https://github.com/IABTechLab/OpenProposal/issues/24)).
 
 ## [3.0-draft-1] — 2026-09-22
 
