@@ -43,6 +43,7 @@ LAYOUTS = {
     ("Type", "Form", "Rules"),
     ("Marker", "Meaning"),
     # Value tables (section 2.6): the first header cell names the key that holds the list.
+    ("`code`", "Returned when"),
     ("`channel`", "Condition"),
     ("`environments`", "Distribution channel", "Device types"),
     # Other tables state rules as prose does (section 2.6).

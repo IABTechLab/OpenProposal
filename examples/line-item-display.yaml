@@ -108,3 +108,6 @@ buyer_requirements:     { seat_required: true, dsp_allowed: ["dsp-a", "dsp-b"],
                           seat_owner_entity: "Agency A" }
 
 correlation_id:  "ep-q4-2026-commitment/business-daily-display"
+
+ext:
+  examplepub.example: { placement_code: "BD-ROS-300x250-Q4" }

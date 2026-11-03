@@ -62,8 +62,8 @@ line_items[]      → buyable units, each in exactly one channel
 **No-inheritance rule.** A field on a line item MUST NOT inherit its value from
 the proposal or from a sibling line item. There is no "overridable unless
 restated" semantics anywhere in this specification. Every term of a line item is
-on the line item. The proposal supplies only identity, the offer window,
-`version`, and linked execution.
+on the line item. The proposal supplies only identity, `spec_version`, the offer
+window, `version`, and linked execution.
 
 **Subsettable proposals.** A buyer MAY select and commit a subset of a
 proposal's line items, unless the proposal sets `linked_execution` to `all`
@@ -162,6 +162,7 @@ shared type or changes its form.
 | `ZoneName` | An `IanaZone`, or `viewer_local` | `viewer_local` is where the ad renders |
 | `Url` | String: an absolute `http` or `https` URL ([RFC 3986](https://www.rfc-editor.org/rfc/rfc3986)) | A location a client can fetch |
 | `FieldPointer` | String: a JSON Pointer ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)) | A location in the object this specification defines |
+| `Ext` | `Map[Domain, Object]` | The extension container. § 2.5 states its rules |
 
 **`VocabularyTerm` rules.** A field that takes a `VocabularyTerm` lists its core
 terms. Anyone MAY define an extension term. Terms compare byte for byte. A
@@ -265,6 +266,79 @@ Two-phase flow:
 2. **Propose:** fetch the Full Representation of shortlisted line items from
    `full_url`, then compose and commit as usual.
 
+### 2.4 Errors
+
+A party that rejects a request MUST return `errors[]`, one or more
+`ErrorObject`s. This specification defines the object. The binding that carries
+the request carries the errors.
+
+A seller's decline of a resolved `commitment`, or of a hold, answers a valid
+request and is not an error. What a party answers when request authentication
+fails is the AAMP agent identity and signing profile's to state.
+
+**`ErrorObject`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `code` | VocabularyTerm | REQUIRED | A core code (below) or an extension code |
+| `detail` | String | REQUIRED | Human-readable. A receiver SHOULD NOT parse it |
+| `pointer` | FieldPointer | OPTIONAL | Into the object this specification defines that the request carries, to the value that caused the error |
+| `version` | Integer | REQUIRED when the request names a proposal that exists | The proposal's `version` when the error was decided |
+| `retry` | Enum | REQUIRED | `same` \| `refetch` \| `none`. `same`: the same request can succeed later. `refetch`: a new attempt, composed on the current `version`, can succeed. `none`: only a changed request can succeed. On a commitment attempt, `same` keeps the `idempotency_key` and such an error is not a stored result (§ 5.6.1), and `refetch` and `none` take a new `idempotency_key` |
+
+Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_reference` \|
+`not_committable` \| `stale_version` \| `expired` \| `idempotency_conflict` \|
+`not_eligible` \| `record_mismatch`.
+
+| `code` | Returned when |
+| :--- | :--- |
+| `validation` | A value breaks a rule of this specification and no other code applies |
+| `not_found` | A named proposal or line item does not exist |
+| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 5.5) |
+| `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
+| `not_committable` | A line item's `status`, or a `requires` that is unmet (§ 5.6.3), rules out commitment |
+| `stale_version` | The commitment was composed on terms that are not the current terms (§ 5.6.1) |
+| `expired` | `offer_window.end` or `price_valid_until` has passed |
+| `idempotency_conflict` | An `idempotency_key` is reused with a different body |
+| `not_eligible` | The buyer or the sender fails an eligibility or authority check the seller applies (§ 5.8) |
+| `record_mismatch` | A `record_digest` in the request does not equal the one the receiver recomputes (§ 4.1.1) |
+
+An `ErrorObject` is open. A receiver that does not recognize a code, or a key of
+the object, acts on `retry`.
+
+Informative: over HTTP, `validation`, `not_offered`, and
+`unresolved_reference` fit 400 Bad Request; `not_eligible` 403 Forbidden;
+`not_found` 404 Not Found; `not_committable`, `stale_version`, and
+`record_mismatch` 409 Conflict; `expired` 410 Gone; `idempotency_conflict` 422
+Unprocessable Content. An error with `retry: same` fits 503 Service Unavailable.
+
+### 2.5 Extensions
+
+The proposal and each line item MAY carry
+`ext`, an `Ext`. Each key MUST be a `Domain` that its owner controls, and each value
+is an object that the owner defines.
+
+```yaml
+ext:
+  examplepub.example: { placement_code: "BD-ROS-300x250-Q4" }
+```
+
+- An `ext` entry MUST NOT change the meaning of a field this specification
+  defines. A term the counterparty must understand to transact MUST NOT be an
+  `ext` entry; it is a field or a vocabulary term.
+- A receiver MUST ignore an `ext` entry it does not understand, and MUST NOT
+  reject a document because of it. It MUST keep `ext` unchanged when it
+  stores or forwards the document.
+- In an object whose keys this specification lists, a key outside `ext` that
+  it does not list is invalid. The open objects `DocumentRef` (§ 2.2) and
+  `ErrorObject` (§ 2.4) are unaffected.
+- On the proposal and a line item, `ext` is part of the Full Representation and
+  of the record frozen at `agreed`, and a seller change to it is a
+  revision.
+- Apart from an unknown term (§ 2.2), a receiver MAY skip a whole line item it
+  cannot read, without assenting to it. It MUST NOT keep a line item after removing
+  fields from it.
+
 ### 2.6 Table and naming conventions
 
 **Tables.** A field table has the columns Field, Type, Required, Mutability, and
@@ -334,6 +408,34 @@ required. Otherwise, absence means none.
 `properties.available[].domains[]`. The key alone is enough in the section that
 holds its table, beside the object it belongs to, or beside a reference to that
 section. A value that points into a document is a `FieldPointer`.
+
+### 2.7 Security considerations
+
+This section is informative. It sets no requirement on a party to a transaction.
+
+**Text is data.** Agents that can spend read this object, and much of it is text
+the counterparty wrote: `description`, `specifications`, `best_for[]`,
+`not_suitable_for[]`, `seasonality_notes`, `approval`, `creative_policy`, `ext` values,
+an error's `detail`, and the document behind a
+`DocumentRef`. That text is data, and it can hold instructions aimed at a language
+model. An agent keeps it apart from its own instructions, and rests a decision to
+assent or spend on the structured fields, not on prose alone.
+
+**URLs.** A document names URLs its author chose: `proposals[].full_url`,
+a `DocumentRef`'s `url`, an `Asset`'s `url`, and a `CreativeDelivery`'s `endpoint`. Fetching one lets the
+author choose where a client connects. A client uses `https`, bounds the size of a
+response and the number of redirects, and refuses an address inside its own
+network, on every redirect as well. § 5.4.1 covers what inspecting a creative may
+request.
+
+**Digests.** A `digest` shows that the bytes are the ones a `DocumentRef` names. It
+does not show who wrote them, or that they are safe to act on. A client compares
+it before reading the bytes, and `unresolved_reference` (§ 2.4) reports a mismatch.
+
+**Buyer lists.** `exclusions`, `buyer_supplied.segments[]`, and
+`buyer_supplied.suppression_list` show a buyer's strategy and can hold data about
+people. A party that holds them limits who can read them, in stored records and
+logs as well as in responses. § 5.8 states the disclosure rule for `exclusions`.
 
 ---
 
@@ -412,6 +514,7 @@ items.
 | :--- | :--- | :--- | :--- | :--- |
 | `proposal_id` | String | REQUIRED | immutable | Unique identity for the proposal object |
 | `version` | Integer | REQUIRED | derived | Monotonically increasing revision number. Each revision of the proposal increments it |
+| `spec_version` | String | REQUIRED | seller-set | The version of this specification the document follows, such as `3.0` |
 | `seller_id` | String | REQUIRED | immutable | IAB Tech Lab registry reference |
 | `seller_name` | String | OPTIONAL | immutable | Canonical legal seller entity name, from the registry |
 | `type` | Enum | REQUIRED | immutable | `standard` \| `custom` |
@@ -422,6 +525,7 @@ items.
 | `negotiation_history[]` | Array[HistoryEntry] | OPTIONAL | recorded | Ordered, append-only. `{ version, actor, action: proposed \| countered \| accepted \| declined \| withdrawn, paths[], at }`. `actor` is a `Side`, `at` an `Instant`, and each `paths[]` entry `{ line_item_id, pointer }`, with `line_item_id` OPTIONAL and `pointer` a `FieldPointer` into that line item, or into the proposal when `line_item_id` is absent. Entries MUST NOT be edited or removed |
 | `line_items[]` | Array[LineItem] | REQUIRED | seller-set | The line items (§ 5), in the order the seller wrote them |
 | `linked_execution` | Enum | OPTIONAL | seller-set | `none` (default, subsettable) \| `all` (every published line item must be committed together) |
+| `ext` | Ext | OPTIONAL | seller-set | See Extensions (§ 2.5) |
 
 ### 4.2 Agent comprehension
 
@@ -449,6 +553,7 @@ channel.
 | `line_item_id` | String | REQUIRED | immutable | Identity within the proposal |
 | `status` | Enum | REQUIRED | lifecycle | `draft` \| `published` \| `under_review` \| `agreed` \| `withdrawn` \| `sold_out` \| `expired`. Independent of the proposal's status, so one line item may sell out while the rest of the shelf stays live. The seller moves it |
 | `channel` | MediaChannel | REQUIRED | immutable | Core terms in § 5.1.1. The discriminator for how the rest of the line item is read |
+| `ext` | Ext | OPTIONAL | seller-set | See Extensions (§ 2.5) |
 
 #### 5.1.1 channel
 
@@ -650,12 +755,12 @@ exclusions:
   2.6 `app.bundle` value; `platform` names the store (`ios` \| `android` \|
   `roku` \| `fire_tv` \| `samsung_tv` and other store platforms). A seller MUST
   reject an entry whose platform it cannot determine, rather than apply it
-  across stores.
+  across stores, with `validation`.
 - `iab_content_category[]` entries are IAB Content Taxonomy ids.
 - `enforcement` is `pre_serve` or `best_effort` per type.
 - A buyer MUST NOT supply an exclusion type absent from
   `exclusions_accepted.types`. A seller MUST reject it deterministically
-  rather than ignore it.
+  rather than ignore it, with `not_offered`.
 - A seller MUST NOT present `best_effort` enforcement as a guarantee.
 - `list_ref` MUST be hash-pinned, and resolved into the stored record at
   `agreed`.
@@ -719,20 +824,21 @@ seller MUST NOT interpret it.
 The seller MUST reject a new commitment attempt whose `version` is not the
 current version of the proposal named by `proposal_id`, whose proposal is past
 `offer_window.end`, or where the `pricing[]` entry the commitment is priced against
-is past its `price_valid_until`. The rejection MUST return the current version
-number, so the buyer can fetch it again. These checks MUST be deterministic:
-they depend only on the stored proposal and the time the seller receives the
-attempt.
+is past its `price_valid_until`. The rejection MUST carry `stale_version`, or
+`expired` when `offer_window.end` or `price_valid_until` has passed, so the buyer can
+fetch it again. These checks MUST be deterministic: they depend only on the
+stored proposal and the time the seller receives the attempt.
 
 For a replay from the same buyer of a commitment attempt the seller has
 already processed, with the same `idempotency_key` and the same body (every
 value the buyer sent with the attempt except `idempotency_key`), the seller
 MUST return the original result, whether an acceptance or a rejection, and
 MUST NOT create a second commitment. The version and expiry checks apply to a
-new attempt, not to returning a stored result. Reusing an `idempotency_key`
-with a different body MUST produce an explicit conflict and MUST NOT create or
-modify a commitment. A retry against a new `version` is a new attempt, with a
-new `idempotency_key`.
+new attempt, not to returning a stored result. An error whose `retry` is `same`
+is not a stored result, so the retry runs the checks again. Reusing an
+`idempotency_key` with a different body MUST return `idempotency_conflict` and
+MUST NOT create or modify a commitment. A retry against a new `version` is a
+new attempt, with a new `idempotency_key`.
 
 #### 5.6.2 hold_status
 
@@ -776,13 +882,12 @@ self-contained.
 - References in `requires` MUST point to line items in the same proposal and
   version.
 - A seller MUST reject a commitment that includes a line item whose `requires`
-  is unmet. This check MUST be deterministic.
+  is unmet. An unmet `requires` returns `not_committable`. This check MUST be
+  deterministic.
 - If a line item referenced in `requires` becomes `sold_out` or `withdrawn`
   before commitment, the dependent line item becomes non-committable. After
   `agreed`, cancellation of a referenced line item is governed by the
   dependent line item's `cancellation_policy`.
-- A seller MUST reject a proposal at publication if `requires` references
-  form a cycle.
 
 ### 5.7 Guarantees
 
@@ -934,6 +1039,10 @@ see [docs/open-questions.md](../docs/open-questions.md).
    every line item,** given they are usually identical across a seller's shelf?
 7. **`environments.available[]` needs validation against real inventory.** The
    list is proposed, not derived from implementation experience.
+8. **How does a receiver read a document from a later release?** `spec_version`
+   names the release a document follows, and § 2.5 makes a key the receiver's
+   release does not list invalid. Nothing says whether a receiver rejects a release
+   it does not know, or keeps and ignores keys it does not list.
 
 ---
 
@@ -947,6 +1056,7 @@ body is normative.**
 | :--- | :--- | :--- | :--- | :--- |
 | `proposal_id` | 4.1 Identity and lifecycle | String | REQUIRED | immutable |
 | `version` | 4.1 Identity and lifecycle | Integer | REQUIRED | derived |
+| `spec_version` | 4.1 Identity and lifecycle | String | REQUIRED | seller-set |
 | `seller_id` | 4.1 Identity and lifecycle | String | REQUIRED | immutable |
 | `seller_name` | 4.1 Identity and lifecycle | String | OPTIONAL | immutable |
 | `type` | 4.1 Identity and lifecycle | Enum | REQUIRED | immutable |
@@ -957,6 +1067,7 @@ body is normative.**
 | `negotiation_history[]` | 4.1 Identity and lifecycle | Array[HistoryEntry] | OPTIONAL | recorded |
 | `line_items[]` | 4.1 Identity and lifecycle | Array[LineItem] | REQUIRED | seller-set |
 | `linked_execution` | 4.1 Identity and lifecycle | Enum | OPTIONAL | seller-set |
+| `ext` | 4.1 Identity and lifecycle | Ext | OPTIONAL | seller-set |
 | `description` | 4.2 Agent comprehension | String | REQUIRED | seller-set |
 | `specifications` | 4.2 Agent comprehension | String | OPTIONAL | seller-set |
 | `best_for[]` | 4.2 Agent comprehension | Array[String] | OPTIONAL | seller-set |
@@ -965,6 +1076,7 @@ body is normative.**
 | `line_item_id` | 5.1 Identity | String | REQUIRED | immutable |
 | `status` | 5.1 Identity | Enum | REQUIRED | lifecycle |
 | `channel` | 5.1 Identity | MediaChannel | REQUIRED | immutable |
+| `ext` | 5.1 Identity | Ext | OPTIONAL | seller-set |
 | `properties` | 5.2 Inventory composition | Selectable[PropertyOption] | OPTIONAL | selectable |
 | `content_detail` | 5.2 Inventory composition | Object | OPTIONAL | seller-set |
 | `environments` | 5.2 Inventory composition | Selectable[Environment] | OPTIONAL | selectable |
@@ -1029,7 +1141,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 7 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 33 | The seller sets it and MAY revise it while status is `draft` or `published`. The buyer cannot change it directly. | `offer_window`, `line_items[]`, `linked_execution`, `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
+| seller-set | 36 | The seller sets it and MAY revise it while status is `draft` or `published`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `buying_route`, `serving_mode`, `serving_platform`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -1042,8 +1154,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 76 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
-`supplied` and 2 `requestable`. The remaining 56 are `seller-set`, `immutable`,
+Of 79 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
+`supplied` and 2 `requestable`. The remaining 59 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`.
 
 Only the 2 `requestable` fields require a round trip to resolve (§ 5.6.1).

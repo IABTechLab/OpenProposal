@@ -5,6 +5,23 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2, § 2.2, § 2.4, § 2.5, § 2.7, § 4.1, § 5.1, § 5.5, § 5.6.1, § 5.6.3, § 8,
+  appendices, examples, docs, checker — errors, extensions, and forward
+  compatibility. A rejection returns `errors[]`, one or more `ErrorObject`s with
+  `code`, `detail`, `pointer`, `version`, and `retry`. The core codes include
+  `not_eligible` and `record_mismatch`, and anyone can add a code under a domain
+  they control. An `ErrorObject` is open, and `validation` applies when no other code
+  does. `idempotency_conflict` tests the body, and an error with `retry: same` is not
+  a stored result. § 5.5, § 5.6.1, and § 5.6.3 name the code each rejection returns.
+  The proposal and each line item MAY carry `ext`, an `Ext` keyed by owner domain. A
+  receiver ignores an entry it doesn't understand and keeps it unchanged, and `ext`
+  is frozen at `agreed`. A key outside `ext` that a key table doesn't list is invalid.
+  `spec_version` is a REQUIRED proposal field, and § 8 asks how a receiver reads a
+  later release. § 2.7 adds informative security considerations. The `requires`
+  cycle ban is removed. Breaking
+  ([#130](https://github.com/IABTechLab/OpenProposal/issues/130),
+  [#131](https://github.com/IABTechLab/OpenProposal/issues/131),
+  [#33](https://github.com/IABTechLab/OpenProposal/issues/33)).
 - § 2, § 3, § 4, § 5, § 7, § 8, appendices, examples, docs, checker — shared types and
   authoring rules. § 2.2 gives each repeated concept one type, with one rule for an
   unknown vocabulary term. § 2.6 states the table, presence, type, key, and value

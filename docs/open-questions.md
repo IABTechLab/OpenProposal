@@ -1,7 +1,7 @@
 # Open questions
 
-The draft asks seven questions it does not answer. These are the highest-value
-places to comment, because the working group is genuinely undecided.
+These are the questions the draft asks and does not answer. They are the
+highest-value places to comment, because the working group is genuinely undecided.
 
 Each has its own tracking issue, labelled
 [`open-question`](https://github.com/IABTechLab/OpenProposal/issues?q=label%3Aopen-question).
@@ -103,9 +103,22 @@ reporting what does not fit.
 
 ---
 
+### OQ-8 — How does a receiver read a document from a later release?
+
+**Issue:** [#131](https://github.com/IABTechLab/OpenProposal/issues/131)  ·  **Spec:** § 2.5, § 4.1
+
+`spec_version` names the release a document follows, and § 2.5 makes a key the
+receiver's release does not list invalid. Nothing says whether a receiver rejects a
+release it does not know, or keeps and ignores keys it does not list.
+
+**What would settle it:** how an implementer upgrades a seller and its buyers when
+they don't move at the same time, and whether unread keys can reach an assent.
+
+---
+
 ## Not on this list but worth saying
 
 If you think the draft has a problem it has not asked about, file it as a
 [Comment](https://github.com/IABTechLab/OpenProposal/issues/new?template=comment.yml) or a
-[Change request](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml). The seven
+[Change request](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml). The questions
 above are where we know we are undecided, not the limit of what we will consider.

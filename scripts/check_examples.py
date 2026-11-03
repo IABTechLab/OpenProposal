@@ -32,7 +32,7 @@ SPEC = ROOT / "spec" / "openproposal-3.0.md"
 EXAMPLES = ROOT / "examples"
 
 # Object types whose extra keys are allowed.
-OPEN_TYPES = {"DocumentRef"}
+OPEN_TYPES = {"DocumentRef", "ErrorObject"}
 # A named type that holds the keys of another.
 COMPOSES = {"Commitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSummary"]}
 
@@ -97,6 +97,10 @@ SCALARS = {
     "Side": (lambda v: v in SIDE),
     "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
+    "Ext": (lambda v: isinstance(v, dict) and all(
+        isinstance(k, str) and DOMAIN.match(k) and isinstance(item, dict)
+        for k, item in v.items()
+    )),
 }
 
 

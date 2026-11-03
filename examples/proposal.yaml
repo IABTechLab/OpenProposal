@@ -2,6 +2,7 @@
 # Illustrative only. Seller names and rates are fictional.
 proposal_id:       "examplepub-us-q4-2026-omni"
 version:           1
+spec_version:      "3.0"
 seller_id:         "reg:examplepub-digital"
 seller_name:       "Example Publisher US"
 type:              standard
@@ -21,3 +22,6 @@ specifications: >
 best_for:          ["B2B", "financial services", "high-income reach"]
 not_suitable_for:  ["youth", "endemic gaming"]
 seasonality_notes: "Earnings weeks carry materially higher engagement."
+
+ext:
+  examplepub.example: { package_code: "OMNI-Q4-2026" }
