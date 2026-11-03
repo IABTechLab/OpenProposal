@@ -42,6 +42,9 @@ issue that caused it, so the comment record and the spec history line up.
   manifest at `/.well-known/openproposal.json`, for a two-phase
   discover-then-propose flow
   ([#29](https://github.com/IABTechLab/OpenProposal/issues/29)).
+- § 5.5 — Buyer-supplied block lists: `exclusions_accepted` (what the seller
+  can enforce) and `exclusions` (the buyer's lists)
+  ([#25](https://github.com/IABTechLab/OpenProposal/issues/25)).
 
 ## [3.0-draft-1] — 2026-09-22
 

@@ -82,6 +82,8 @@ PENDING_OBJECTS = {
     "`third_party_tags`": "waiting: the accepted tag protocols",
     "`approval`": "waiting: the review policy",
     "`daypart`": "waiting: the clock window",
+    "`exclusions_accepted`": "waiting: the accepted exclusion terms",
+    "`exclusions`": "waiting: the exclusion lists",
     "`availability`": "waiting: the availability figure",
     "`commitment_bounds`": "waiting: the commitment bounds",
     "`creative_policy`": "waiting: the creative policy",
