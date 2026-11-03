@@ -538,8 +538,8 @@ treated as `seller-set`.
 
 ### 3.3 Re-computation
 
-Because audiences, properties and formats are `selectable`, and buyer
-`exclusions` (§ 5.5) narrow delivery, `addressable_scale` and `availability`
+Because audiences, properties, formats and, where it is selectable, `geo` are
+`selectable`, and buyer `exclusions` (§ 5.5) narrow delivery, `addressable_scale` and `availability`
 MUST be recomputed against the buyer's actual selection and exclusions. A
 single declared figure is correct only for the default composition.
 
@@ -1144,11 +1144,12 @@ of the applicable execution standard.
 Each field except `exclusions_accepted` and `exclusions` declares bounds, not
 a value (§ 3.2). A bare value means the field is `seller-set`. For
 `exclusions_accepted` and `exclusions`, the seller declares what it can
-enforce, and the buyer supplies its lists.
+enforce, and the buyer supplies its lists. `geo` MAY instead declare the
+selectable structure of § 3.1, so a line item can be priced by market.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `geo` | Settable[String] | OPTIONAL | settable | `allowed[]` of geo codes the buyer may select within |
+| `geo` | Settable[String] | OPTIONAL | settable | `allowed[]` of geo codes the buyer may select within. A `geo` MAY instead declare `available[]` with `included[]`, `deltas` and `max_select` (§ 3.1), for a line item priced by market. See below |
 | `device` | Settable[String] | OPTIONAL | settable | `allowed[]` of device categories |
 | `daypart` | Settable[Object] | OPTIONAL | settable | `allowed[]` of time windows |
 | `frequency_cap` | FrequencyCap | OPTIONAL | settable | See below |
@@ -1195,6 +1196,21 @@ exclusions:
 | `count` | Range[Integer] | REQUIRED | The bounds on the cap |
 | `period` | TimeUnit | REQUIRED | The bucket the count runs over |
 | `per` | Enum | REQUIRED | `device` \| `household` \| `listener`. Who is capped. It matters: CTV typically caps at household, audio at listener |
+
+**Market-priced lines.** A seller whose rate differs by market MAY declare `geo`
+with the selectable structure of § 3.1:
+
+```yaml
+geo:
+  available:  ["SGP", "THA", "IDN", "MYS"]
+  included:   ["SGP", "THA"]
+  deltas:     { "IDN": { delta_cpm: 18.00 }, "MYS": { delta_cpm: 21.00 } }
+  max_select: 4
+```
+
+- A `geo` that declares `allowed[]` and no `available[]` MUST be treated as
+  `settable` (§ 3.2). A `geo` MUST NOT declare both.
+- `deltas` add to `agreed_rate` as for any selectable field (§ 3.1).
 
 ### 5.6 Commercial terms
 

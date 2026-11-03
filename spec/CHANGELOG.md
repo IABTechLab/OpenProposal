@@ -136,6 +136,8 @@ issue that caused it, so the comment record and the spec history line up.
   seller's template; each issued proposal has its own `status`, `version` and
   `negotiation_history[]`
   ([#26](https://github.com/IABTechLab/OpenProposal/issues/26)).
+- § 5.5 — `geo` may be `selectable`, with per-market price deltas
+  ([#14](https://github.com/IABTechLab/OpenProposal/issues/14)).
 
 ## [3.0-draft-1] — 2026-09-22
 
