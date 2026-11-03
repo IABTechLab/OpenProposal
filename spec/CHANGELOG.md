@@ -16,6 +16,10 @@ issue that caused it, so the comment record and the spec history line up.
 - § 2, § 4.1, § 5.6 — `linked_execution` on the proposal and `requires` on
   line items, for linked execution and bonus line items
   ([#23](https://github.com/IABTechLab/OpenProposal/issues/23)).
+- § 2.3 — a seller MAY publish its public standard line items as a static
+  manifest at `/.well-known/openproposal.json`, for a two-phase
+  discover-then-propose flow
+  ([#29](https://github.com/IABTechLab/OpenProposal/issues/29)).
 
 ## [3.0-draft-1] — 2026-09-22
 
