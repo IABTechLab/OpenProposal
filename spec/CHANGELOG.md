@@ -144,6 +144,8 @@ issue that caused it, so the comment record and the spec history line up.
   with `end` exclusive and later than `start`; a window that crosses midnight
   is two windows. `frequency_cap.period` is a calendar period in `time_zone`.
   Breaking ([#111](https://github.com/IABTechLab/OpenProposal/issues/111)).
+- § 5.6 — `pricing[].floor` is the offer floor, not the downstream auction
+  floor. Editorial clarification ([#16](https://github.com/IABTechLab/OpenProposal/issues/16)).
 
 ## [3.0-draft-1] — 2026-09-22
 

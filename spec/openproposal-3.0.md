@@ -1246,7 +1246,7 @@ Monday.
 | `pricing[].seller_rate` | Number | OPTIONAL | seller-set | What the publisher receives |
 | `pricing[].price_valid_until` | Instant | OPTIONAL | seller-set | How long the entry holds (§ 4.3.2). Distinct from the proposal's `offer_window.end` |
 | `pricing[].currency` | String | REQUIRED | seller-set | ISO-4217 |
-| `pricing[].floor` | Number | OPTIONAL | seller-set | The lowest rate the seller will consider. Enables a `requestable` counter to be evaluated without a round trip |
+| `pricing[].min_rate` | Number | OPTIONAL | seller-set | A hint: the lowest rate the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
 | `availability` | Object | OPTIONAL | asserted | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`, with `as_of` an `Instant` and `granularity` a `CalendarUnit`. Recomputed against the buyer's selection |
 | `commitment_bounds` | Object | OPTIONAL | seller-set | The envelope inside which a buyer may commit: `{ min_impressions, max_impressions, min_budget, max_budget }` |
 | `commitment` | Commitment | OPTIONAL | settable | **The buyer's actual commitment.** See 5.6.1 |
