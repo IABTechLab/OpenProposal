@@ -21,6 +21,7 @@ geo:                                   # priced by market (§ 5.5)
   max_select:   3
 
 frequency_cap:  { count: { min: 1, max: 6 }, period: day, per: listener }
+time_zone:      viewer_local
 
 pricing:
   - { cost_method: CPM, gross_rate: 18.00, floor: 15.84,

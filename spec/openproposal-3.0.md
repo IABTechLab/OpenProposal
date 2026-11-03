@@ -1141,8 +1141,8 @@ of the applicable execution standard.
 
 ### 5.5 Targeting envelope
 
-Each field except `exclusions_accepted` and `exclusions` declares bounds, not
-a value (§ 3.2). A bare value means the field is `seller-set`. For
+Each field except `time_zone`, `exclusions_accepted` and `exclusions` declares
+bounds, not a value (§ 3.2). A bare value means the field is `seller-set`. For
 `exclusions_accepted` and `exclusions`, the seller declares what it can
 enforce, and the buyer supplies its lists. `geo` MAY instead declare the
 selectable structure of § 3.1, so a line item can be priced by market.
@@ -1151,7 +1151,8 @@ selectable structure of § 3.1, so a line item can be priced by market.
 | :--- | :--- | :--- | :--- | :--- |
 | `geo` | Settable[String] | OPTIONAL | settable | `allowed[]` of geo codes the buyer may select within. A `geo` MAY instead declare `available[]` with `included[]`, `deltas` and `max_select` (§ 3.1), for a line item priced by market. See below |
 | `device` | Settable[String] | OPTIONAL | settable | `allowed[]` of device categories |
-| `daypart` | Settable[Object] | OPTIONAL | settable | `allowed[]` of time windows |
+| `daypart` | Settable[Object] | OPTIONAL | settable | `allowed[]` of `{ days[], start, end }`: `days[]` from `monday` \| `tuesday` \| `wednesday` \| `thursday` \| `friday` \| `saturday` \| `sunday`, HH:MM civil time, `end` exclusive, up to `24:00` |
+| `time_zone` | String | REQUIRED when `daypart` or `frequency_cap` is present | seller-set | IANA time zone name, or `viewer_local` (where the ad renders). The clock for `daypart` and `frequency_cap.period` |
 | `frequency_cap` | FrequencyCap | OPTIONAL | settable | See below |
 | `exclusions_accepted` | Object | OPTIONAL | seller-set | What the seller can enforce: `{ types[], max_entries, enforcement, verification[] }`. See below |
 | `exclusions` | Object | OPTIONAL | supplied | The buyer's block lists: `{ domain[], app_bundle[], iab_content_category[], keyword[], list_ref }`. See below |
@@ -1211,6 +1212,28 @@ geo:
 - A `geo` that declares `allowed[]` and no `available[]` MUST be treated as
   `settable` (§ 3.2). A `geo` MUST NOT declare both.
 - `deltas` add to `agreed_rate` as for any selectable field (§ 3.1).
+
+**Window shape.** A `daypart` window is `{ days[], start, end }`, with `days[]`
+from Monday to Sunday, `start` and `end` as HH:MM, and `end` exclusive,
+later than `start`, and allowed to be `24:00`. A window that crosses midnight
+is two windows:
+
+```yaml
+# Late fringe, 23:00 to 01:00, Monday night into Tuesday
+daypart:
+  allowed:
+    - { days: [monday],  start: "23:00", end: "24:00" }
+    - { days: [tuesday], start: "00:00", end: "01:00" }
+time_zone: "America/New_York"
+```
+
+**Clock.** `time_zone` names a zone in the
+[IANA time zone database](https://www.iana.org/time-zones), such as
+America/New_York or UTC. Windows follow daylight-saving rules: a skipped
+hour matches no instant; a repeated hour matches both. Like the calendar Day of
+[OpenDirect 2.1 `Line.frequencyinterval`](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_line),
+`frequency_cap.period` is a calendar period in `time_zone`; weeks start on
+Monday.
 
 ### 5.6 Commercial terms
 

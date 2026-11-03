@@ -138,6 +138,12 @@ issue that caused it, so the comment record and the spec history line up.
   ([#26](https://github.com/IABTechLab/OpenProposal/issues/26)).
 - § 5.5 — `geo` may be `selectable`, with per-market price deltas
   ([#14](https://github.com/IABTechLab/OpenProposal/issues/14)).
+- § 5.5 — `time_zone` on the line item is the clock for `daypart` and
+  `frequency_cap.period`: an IANA time zone name or `viewer_local`, REQUIRED
+  with either. A `daypart` window is `{ days[], start, end }` in civil time,
+  with `end` exclusive and later than `start`; a window that crosses midnight
+  is two windows. `frequency_cap.period` is a calendar period in `time_zone`.
+  Breaking ([#111](https://github.com/IABTechLab/OpenProposal/issues/111)).
 
 ## [3.0-draft-1] — 2026-09-22
 
