@@ -14,6 +14,9 @@ change to this script. It checks:
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
+  - Each section 4.1.1 removal path resolves to a table row.
+  - Each assent[] entry's record_digest recomputes under section 4.1.1, over the
+    line items its line_item_ids[] names.
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -21,6 +24,7 @@ KNOWN holds findings that a later change removes. It only shrinks. Run with
 Run: python3 scripts/check_examples.py
 """
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -52,7 +56,13 @@ KNOWN = {
 # Each `REQUIRED when <condition>` wording, as (object, line item, proposal) -> bool.
 CONDITIONS = {
     "`type` is `custom`": lambda o, i, p: o.get("type") == "custom",
-    "`assent` is present": lambda o, i, p: "assent" in o,
+    "`type` is `custom` or `assent[]` is present":
+        lambda o, i, p: o.get("type") == "custom" or "assent" in o,
+    "the current `version` is frozen (§ 4.1.3)": lambda o, i, p: o.get("status") != "draft",
+    "`requested_value` is present": lambda o, i, p: "requested_value" in o,
+    "the entry's `action` is `requested`":
+        lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
+                            for e in (p or {}).get("negotiation_history", [])),
     "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
     "`terms_acceptance_required` is `true`":
         lambda o, i, p: i.get("terms_acceptance_required") is True,
@@ -76,6 +86,7 @@ TERM_PART = r"[A-Za-z0-9_-]+"
 TERM_DOMAIN = r"[a-z0-9-]+(?:\.[a-z0-9-]+)+:"
 TERM = re.compile(rf"(?:{TERM_DOMAIN})?{TERM_PART}\Z")
 SIDE = ("buyer", "seller")
+PROPOSAL_STATUS = ("draft", "published", "under_review", "agreed", "withdrawn", "expired")
 CALENDAR_UNIT = ("hour", "day", "week", "month")
 SCALARS = {
     "Instant": (lambda v: isinstance(v, str) and INSTANT.match(v)),
@@ -100,6 +111,9 @@ SCALARS = {
     "ZoneName": (lambda v: isinstance(v, str)),
     "IanaZone": (lambda v: isinstance(v, str)),
     "Side": (lambda v: v in SIDE),
+    "ProposalStatus": (lambda v: v in PROPOSAL_STATUS),
+    "LineItemStatus": (lambda v: v in PROPOSAL_STATUS or v == "sold_out"),
+    "ApprovalStatus": (lambda v: v in ("PENDING", "APPROVED", "REJECTED")),
     "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
     "Ext": (lambda v: isinstance(v, dict) and all(
@@ -175,6 +189,7 @@ class Spec:
         self.tables = {}
         self.manifest_keys = {}
         self.summary_paths, self.proposal_paths = [], []
+        self.removal = []
         self._read_fields()
         self._read_key_tables()
         self._read_lists()
@@ -229,6 +244,8 @@ class Spec:
         self.summary_paths = m.group(1).split()
         m = re.search(r"`ProposalSummary` lists these paths[^\n]*\n\n```text\n(.*?)```", text, re.S)
         self.proposal_paths = m.group(1).split()
+        m = re.search(r"#### 4\.1\.1.*?```\n(.*?)```", text, re.S)
+        self.removal = [l for l in m.group(1).splitlines() if l.startswith("$")]
 
 
 # Type walking --------------------------------------------------------------
@@ -439,6 +456,78 @@ class Checker:
                 if key in entry:
                     self.check_value(file, f"{sub}.{key}", entry[key], row)
 
+    def check_removal_paths(self):
+        for path in self.spec.removal:
+            head_path = path.split(",")[0]
+            parts = [p for p in head_path.lstrip("$.").split(".") if p != "*"]
+            parts = [re.sub(r"\[\*\]$", "", p) for p in parts]
+            fields = self.spec.proposal
+            if parts[0] == "line_items":
+                fields, parts = self.spec.line_item, parts[1:]
+            ok = parts[0] in {bare(k) for k in fields}
+            if ok and len(parts) > 1 and parts[0] == "pricing":
+                ok = f"pricing[].{parts[1]}" in fields
+            if not ok:
+                self.err("spec", "removal path", path, f"{path} resolves to no row")
+
+
+# Digest --------------------------------------------------------------------
+
+
+def jcs_number(n):
+    if isinstance(n, bool):
+        return "true" if n else "false"
+    if isinstance(n, int):
+        return str(n)
+    if n == int(n) and abs(n) < 1e21:
+        return str(int(n))
+    return repr(n)
+
+
+def jcs(value):
+    """RFC 8785 serialization, for the values examples use."""
+    if value is None:
+        return "null"
+    if isinstance(value, (bool, int, float)):
+        return jcs_number(value)
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    if isinstance(value, list):
+        return "[" + ",".join(jcs(v) for v in value) + "]"
+    keys = sorted(value, key=lambda k: k.encode("utf-16-be"))
+    return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + jcs(value[k]) for k in keys) + "}"
+
+
+def remove_path(node, parts, keep=()):
+    if not parts:
+        return
+    head, rest = parts[0], parts[1:]
+    if head.endswith("[*]"):
+        for item in (node.get(head[:-3]) or []):
+            remove_path(item, rest, keep)
+        return
+    if head == "*":
+        if isinstance(node, dict):
+            for key in list(node):
+                if key not in keep:
+                    del node[key]
+        return
+    if not rest:
+        node.pop(head, None)
+    elif isinstance(node.get(head), dict):
+        remove_path(node[head], rest, keep)
+
+
+def record_digest(doc, removal, line_item_ids):
+    """Section 4.1.1: the digest of the binding record for the named line items."""
+    copy = json.loads(json.dumps(doc))
+    copy["line_items"] = [i for i in copy.get("line_items", []) if i["line_item_id"] in line_item_ids]
+    for path in removal:
+        head, _, tail = path.partition(", except ")
+        keep = re.split(r",\s*|\s+and\s+", tail) if tail else ()
+        remove_path(copy, head[2:].split("."), keep)
+    return "sha256:" + hashlib.sha256(jcs(copy).encode("utf-8")).hexdigest()
+
 
 # Summary -------------------------------------------------------------------
 
@@ -545,6 +634,16 @@ def main():
         check_manifest(checker, spec)
     except (ValueError, KeyError) as e:
         checker.errors.append(f"manifest.json: {e}")
+    checker.check_removal_paths()
+
+    digests = {}
+    for path in sorted(EXAMPLES.glob("*.yaml")):
+        doc = load_yaml(path)
+        for entry in doc.get("assent", []):
+            digest = record_digest(doc, spec.removal, entry["line_item_ids"])
+            digests[path.name] = digest
+            if entry["record_digest"] != digest:
+                checker.errors.append(f"{path.name}: record_digest recomputes to {digest}")
 
     stale = KNOWN - checker.used_known
     for item in sorted(stale):
@@ -556,6 +655,8 @@ def main():
             print(f"  - {e}")
         return 1
     print("Examples match the tables.")
+    for name, digest in digests.items():
+        print(f"  record_digest of {name}: {digest}")
     return 0
 
 

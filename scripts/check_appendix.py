@@ -49,6 +49,8 @@ LAYOUTS = {
     # Other tables state rules as prose does (section 2.6).
     ("OpenProposal concept", "Downstream standard"),
     ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
+    ("Interaction", "Actor", "Effect; history `action`"),
+    ("Instant", "Ends", "Effect when passed"),
     # Generated.
     ("Field", "Section", "Type", "Required", "Marker"),
     ("Marker", "Count", "Meaning", "Fields"),
@@ -62,7 +64,7 @@ BASE_TYPES = {
 # Named in a Type cell before the change that gives them a key table. Remove a
 # name when its table lands. This list only shrinks.
 PENDING_TYPES = {
-    "HistoryEntry": "the negotiation history entry",
+    "AssentEntry": "the assent entry",
     "PropertyOption": "the property option",
     "AudienceOption": "the audience option",
     "BuyerSupplied": "the buyer-supplied audience data",
@@ -77,7 +79,6 @@ PENDING_TYPES = {
 # Objects typed Object: open by definition, small and inline, or waiting on the
 # change that names them. Remove an entry when its table lands. Only shrinks.
 PENDING_OBJECTS = {
-    "`assent`": "waiting: the assent entry",
     "`content_detail`": "waiting: the content the line item serves within",
     "`specs`": "waiting: the format spec",
     "`third_party_tags`": "waiting: the accepted tag protocols",

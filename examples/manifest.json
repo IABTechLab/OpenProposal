@@ -4,7 +4,7 @@
   "proposals": [
     {
       "proposal_id": "examplepub-us-q4-2026-omni",
-      "version": 1,
+      "version": 2,
       "seller": {
         "domain": "examplepub.example",
         "legal_name": "Example Publisher US"
@@ -14,7 +14,6 @@
         "start": "2026-10-01T00:00:00Z",
         "end": "2026-12-31T23:59:59Z"
       },
-      "linked_execution": "none",
       "full_url": "https://examplepub.example/openproposal/examplepub-us-q4-2026-omni",
       "line_items": [
         {

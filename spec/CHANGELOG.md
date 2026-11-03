@@ -5,6 +5,34 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.2, § 2.2, § 2.3, § 2.4, § 3, § 4.1, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 5.1, § 5.4,
+  § 5.6, § 5.6.1, § 5.6.3, § 5.8, § 5.9, § 6, § 7, appendices, examples, checkers — who
+  moves each status, and when an offer goes stale. The `seller-set` gate reads the `status`
+  of the object that carries the field. § 4.1.1 and § 4.1.2 define the binding record,
+  `record_digest`, and `assent[]` entries, which replace the `assent` object. § 4.1.3 freezes
+  a version's offered terms, and § 4.3 states who moves each status. A resolved `commitment`
+  is an offer until the seller accepts it. A proposal with no `buyer` is shared, and one with
+  a `buyer` is issued; `issued_from`, a `VersionRef`, is added, and a `custom` proposal is
+  issued from the start. An ask is stale only when the binding record of the line items it
+  names differs between its `version` and the current one. History actions become
+  `published`, `requested`, `granted`, `countered`, `declined`, and `withdrawn`, and a
+  `commit` and its acceptance are in `assent[]` only. `accept` answers only a `commit`; a
+  `request` is answered by `grant`, `counter`, or `decline`, and is identified by the value
+  it asks. `HistoryEntry`, `HistoryPath`, `RequestedValue`, `ProposalStatus`,
+  `LineItemStatus`, and `ApprovalStatus` are named types. The status table is exhaustive, a
+  firm entry is defined per `pricing[]` entry, and the allowed grounds for declining one are
+  listed once. A `draft` line item leaves the proposal `published`. `linked_execution` takes
+  only `all`, which covers every `line_item_id` the version carries, and `offer_window` does
+  not hold before `start`. `agreed` is stated once. Breaking
+  ([#60](https://github.com/IABTechLab/OpenProposal/issues/60),
+  [#64](https://github.com/IABTechLab/OpenProposal/issues/64),
+  [#65](https://github.com/IABTechLab/OpenProposal/issues/65),
+  [#67](https://github.com/IABTechLab/OpenProposal/issues/67),
+  [#63](https://github.com/IABTechLab/OpenProposal/issues/63),
+  [#68](https://github.com/IABTechLab/OpenProposal/issues/68),
+  [#70](https://github.com/IABTechLab/OpenProposal/issues/70),
+  [#26](https://github.com/IABTechLab/OpenProposal/issues/26),
+  [#24](https://github.com/IABTechLab/OpenProposal/issues/24)).
 - § 1.2, § 2.1 to § 2.5, § 4.1, § 5.6.1, § 5.8, § 5.9, § 5.10, § 7, § 8, appendices,
   examples, docs, checker — who the parties are, and what each identity layer proves.
   `seller_id` and `seller_name` become `seller`, a `Party` whose `legal_name` is

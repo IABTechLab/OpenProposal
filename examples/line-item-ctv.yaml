@@ -16,18 +16,9 @@ pricing:
       price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
 
 commitment_bounds: { min_budget: 25000.00 }
-commitment:
-  proposal_id: "examplepub-us-q4-2026-omni"
-  version: 1
-  basis: spend
-  amount: 160000.00
-  currency: USD
-  flight: { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
-  idempotency_key: "agency-a-camp1-weather-app-ctv-3b7e0d52"
 
 hold_status:    { hold_available: true, hold_duration: "P14D",
-                  hold_scope: line_item, state: held,
-                  hold_expires_at: "2026-10-01T00:00:00Z" }
+                  hold_scope: line_item }
 
 committed_metrics: [{ metric: completion_rate, value: 0.95, basis: seller_reported }]
 visibility:        public

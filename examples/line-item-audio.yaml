@@ -21,14 +21,6 @@ pricing:
       price_valid_until: "2026-12-15T23:59:59Z", currency: USD }
 
 commitment_bounds: { min_budget: 5000.00 }
-commitment:
-  proposal_id: "examplepub-us-q4-2026-omni"
-  version: 1
-  basis: spend
-  amount: 60000.00
-  currency: USD
-  flight: { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
-  idempotency_key: "agency-a-camp1-streaming-audio-a7c33e10"
 
 committed_metrics: [{ metric: completion_rate, value: 0.92, basis: seller_reported }]
 visibility:        public
