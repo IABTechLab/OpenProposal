@@ -3,8 +3,8 @@
 proposal_id:       "examplepub-us-q4-2026-omni"
 version:           1
 spec_version:      "3.0"
-seller_id:         "reg:examplepub-digital"
-seller_name:       "Example Publisher US"
+seller:            { domain: "examplepub.example", legal_name: "Example Publisher US",
+                     registry_id: "reg:examplepub-digital" }   # OPTIONAL: an attestation (§ 2.2)
 type:              standard
 linked_execution:  none              # line items may be bought separately (§ 4.1)
 status:            published

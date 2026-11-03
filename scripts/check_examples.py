@@ -12,7 +12,8 @@ change to this script. It checks:
     and the base types. An Enum value is on the list its row opens with.
   - An option name in included[] or deltas names an option in available[].
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
-    each public line item (section 2.3).
+    each public, published line item (section 2.3).
+  - seller and buyer on a proposal hold legal_name (section 4.1).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -51,6 +52,10 @@ KNOWN = {
 # Each `REQUIRED when <condition>` wording, as (object, line item, proposal) -> bool.
 CONDITIONS = {
     "`type` is `custom`": lambda o, i, p: o.get("type") == "custom",
+    "`assent` is present": lambda o, i, p: "assent" in o,
+    "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
+    "`terms_acceptance_required` is `true`":
+        lambda o, i, p: i.get("terms_acceptance_required") is True,
     "`basis` is `spend`": lambda o, i, p: o.get("basis") == "spend",
     "`at` is absent": lambda o, i, p: "at" not in o,
     "`before_start` is absent": lambda o, i, p: "before_start" not in o,
@@ -403,6 +408,9 @@ class Checker:
         else:
             self.proposal = doc
             self.item = {}
+            for key in ("seller", "buyer"):
+                if key in doc and "legal_name" not in doc[key]:
+                    self.err(file, key, "legal_name", "legal_name is REQUIRED here")
         for key in doc:
             if key not in known:
                 self.err(file, path or "(root)", key, f"key {key!r} is not in a field table")
@@ -478,16 +486,15 @@ def proposal_summary(proposal, spec):
 
 
 def build_manifest(spec):
-    """Section 2.3: the proposal's public line items, as summaries."""
+    """Section 2.3: the proposal's public, published line items, as summaries."""
     proposal = load_yaml(EXAMPLES / "proposal.yaml")
     entry = proposal_summary(proposal, spec)
-    entry["full_url"] = f"https://examplepub.example/openproposal/{proposal['proposal_id']}"
+    entry["full_url"] = f"https://{proposal['seller']['domain']}/openproposal/{proposal['proposal_id']}"
     entry["line_items"] = [
         line_item_summary(item, spec) for item in full_examples().values()
-        if item.get("visibility") == "public"
+        if item.get("visibility") == "public" and item.get("status") == "published"
     ]
     return {
-        "seller_id": proposal["seller_id"],
         "generated_at": "2026-10-03T15:00:00Z",
         "spec_version": "3.0",
         "proposals": [entry],

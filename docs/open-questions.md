@@ -116,6 +116,18 @@ they don't move at the same time, and whether unread keys can reach an assent.
 
 ---
 
+### OQ-11 — Must a manifest response carry both `ETag` and `Last-Modified`?
+
+**Issue:** [#29](https://github.com/IABTechLab/OpenProposal/issues/29)  ·  **Spec:** § 2.3
+
+The draft requires at least one, so a buyer's client handles whichever the seller
+sends.
+
+**What would settle it:** which validator polling clients use, and what the hosts
+that serve the manifest send by default.
+
+---
+
 ## Not on this list but worth saying
 
 If you think the draft has a problem it has not asked about, file it as a

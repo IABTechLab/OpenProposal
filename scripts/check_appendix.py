@@ -48,6 +48,7 @@ LAYOUTS = {
     ("`environments`", "Distribution channel", "Device types"),
     # Other tables state rules as prose does (section 2.6).
     ("OpenProposal concept", "Downstream standard"),
+    ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
     # Generated.
     ("Field", "Section", "Type", "Required", "Marker"),
     ("Marker", "Count", "Meaning", "Fields"),
@@ -70,7 +71,6 @@ PENDING_TYPES = {
     "ExclusivityTerm": "the exclusivity term",
     "MinCommitment": "the purchase-level threshold",
     "CommittedMetric": "the committed metric tuple",
-    "BuyerRequirements": "the buyer's seat and DSP requirements",
     "ExternalReference": "the external reference entry",
 }
 
@@ -88,8 +88,7 @@ PENDING_OBJECTS = {
     "`availability`": "waiting: the availability figure",
     "`commitment_bounds`": "waiting: the commitment bounds",
     "`creative_policy`": "waiting: the creative policy",
-    "`required_credentials[]`": "waiting: the required credential",
-    "`billing`": "waiting: the billing terms",
+    "`terms_ref`": "waiting: the binding document reference",
 }
 
 BODY_SECTION = re.compile(r"^#{3,4} ((?:4|5)\.\d+(?:\.\d+)?)\s")

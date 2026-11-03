@@ -1,12 +1,14 @@
 {
-  "seller_id": "reg:examplepub-digital",
   "generated_at": "2026-10-03T15:00:00Z",
   "spec_version": "3.0",
   "proposals": [
     {
       "proposal_id": "examplepub-us-q4-2026-omni",
       "version": 1,
-      "seller_name": "Example Publisher US",
+      "seller": {
+        "domain": "examplepub.example",
+        "legal_name": "Example Publisher US"
+      },
       "description": "Cross-channel Example Publisher US package spanning display, in-stream video and CTV. Business and financial audience skew, weekday-heavy delivery.\n",
       "offer_window": {
         "start": "2026-10-01T00:00:00Z",

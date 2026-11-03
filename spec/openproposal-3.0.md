@@ -50,6 +50,22 @@ lands in the one its `transaction_mechanism` maps to:
 | PMP deal | Deals API + OpenRTB 2.6 · Deal |
 | Open market | OpenRTB 2.6 · open auction, no deal |
 
+### 1.2 Relationship to other AAMP artifacts
+
+**Identity.** Three questions about a party stay separate, for the buyer and the
+seller alike. An answer to one is not an answer to another.
+
+| Layer | Question | Answered by | Owner | In the proposal object |
+| :--- | :--- | :--- | :--- | :--- |
+| Request authentication | Which origin sent this request? | An [HTTP Message Signature](https://www.rfc-editor.org/rfc/rfc9421), with the key in that origin's [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) directory | The AAMP agent identity and signing profile (provisional name) | Nothing. The object never carries or re-proves it |
+| Authorization | What may this party, or its agent, do? | The seller's eligibility rules; a mandate the principal publishes or signs | This specification for the rules (§ 5.8); the AAMP authority document (provisional name) for mandates | The rules only, never the proof |
+| Legal assent | Which legal entity agreed to which terms? | The `assent` records for the binding version, with both parties named in the proposal | This specification for the parties and the record (§ 4.1); the profile for any signature over it | Parties, `assent` |
+
+A request signature proves an `https` origin. It does not prove which party that
+origin speaks for: a hosted agent's origin is the host's, and a mandate the party
+publishes or signs connects them. What authenticates a seller's response is the
+profile's to state. Reading a public file (§ 2.3) needs none of this.
+
 ---
 
 ## 2. Object shape
@@ -75,7 +91,8 @@ when its conditions are met.
 Every proposal and every line item has two representations.
 
 **Full Representation:** every field the object holds, with a proposal's line items
-in their Full Representation. A full fetch MUST return it.
+in their Full Representation. A full fetch MUST return it, except for line items the
+requester may not read (§ 5.8).
 
 **Summary Representation:** what a buying agent reads when screening many
 sellers' shelves. A manifest entry holds it (§ 2.3), and a response MAY
@@ -107,6 +124,7 @@ commitment_bounds
 addressable_scale
 committed_metrics[]
 required_credentials[]
+buyer_requirements.allowed_dsps[]
 transaction_mechanism.available[]
 ```
 
@@ -121,7 +139,8 @@ transaction_mechanism.available[]
 ```text
 proposal_id
 version
-seller_name
+seller.domain
+seller.legal_name
 description
 offer_window
 linked_execution
@@ -185,7 +204,10 @@ retrievable, and the counterparty stores a copy.
 | `url` | Url | REQUIRED | The document. It MAY need authentication |
 | `digest` | Digest | REQUIRED | Over the exact bytes served, with no content coding |
 
-**`VersionRef`** locates an offer at a version. It carries no digest.
+**`VersionRef`** locates an offer at a version. It carries no digest. A `proposal_id`
+is unique only within a `seller.domain` (§ 4.1): a `VersionRef` inside a proposal
+resolves against that proposal's `seller`, and a system that holds one outside a
+proposal keeps the `seller.domain` beside it.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
@@ -194,12 +216,15 @@ retrievable, and the counterparty stores a copy.
 | `line_item_id` | String | OPTIONAL | A line item in that version |
 
 **`Party`** names a legal party. `domain` is the identifier, and `registry_id` is
-an attestation.
+an attestation. An absent or unresolvable `registry_id` MUST NOT make a document
+malformed, and a consumer MUST ignore a resolved entry whose verified domain is
+not `domain`. The Agent Registry defines its reference format and how it exposes the
+verified domain.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `domain` | RegistrableDomain | REQUIRED | The party's domain |
-| `legal_name` | String | OPTIONAL | The party's legal name |
+| `legal_name` | String | OPTIONAL | The party's legal name. A `registry_id` entry that applies can attest it; the value alone attests nothing |
 | `registry_id` | String | OPTIONAL | An IAB Tech Lab Agent Registry reference for the entity controlling `domain` |
 
 **`SeatRef`** names a buyer's seats. A seat always travels with its DSP.
@@ -234,14 +259,13 @@ present, and `min` is no greater than `max`.
 
 ### 2.3 Publication
 
-A seller MAY publish `https://<seller domain>/.well-known/openproposal.json`, a
+A seller MAY publish `https://<seller.domain>/.well-known/openproposal.json`, a
 `ProposalManifest`.
 
 **`ProposalManifest`** keys:
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `seller_id` | String | REQUIRED | The seller, as each listed proposal's `seller_id` (§ 4.1) |
 | `generated_at` | Instant | REQUIRED | When the seller generated the file |
 | `spec_version` | String | REQUIRED | The version of this specification the file follows |
 | `proposals[]` | Array[ManifestEntry] | REQUIRED | One per listed proposal |
@@ -252,10 +276,15 @@ A seller MAY publish `https://<seller domain>/.well-known/openproposal.json`, a
 | :--- | :--- | :--- | :--- |
 | `full_url` | Url | REQUIRED | Where the second phase fetches the Full Representation |
 
-- `ETag` / `Last-Modified` are REQUIRED, so buyers can poll cheaply.
+- At least one of `ETag` and `Last-Modified` is REQUIRED, so buyers can poll cheaply.
+  § 8 asks whether both are.
 - Only standard proposals appear, and within them only line items whose
-  `visibility` (§ 5.8) is `public`. `registry_gated` and `named` line items do
-  not.
+  `visibility` (§ 5.8) is `public` and whose `status` is `published`.
+  `registry_gated` and `named` line items do not.
+- A buyer discards an entry whose `seller.domain` differs from the domain in the
+  URL it requested, before any redirect.
+- `full_url` returns only what the requester may read (§ 5.8), so a request with
+  no authenticated identity gets only `public` line items.
 - Manifest entries MUST match the current version of each proposal. A stale
   entry is a seller error.
 
@@ -283,7 +312,7 @@ fails is the AAMP agent identity and signing profile's to state.
 | `code` | VocabularyTerm | REQUIRED | A core code (below) or an extension code |
 | `detail` | String | REQUIRED | Human-readable. A receiver SHOULD NOT parse it |
 | `pointer` | FieldPointer | OPTIONAL | Into the object this specification defines that the request carries, to the value that caused the error |
-| `version` | Integer | REQUIRED when the request names a proposal that exists | The proposal's `version` when the error was decided |
+| `version` | Integer | REQUIRED when the request names a proposal the requester may read | The proposal's `version` when the error was decided |
 | `retry` | Enum | REQUIRED | `same` \| `refetch` \| `none`. `same`: the same request can succeed later. `refetch`: a new attempt, composed on the current `version`, can succeed. `none`: only a changed request can succeed. On a commitment attempt, `same` keeps the `idempotency_key` and such an error is not a stored result (§ 5.6.1), and `refetch` and `none` take a new `idempotency_key` |
 
 Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_reference` \|
@@ -293,7 +322,7 @@ Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_referenc
 | `code` | Returned when |
 | :--- | :--- |
 | `validation` | A value breaks a rule of this specification and no other code applies |
-| `not_found` | A named proposal or line item does not exist |
+| `not_found` | A named proposal or line item does not exist, or the requester may not read it (§ 5.8) |
 | `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 5.5) |
 | `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
 | `not_committable` | A line item's `status`, or a `requires` that is unmet (§ 5.6.3), rules out commitment |
@@ -316,7 +345,8 @@ Unprocessable Content. An error with `retry: same` fits 503 Service Unavailable.
 
 The proposal and each line item MAY carry
 `ext`, an `Ext`. Each key MUST be a `Domain` that its owner controls, and each value
-is an object that the owner defines.
+is an object that the owner defines. A seller's own entries MUST use its
+`seller.domain` as the key.
 
 ```yaml
 ext:
@@ -512,11 +542,11 @@ items.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `proposal_id` | String | REQUIRED | immutable | Unique identity for the proposal object |
+| `proposal_id` | String | REQUIRED | immutable | Identifies the proposal. Unique within `seller.domain` |
 | `version` | Integer | REQUIRED | derived | Monotonically increasing revision number. Each revision of the proposal increments it |
 | `spec_version` | String | REQUIRED | seller-set | The version of this specification the document follows, such as `3.0` |
-| `seller_id` | String | REQUIRED | immutable | IAB Tech Lab registry reference |
-| `seller_name` | String | OPTIONAL | immutable | Canonical legal seller entity name, from the registry |
+| `seller` | Party | REQUIRED | immutable | The selling entity. `seller.domain` is the seller's identifier for all purposes, including `assent`. `legal_name` is REQUIRED here |
+| `buyer` | Party | REQUIRED when `assent` is present | immutable | The entity that assents, usually the agency. Absent until the seller issues the proposal to one buyer. Whom the spend is for is `commitment.advertisers[]` (§ 5.6.1), and whether the buyer may bind that advertiser is authorization (§ 1.2). `legal_name` is REQUIRED here |
 | `type` | Enum | REQUIRED | immutable | `standard` \| `custom` |
 | `status` | Enum | REQUIRED | derived | `draft` \| `published` \| `under_review` \| `agreed` \| `withdrawn` \| `expired` |
 | `assent` | Object | OPTIONAL | derived | Buyer and seller assent records and timestamps for the binding version. Signature scheme is WS1 |
@@ -526,6 +556,20 @@ items.
 | `line_items[]` | Array[LineItem] | REQUIRED | seller-set | The line items (§ 5), in the order the seller wrote them |
 | `linked_execution` | Enum | OPTIONAL | seller-set | `none` (default, subsettable) \| `all` (every published line item must be committed together) |
 | `ext` | Ext | OPTIONAL | seller-set | See Extensions (§ 2.5) |
+
+**Seller identity.** A proposal names exactly one `seller.domain`. A seller MUST
+NOT name a domain it does not control. For this specification one `seller.domain`
+is one seller: entities that transact under one domain are one seller here, and
+`seller.legal_name` carries the legal name. A selling entity that controls several
+registrable domains SHOULD use the same `seller.domain` for every proposal it
+publishes as one seller; a seller that publishes proposals under several domains
+holds an Agent Registry entry for each, or the entry does not apply. The field is immutable,
+so a seller that moves to another domain publishes new proposals. Where a third party
+hosts a seller's agent or published files, `seller.domain` is the selling
+entity's own registrable domain, never the host's. Continuity of a legal entity
+across domains, rebrands, or acquisitions is a fact the Agent Registry attests; this
+object does not encode it. Whether to deal with a seller that has no Agent
+Registry entry is buyer policy.
 
 ### 4.2 Agent comprehension
 
@@ -797,7 +841,8 @@ exclusions:
 
 #### 5.6.1 commitment
 
-Absent on a published standard proposal. Populated during composition. Frozen
+Absent on a published standard proposal. Populated during composition. A
+`commitment` resolves under § 3 only when the buyer is eligible (§ 5.8). Frozen
 when status becomes `agreed`.
 
 **`CommitmentAmount`** is the committed figure. `basis` means only this.
@@ -815,6 +860,7 @@ when status becomes `agreed`.
 | `version` | Integer | REQUIRED | The proposal `version` the commitment was priced against |
 | `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** |
+| `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for |
 | `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding |
 | `idempotency_key` | String | REQUIRED | Buyer-generated, unique per commitment attempt |
 
@@ -918,11 +964,16 @@ self-contained.
 
 ### 5.8 Transaction eligibility
 
+`visibility` says who may read a line item. `required_credentials[]`,
+`eligible_buyers[]`, `eligible_seats[]`, and `buyer_requirements` (§ 5.9) say who
+may commit to it.
+
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `visibility` | Enum | OPTIONAL | seller-set | `public` \| `registry_gated` \| `named` |
-| `required_credentials[]` | Array[Object] | OPTIONAL | seller-set | `{ type: iab_registry \| dsp_seat \| custom, scheme: api_key \| oauth2_client_credentials \| jwt_keypair \| oidc_federated \| none, issuer, id_required }` |
-| `eligible_bidders[]` | Array[String] | OPTIONAL | seller-set | Permitted seat or buyer ids |
+| `visibility` | Enum | REQUIRED | seller-set | `public` \| `registry_gated` \| `named`. See below |
+| `required_credentials[]` | Array[RequiredCredential] | OPTIONAL | seller-set | What a buyer holds to be eligible |
+| `eligible_buyers[]` | Array[RegistrableDomain] | OPTIONAL | seller-set | The buyers that may commit, by `buyer.domain` |
+| `eligible_seats[]` | Array[SeatRef] | OPTIONAL | seller-set | The seats that may commit. An entry with an absent or empty `ids[]` names no seat and admits no one, unlike an absent OpenRTB 2.6 `Deal.wseat`, which sets no restriction |
 | `terms_acceptance_required` | Boolean | OPTIONAL | seller-set | Whether legal terms must be accepted before assent |
 | `terms_ref` | Object | REQUIRED when `terms_acceptance_required` is `true` | seller-set | `{ url, sha256, version }`: the legal terms or IO template the buyer accepts at assent. Hash-pinned, so assent (§ 4.1) binds to an exact document |
 
@@ -930,6 +981,54 @@ self-contained.
 
 `exclusions` (§ 5.5) reveal the buyer's strategy. A seller MUST NOT disclose a
 buyer's `exclusions` to any party other than that buyer.
+
+**Who may read.** Each `visibility` value names who may read the line item:
+
+- `public`: any requester, with no authentication.
+- `registry_gated`: an authenticated requester (§ 1.2) acting for a party the
+  IAB Tech Lab Agent Registry attests.
+- `named`: an authenticated requester acting for a party that `eligible_buyers[]`
+  names, or that holds a seat `eligible_seats[]` names.
+
+How a seller learns which party a requester acts for, or that it holds a seat, is
+authorization (§ 1.2), and the object doesn't carry it.
+
+An authenticated requester acting for the party a proposal's `buyer` names may read all
+of it, whatever `visibility` says. Any other requester may read a proposal's own fields
+only when it may read one of its line items. A response carries only the line items the
+requester may read, and a request for any other line item, or for a proposal the
+requester may not read, returns `not_found` (§ 2.4). A full fetch leaves out only line
+items (§ 2.1), so a value it returns can name a line item the requester may not read,
+such as a line item's `requires` (§ 5.6.3) or a `negotiation_history[]` path.
+
+**Who may commit.** A buyer is eligible when each of these that is present holds:
+
+- `eligible_buyers[]`, `eligible_seats[]`: `buyer.domain` MUST be in
+  `eligible_buyers[]`, or `buyer_requirements.seats` MUST name at least one seat, each
+  in an `eligible_seats[]` entry for its `dsp`.
+- `buyer_requirements.allowed_dsps[]` (§ 5.9): when `buyer_requirements.seats` is
+  present, its `dsp` MUST be in the list.
+- `required_credentials[]`: the buyer meets it.
+
+A buyer that fails these rules, or an authority check the seller applies (whether the
+sender may make this request for `buyer`, or `buyer` for an advertiser it names, § 1.2),
+gets `not_eligible` (§ 2.4), or `not_found` when the requester may not read what the request
+names. That is a rejection, not a decline (§ 2.4). A mandate is not a field of this
+object.
+
+**`RequiredCredential`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `credential_type` | VocabularyTerm | REQUIRED | What the buyer holds. Core term: `iab_registry`, an entry in the IAB Tech Lab Agent Registry |
+| `issuer` | Domain | REQUIRED | Who issues it |
+
+A consumer that does not know a `credential_type` MUST NOT treat the proposal or
+line item as invalid for that reason. It MUST treat that entry as unsatisfiable.
+
+Agent identity and request authentication are defined by the AAMP agent identity
+and signing profile (provisional name). They are not expressed through
+`required_credentials[]`.
 
 ### 5.9 Execution
 
@@ -939,21 +1038,53 @@ buyer's `exclusions` to any party other than that buyer.
 | `transaction_mechanism` | Selectable[TransactionMechanism] | REQUIRED | selectable | See `TransactionMechanism` below. A seller MAY offer the same inventory through more than one |
 | `serving_mode` | VocabularyTerm | OPTIONAL | seller-set | Core terms: `client_side` \| `ssai` \| `dai` |
 | `deal_id_issuance` | String | OPTIONAL | derived | When and how the deal id is minted. Issued at commitment time |
-| `buyer_requirements` | BuyerRequirements | OPTIONAL | mixed | `{ seat_required, dsp_allowed[] }` are `seller-set`; `{ dsp_seat_id, dsp_id, seat_owner_entity }` are `supplied` |
+| `buyer_requirements` | BuyerRequirements | OPTIONAL | mixed | See below |
 | `serving_platform` | String | OPTIONAL | seller-set | Where the line item serves |
 
 **`TransactionMechanism`** is `direct_io` \| `programmatic_guaranteed` \|
 `preferred_deal` \| `private_auction` \| `open_auction`.
 
+**`BuyerRequirements`** keys:
+
+| Key | Type | Required | Meaning | Mutability |
+| :--- | :--- | :--- | :--- | :--- |
+| `seats_expected` | Boolean | OPTIONAL | The seller asks the buyer to supply `seats` | seller-set |
+| `allowed_dsps[]` | Array[RegistrableDomain] | OPTIONAL | The DSPs that may receive the deal (§ 5.8), each by its primary domain, as `SeatRef.dsp` (§ 2.2) | seller-set |
+| `seats` | SeatRef | OPTIONAL | The buyer's seats on the deal, as the Deals API 1.0 `wseat` | supplied |
+| `seat_owner` | Party | OPTIONAL | The legal entity that owns the seats. Absent: the `buyer` | supplied |
+
 ### 5.10 External references and settlement
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `external_references[]` | Array[ExternalReference] | OPTIONAL | recorded | `{ system, namespace, id, role }`. Replaces platform-specific key names. The party that learns an id writes the entry. Documented `role` values: `io`, an IO id generated by an order management system and carried back on the line item; `agreement`, a buyer-held agreement id |
-| `agreement_ref` | Object | OPTIONAL | seller-set | Reference to a master or annual agreement the line item is priced under: `{ agreement_id, parties[], type: upfront \| annual \| master_services \| other, valid_from, valid_until }`, where `parties[]` names the seller by its `seller_id` and the buyer by the id it holds in `eligible_bidders[]` (§ 5.8). An informative pointer; the agreement itself is outside this specification. A buyer-held agreement id travels as an `external_references[]` entry with `role: agreement` |
+| `external_references[]` | Array[ExternalReference] | OPTIONAL | recorded | `{ system, namespace, id, role }`. Replaces platform-specific key names. The party that learns an id writes the entry. `role` is a `VocabularyTerm`. Core terms: `io`, an IO id generated by an order management system and carried back on the line item; `agreement`, a buyer-held agreement id |
+| `agreement` | Agreement | OPTIONAL | seller-set | The master or annual agreement the line item is priced under. An informative pointer; the agreement itself is outside this specification. A buyer-held agreement id travels as an `external_references[]` entry with `role: agreement` |
 | `correlation_id` | String | OPTIONAL | derived | One identity for this line item's commitment, carried across every system it touches |
-| `billing` | Object | OPTIONAL | seller-set | `{ supplier_id, billing_supplier_id, payment_terms, invoicing_party }`. Who delivers is not always who invoices |
+| `billing` | Billing | OPTIONAL | seller-set | Who delivers is not always who invoices |
 | `supported_order_systems[]` | Array[String] | OPTIONAL | seller-set | Declared up front so the agent knows it will reconcile |
+
+**`Agreement`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `agreement_id` | String | REQUIRED | The agreement's id |
+| `parties[]` | Array[Party] | OPTIONAL | The agreement's parties |
+| `agreement_type` | VocabularyTerm | OPTIONAL | Core terms: `upfront` \| `annual` \| `master_services`. A receiver that doesn't know the term still reads the `agreement` |
+| `term` | Interval | OPTIONAL | When the agreement runs |
+| `document` | DocumentRef | OPTIONAL | The agreement, where the parties pin it |
+
+**`Billing`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `delivering_party` | Party | OPTIONAL | Who delivers. Absent: the `seller` |
+| `invoicing_party` | Party | OPTIONAL | Who invoices. Absent: the `seller` |
+| `payment_terms` | String | OPTIONAL | The payment terms, such as `net 30` |
+| `invoice_period` | VocabularyTerm | OPTIONAL | The invoice period. Core terms: `month` (default) \| `cycle` |
+| `cycle_length` | Duration | REQUIRED when `invoice_period` is `cycle` | How long each `cycle` period runs, such as `P28D` (4 weeks) |
+| `time_zone` | IanaZone | OPTIONAL | The clock for a `month` invoice period. Absent: `UTC` |
+
+A buyer's own code for a supplier goes in `external_references[]`.
 
 This specification does not define IO generation. IO creation is a connector
 concern. OpenProposal supplies the agreed record, `terms_ref` and
@@ -1023,9 +1154,9 @@ display line item is `registry_gated`, so it is not listed. See
 
 **Relationships, agreements and IOs (non-normative).** Buyer–seller
 relationships are expressed as issued proposals (`visibility: named`,
-`eligible_bidders[]` set to that buyer, with the negotiated `pricing[]`) plus
+`eligible_buyers[]` set to that buyer, with the negotiated `pricing[]`) plus
 the buyer agent's business rules. "Preferred partner" weighting is a buyer-side
-ranking rule, not part of this specification. `agreement_ref` and `terms_ref`
+ranking rule, not part of this specification. `agreement` and `terms_ref`
 (§ 5.10, § 5.8) point at the agreement and terms a line item is executed under;
 IO generation happens through connectors.
 
@@ -1059,6 +1190,9 @@ see [docs/open-questions.md](../docs/open-questions.md).
    names the release a document follows, and § 2.5 makes a key the receiver's
    release does not list invalid. Nothing says whether a receiver rejects a release
    it does not know, or keeps and ignores keys it does not list.
+11. **Must a manifest response carry both `ETag` and `Last-Modified`, or is either
+    enough?** § 2.3 requires at least one, so a buyer's client handles whichever the
+    seller sends.
 
 ---
 
@@ -1073,8 +1207,8 @@ body is normative.**
 | `proposal_id` | 4.1 Identity and lifecycle | String | REQUIRED | immutable |
 | `version` | 4.1 Identity and lifecycle | Integer | REQUIRED | derived |
 | `spec_version` | 4.1 Identity and lifecycle | String | REQUIRED | seller-set |
-| `seller_id` | 4.1 Identity and lifecycle | String | REQUIRED | immutable |
-| `seller_name` | 4.1 Identity and lifecycle | String | OPTIONAL | immutable |
+| `seller` | 4.1 Identity and lifecycle | Party | REQUIRED | immutable |
+| `buyer` | 4.1 Identity and lifecycle | Party | REQUIRED when `assent` is present | immutable |
 | `type` | 4.1 Identity and lifecycle | Enum | REQUIRED | immutable |
 | `status` | 4.1 Identity and lifecycle | Enum | REQUIRED | derived |
 | `assent` | 4.1 Identity and lifecycle | Object | OPTIONAL | derived |
@@ -1135,9 +1269,10 @@ body is normative.**
 | `measurement_source` | 5.7 Guarantees | Selectable[MeasurementOption] | OPTIONAL | selectable |
 | `shortfall_remedy` | 5.7 Guarantees | Selectable[VocabularyTerm] | OPTIONAL | selectable |
 | `reporting` | 5.7 Guarantees | Selectable[ReportingOption] | OPTIONAL | selectable |
-| `visibility` | 5.8 Transaction eligibility | Enum | OPTIONAL | seller-set |
-| `required_credentials[]` | 5.8 Transaction eligibility | Array[Object] | OPTIONAL | seller-set |
-| `eligible_bidders[]` | 5.8 Transaction eligibility | Array[String] | OPTIONAL | seller-set |
+| `visibility` | 5.8 Transaction eligibility | Enum | REQUIRED | seller-set |
+| `required_credentials[]` | 5.8 Transaction eligibility | Array[RequiredCredential] | OPTIONAL | seller-set |
+| `eligible_buyers[]` | 5.8 Transaction eligibility | Array[RegistrableDomain] | OPTIONAL | seller-set |
+| `eligible_seats[]` | 5.8 Transaction eligibility | Array[SeatRef] | OPTIONAL | seller-set |
 | `terms_acceptance_required` | 5.8 Transaction eligibility | Boolean | OPTIONAL | seller-set |
 | `terms_ref` | 5.8 Transaction eligibility | Object | REQUIRED when `terms_acceptance_required` is `true` | seller-set |
 | `buying_route` | 5.9 Execution | Enum | OPTIONAL | seller-set |
@@ -1147,9 +1282,9 @@ body is normative.**
 | `buyer_requirements` | 5.9 Execution | BuyerRequirements | OPTIONAL | mixed |
 | `serving_platform` | 5.9 Execution | String | OPTIONAL | seller-set |
 | `external_references[]` | 5.10 External references and settlement | Array[ExternalReference] | OPTIONAL | recorded |
-| `agreement_ref` | 5.10 External references and settlement | Object | OPTIONAL | seller-set |
+| `agreement` | 5.10 External references and settlement | Agreement | OPTIONAL | seller-set |
 | `correlation_id` | 5.10 External references and settlement | String | OPTIONAL | derived |
-| `billing` | 5.10 External references and settlement | Object | OPTIONAL | seller-set |
+| `billing` | 5.10 External references and settlement | Billing | OPTIONAL | seller-set |
 | `supported_order_systems[]` | 5.10 External references and settlement | Array[String] | OPTIONAL | seller-set |
 
 ---
@@ -1158,8 +1293,8 @@ body is normative.**
 
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
-| immutable | 7 | Set once at creation. Neither party may change it. | `proposal_id`, `seller_id`, `seller_name`, `type`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 38 | The seller sets it and MAY revise it while status is `draft` or `published`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_bidders[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement_ref`, `billing`, `supported_order_systems[]` |
+| immutable | 7 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `brief_id`, `line_item_id`, `channel` |
+| seller-set | 39 | The seller sets it and MAY revise it while status is `draft` or `published`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
 | selectable | 12 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 5 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -1172,8 +1307,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 81 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
-`supplied` and 2 `requestable`. The remaining 61 are `seller-set`, `immutable`,
+Of 82 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
+`supplied` and 2 `requestable`. The remaining 62 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`.
 
 Only the 2 `requestable` fields require a round trip to resolve (§ 5.6.1).

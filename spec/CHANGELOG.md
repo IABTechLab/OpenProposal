@@ -5,6 +5,40 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.2, § 2.1 to § 2.5, § 4.1, § 5.6.1, § 5.8, § 5.9, § 5.10, § 7, § 8, appendices,
+  examples, docs, checker — who the parties are, and what each identity layer proves.
+  `seller_id` and `seller_name` become `seller`, a `Party` whose `legal_name` is
+  REQUIRED, and the registry reference becomes `seller.registry_id`. `buyer` and
+  `commitment.advertisers[]` are added. § 1.2 states who owns request authentication,
+  authorization, and legal assent. § 5.8 defines each `visibility` value, which is
+  REQUIRED, and separates who may read from who may commit. Eligibility is part of
+  resolving a `commitment`; a failure returns `not_eligible`, and an unreadable line
+  item returns `not_found`. `required_credentials[]` entries become
+  `{ credential_type, issuer }`: `scheme`, its token list, and `id_required` are
+  removed, and so are the `dsp_seat` and `custom` types. `eligible_bidders[]` splits
+  into `eligible_buyers[]` and `eligible_seats[]`. `dsp_id` and `dsp_seat_id` become
+  `buyer_requirements.seats`, a `SeatRef`; `seat_required` becomes `seats_expected`,
+  `dsp_allowed[]` becomes `allowed_dsps[]`, and `seat_owner_entity` becomes
+  `seat_owner`. `billing.supplier_id` and `billing.billing_supplier_id` become
+  `billing.delivering_party`, and `billing` adds `invoice_period`, `cycle_length`, and
+  `time_zone`. `agreement_ref` becomes `agreement`, with `agreement_type` and `term`,
+  and its `parties[]` holds `Party` values. The manifest drops `seller_id`, filters on
+  `status` as well as `visibility`, and needs at least one of `ETag` and
+  `Last-Modified`; § 8 asks whether it needs both. A buyer discards a manifest entry
+  whose `seller.domain` differs from the requested domain, and `full_url` returns only
+  what the requester may read. A full fetch leaves out line items the requester may
+  not read, and `ErrorObject.version` applies to a proposal the requester may read.
+  `proposal_id` is unique within `seller.domain`, and a seller's own `ext` key is its
+  `seller.domain`. `agreement_ref.valid_from` and `valid_until` become
+  `agreement.term`, `agreement` adds `document`, and `external_references[].role` is a
+  `VocabularyTerm`. Breaking
+  ([#61](https://github.com/IABTechLab/OpenProposal/issues/61),
+  [#62](https://github.com/IABTechLab/OpenProposal/issues/62),
+  [#132](https://github.com/IABTechLab/OpenProposal/issues/132),
+  [#126](https://github.com/IABTechLab/OpenProposal/issues/126),
+  [#57](https://github.com/IABTechLab/OpenProposal/issues/57),
+  [#29](https://github.com/IABTechLab/OpenProposal/issues/29),
+  [#27](https://github.com/IABTechLab/OpenProposal/issues/27)).
 - § 2, § 2.2, § 2.4, § 2.5, § 2.7, § 4.1, § 5.1, § 5.5, § 5.6.1, § 5.6.3, § 8,
   appendices, examples, docs, checker — errors, extensions, and forward
   compatibility. A rejection returns `errors[]`, one or more `ErrorObject`s with

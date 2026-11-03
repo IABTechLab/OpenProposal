@@ -76,6 +76,7 @@ commitment:
   amount:          80000.00
   currency:        USD
   flight:          { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
+  advertisers:     [{ domain: "brand-a.example" }]
   derived_units:   3333333             # derived: 80000.00 / 24.00 × 1000
   idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9"
 
@@ -96,8 +97,7 @@ reporting:
   deltas:       { log_level: { delta_flat: 2500.00 } }
 
 visibility:            registry_gated
-required_credentials:  [{ type: dsp_seat, scheme: jwt_keypair,
-                          issuer: "dsp-a", id_required: true }]
+required_credentials:  [{ credential_type: iab_registry, issuer: "registry.iabtechlab.ai" }]
 terms_acceptance_required: true
 terms_ref:             { url: "https://examplepub.example/legal/io-terms-2026.pdf",
                          sha256: "<sha256 of the terms document>", version: "2026.1" }
@@ -106,9 +106,14 @@ buying_route:           PUBLISHER_AD_SERVER
 transaction_mechanism:  { available: ["programmatic_guaranteed", "preferred_deal"],
                           included: ["programmatic_guaranteed"] }
 serving_mode:           client_side
-buyer_requirements:     { seat_required: true, dsp_allowed: ["dsp-a", "dsp-b"],
-                          dsp_seat_id: "seat-99812", dsp_id: "dsp-a-prod",
-                          seat_owner_entity: "Agency A" }
+buyer_requirements:     { seats_expected: true,
+                          allowed_dsps: ["dsp-a.example", "dsp-b.example"],
+                          seats: { dsp: "dsp-a.example", ids: ["seat-99812"] },   # the buyer's write
+                          seat_owner: { domain: "agency-a.example", legal_name: "Agency A LLC" } }
+billing:                { invoicing_party: { domain: "examplepub-billing.example",
+                                             legal_name: "Example Publisher Billing LLC" },
+                          payment_terms: "net 30", invoice_period: month,
+                          time_zone: "America/New_York" }
 
 correlation_id:  "ep-q4-2026-commitment/business-daily-display"
 
