@@ -24,13 +24,14 @@ whether resolving inside one is worth the modelling cost.
 
 ---
 
-### OQ-2 — Do seller catalogs (`catalog_ref`) belong in 3.0?
+### OQ-2 — Is a fetchable reference to a seller catalog needed?
 
-**Issue:** [#3](https://github.com/IABTechLab/OpenProposal/issues/3)  ·  **Spec:** § 2.2
+**Issue:** [#3](https://github.com/IABTechLab/OpenProposal/issues/3)  ·  **Spec:** § 2.1
 
-Or should the object stay fully inline until a later version? `catalog_ref`
-buys compactness across a large shelf at the cost of a resolution step during
-discovery and a versioning regime sellers must operate.
+The object is fully inline. A seller reuses catalog entries in its own systems, and
+a summary lists what § 2.1 names. A reference a buyer could fetch would buy
+compactness across a large shelf at the cost of a fetch rule, a resolution step
+during discovery, and a versioning regime sellers must operate.
 
 **What would settle it:** how large a real shelf gets, and whether sellers
 already maintain versioned, immutable catalog entries or would have to build
@@ -65,26 +66,24 @@ proposed fallback behaviour.
 
 ---
 
-### OQ-5 — Is a `min_line_items` field needed?
+### OQ-5 — Do `linked_execution` and `requires` cover bundle purchases?
 
 **Issue:** [#6](https://github.com/IABTechLab/OpenProposal/issues/6)  ·  **Spec:** § 2, § 4
 
-The draft makes proposals subsettable unless binding terms mandate linked
-execution. Does the proposal need an explicit `min_line_items` to require a
-bundle purchase, or is that left to buyer discretion and the binding terms?
+The draft makes proposals subsettable unless `linked_execution` is `all`, and a line
+item can state `requires`. Does the proposal also need a `min_line_items` field?
 
-**What would settle it:** whether sellers actually merchandise bundles that must
-be bought whole, and whether "binding terms" is a precise enough hook.
+**What would settle it:** whether sellers merchandise a bundle these two fields
+can't express.
 
 ---
 
-### OQ-6 — Should `payment_terms` and `invoicing_party` be catalog references?
+### OQ-6 — Should `payment_terms` and `invoicing_party` repeat on every line item?
 
 **Issue:** [#7](https://github.com/IABTechLab/OpenProposal/issues/7)  ·  **Spec:** § 5.10
 
-Rather than repeated on every line item, given they are usually identical across
-a seller's shelf. Note this is in tension with the no-inheritance rule (§ 2) —
-a `catalog_ref` is explicitly not inheritance, but the ergonomics are similar.
+They are usually identical across a seller's shelf. Note this is in tension with the
+no-inheritance rule (§ 2): sharing them would need another mechanism.
 
 **What would settle it:** whether `billing` genuinely varies per line item in
 practice (different supplier of record, different invoicing entity per
@@ -92,7 +91,7 @@ property).
 
 ---
 
-### OQ-7 — `environments[]` needs validation against real inventory
+### OQ-7 — `environments.available[]` needs validation against real inventory
 
 **Issue:** [#8](https://github.com/IABTechLab/OpenProposal/issues/8)  ·  **Spec:** § 5.2
 

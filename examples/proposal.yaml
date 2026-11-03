@@ -7,8 +7,9 @@ seller_name:       "Example Publisher US"
 type:              standard
 linked_execution:  none              # line items may be bought separately (§ 4.1)
 status:            published
-valid_from:        "2026-10-01T00:00:00Z"
-valid_until:       "2026-12-31T23:59:59Z"
+offer_window:      { start: "2026-10-01T00:00:00Z", end: "2026-12-31T23:59:59Z" }
+
+# The line_items of this proposal are shown in their own files (examples/line-item-*.yaml).
 
 description: >
   Cross-channel Example Publisher US package spanning display, in-stream video
