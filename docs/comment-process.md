@@ -8,14 +8,14 @@ or a documented decision not to change it.
 | Phase | Dates | What happens |
 | :--- | :--- | :--- |
 | **1. Comment period opens** | 2026-09-22 | Draft frozen at a tagged version. Announcement published. Issues open. |
-| **2. Comment period** | 2026-09-22 → 2026-10-22 (30 days) | Anyone may file. Maintainers triage and label within 5 business days of filing, but do not resolve. |
-| **3. Comment period closes** | 2026-10-22 | No new comments enter the formal record. Later issues are labelled `post-comment` and considered for the following draft. |
+| **2. Comment period** | 2026-09-22 → 2026-11-10 | Anyone may file. Maintainers triage and label within 5 business days of filing, but do not resolve. |
+| **3. Comment period closes** | 2026-11-10 | No new comments enter the formal record. Later issues are labelled `post-comment` and considered for the following draft. |
 | **4. Adjudication** | `TBD` → `TBD` | Working group works the queue. Every open comment gets a disposition. |
 | **5. Disposition published** | `TBD` | [disposition-log.md](disposition-log.md) published in full. Commenters notified on their issue. |
 | **6. Revised draft** | `TBD` | New draft tagged. Either ratification or a second comment period, depending on how much moved. |
 
 > **Maintainers: phases 4–6 are still `TBD`.** Fill them before the comment
-> period closes on 2026-10-22.
+> period closes.
 
 ## Dispositions
 
@@ -59,7 +59,7 @@ Triage labels, applied on filing:
 | :--- | :--- |
 | `comment` | General comment on the draft |
 | `change-request` | Proposes specific normative wording |
-| `open-question` | Relates to one of the 7 questions in § 8 |
+| `open-question` | Relates to one of the questions in § 8 |
 | `implementation-feedback` | From someone who built against the draft |
 | `editorial` | Typo, formatting, broken link — no normative effect |
 | `normative` | Changes what the spec requires |
