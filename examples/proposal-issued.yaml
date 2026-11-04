@@ -20,12 +20,12 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:12da9aebc30cd2b9ed2ca73e866a4e04f93eb1191094efd3a8a6dd72ab5a9d62",
+      record_digest: "sha256:7e73bd909e58c26626174ab2942a3e858f3b1c83c6d30e3c0fa16ca4ec34b720",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:14:03Z",
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:12da9aebc30cd2b9ed2ca73e866a4e04f93eb1191094efd3a8a6dd72ab5a9d62",
+      record_digest: "sha256:7e73bd909e58c26626174ab2942a3e858f3b1c83c6d30e3c0fa16ca4ec34b720",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:31:47Z" }
 
@@ -63,7 +63,7 @@ line_items:
       included:     ["display/300x250"]
       deltas:       { "display/970x250": { delta_cpm: 3.00 } }
       selected:     ["display/300x250", "display/970x250"]   # the buyer's write
-    creative_delivery: { method: buyer_hosted, protocol: javascript_tag, secure_required: true }
+    creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
     exclusions_accepted:
       types:        [domain, keyword]
       max_entries:  { domain: 5000, keyword: 500 }
@@ -127,10 +127,11 @@ line_items:
     status:         published
     channel:        ctv
     properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+    placement:      { plcmt: 1 }          # Instream (1) (§ 5.2)
     formats:
       available:    ["ctv/instream-15s"]
       included:     ["ctv/instream-15s"]
-    creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
+    creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
     materials_due:  { at: "2026-10-20T23:59:59Z" }   # version 1 had "2026-10-13T23:59:59Z"
     pricing:
       - { pricing_id: "ctv-pg-cpm-usd", cost_method: CPM, list_rate: 45.00,

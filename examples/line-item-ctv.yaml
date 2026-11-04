@@ -4,11 +4,19 @@ status:         published
 channel:        ctv
 properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
 environments:   { available: ["ctv"], included: ["ctv"] }
-placement:      { plcmt: 1 }               # Instream (1) (§ 5.2)
+placement:      { plcmt: 1, ssai: 3 }      # Instream (1); all server-side (3) (§ 5.2.2)
+break_position:                                # where in the stream, priced (§ 5.2.3)
+  available:
+    - { id: "midroll-any",  delay: -1, slotinpod: 0, maxseq: 4 }   # Generic Mid-Roll (-1), Any ad in the pod (0)
+    - { id: "preroll",      delay: 0,  slotinpod: 0 }              # Pre-Roll (0), Any ad in the pod (0)
+    - { id: "first-in-pod", delay: -1, slotinpod: 1, maxseq: 4 }   # Generic Mid-Roll (-1), First ad in the pod (1)
+  included:     ["midroll-any"]
+  deltas:       { "preroll": { delta_cpm: 4.00 }, "first-in-pod": { delta_cpm: 9.00 } }
+  max_select:   1
 formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
                   included: ["ctv/instream-15s"],
                   deltas: { "ctv/instream-30s": { delta_cpm: 8.00 } } }
-creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
+creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
 frequency_cap:  { count: { min: 1, max: 4, default: 3 }, period: day, per: household }
 time_zone:      viewer_local
@@ -46,7 +54,7 @@ transaction_mechanism:
   available:  [{ id: private_auction, delivery_type: non_guaranteed }]
   included:   ["private_auction"]
   max_select: 1
-serving_mode:      ssai
+serving_mode:      dai
 deal_origin:       "ssp-a.example"
 
 # Inspecting this line item's VAST creative is subject to § 5.4.1.

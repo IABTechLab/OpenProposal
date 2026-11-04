@@ -26,6 +26,8 @@ change to this script. It checks:
   - Each mechanism option fits its row in section 5.9. deal_origin is on a deal line
     item only, a deal reference names deal_origin (section 5.10), and availability is
     forecast under non_guaranteed (section 5.6).
+  - A tentative event is outside included[] and priced only by delta_flat (section
+    5.2.9), and an embedded line item follows section 5.9.
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
@@ -94,6 +96,8 @@ RATE_PER = {}
 COST_UNIT = {}
 # The core metric table of section 5.7.1, as term -> Rate or Count.
 METRIC_KIND = {}
+# Fields absent when embedded (section 5.9).
+EMBEDDED_ABSENT = []
 RATE_UNIT_SECONDS = {"hour": 3600, "day": 86400, "week": 604800}
 
 
@@ -216,11 +220,18 @@ CONDITIONS = {
         lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
     "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
     "`channel` is `dooh`": lambda o, i, p: i.get("channel") == "dooh",
+    "`channel` is `audio`": lambda o, i, p: i.get("channel") == "audio",
+    "`channel` is `video`": lambda o, i, p: i.get("channel") == "video",
+    "`channel` is `video` or `audio`": lambda o, i, p: i.get("channel") in ("video", "audio"),
+    "`placement.feed` is Podcast (3) or Catch-up radio (4)":
+        lambda o, i, p: (i.get("placement") or {}).get("feed") in (3, 4),
+    "`serving_mode` is `embedded`": lambda o, i, p: i.get("serving_mode") == "embedded",
     "the line item counts impressions": lambda o, i, p: _counts_impressions(i),
     "`source_type` is not Publisher Provided (`2`)": lambda o, i, p: o.get("source_type") != 2,
     "a property has `sync_groups[]`": lambda o, i, p: _has_sync_groups(i),
-    "the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
-        lambda o, i, p: "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
+    "`serving_mode` is `embedded` or the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
+        lambda o, i, p: i.get("serving_mode") == "embedded"
+        or "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
         or any("unit_bounds" in e for e in i.get("pricing", [])),
     "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
     "the entry prices a deal mechanism":
@@ -361,6 +372,7 @@ class Spec:
         self._read_key_tables()
         self._read_lists()
         self._read_option_rules()
+        self._read_embedded()
         self._read_mechanisms()
         self._read_cost_methods()
         self._read_metrics()
@@ -397,6 +409,11 @@ class Spec:
             if not c:
                 break
             METRIC_KIND[clean_key(c[0])] = c[1]
+
+    def _read_embedded(self):
+        """Section 5.9: the fields an embedded line item leaves out."""
+        m = re.search(r"^- ((?:`\w+`,? (?:and )?)+)MUST be absent", "\n".join(self.lines), re.M)
+        EMBEDDED_ABSENT.extend(re.findall(r"`(\w+)`", m.group(1)))
 
     def _read_option_rules(self):
         """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
@@ -771,6 +788,24 @@ class Checker:
         for ref in item.get("external_references") or []:
             if ref.get("reference_type") == "deal" and ref.get("system") != item.get("deal_origin"):
                 self.err(file, path, "deal", "a deal reference has system other than deal_origin")
+        programs = item.get("programs") or {}
+        for option in programs.get("available", []):
+            if (option.get("schedule") or {}).get("eventstatus") == 2:
+                name = option.get("id")
+                if name in programs.get("included", []):
+                    self.err(file, path, name, f"tentative {name} is in included[]")
+                if set((programs.get("deltas") or {}).get(name, {})) - {"delta_flat"}:
+                    self.err(file, path, name, f"tentative {name} has a delta other than delta_flat")
+        if item.get("serving_mode") == "embedded":
+            if item.get("episodes", "new") != "new":
+                self.err(file, path, "episodes", "episodes on an embedded line item is new")
+            for key in EMBEDDED_ABSENT:
+                if key in item:
+                    self.err(file, path, key, f"{key} on an embedded line item")
+            if item.get("time_zone") == "viewer_local":
+                self.err(file, path, "time_zone", "time_zone on an embedded line item is viewer_local")
+            if _mechanisms(item) != {"direct_io"}:
+                self.err(file, path, "transaction_mechanism", "an embedded line item offers only direct_io")
         mechanism = item.get("transaction_mechanism") or {}
         in_effect = mechanism.get("selected", mechanism.get("included", []))
         delivery = {o.get("delivery_type") for o in _options(item) if o.get("id") in in_effect}

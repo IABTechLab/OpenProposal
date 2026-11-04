@@ -7,8 +7,9 @@ status:         published
 channel:        ctv
 properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
 environments:   { available: ["ctv"], included: ["ctv"] }
+placement:      { plcmt: 1, ssai: 3 }      # Instream (1); all server-side (3) (§ 5.2.2)
 formats:        { available: ["ctv/instream-15s"], included: ["ctv/instream-15s"] }
-creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
+creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
 frequency_cap:  { count: { min: 1, max: 2, default: 1 }, period: day, per: household }
 time_zone:      viewer_local
@@ -33,4 +34,4 @@ transaction_mechanism:
   available:  [{ id: direct_io, delivery_type: non_guaranteed }]
   included:   ["direct_io"]
   max_select: 1
-serving_mode:      ssai
+serving_mode:      dai

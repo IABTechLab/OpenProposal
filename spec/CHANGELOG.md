@@ -5,6 +5,29 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.1, § 2.1, § 2.6, § 3.3, § 4.1.1, § 5.2, § 5.2.2, § 5.2.3, § 5.2.9, § 5.4, § 5.6.4, § 5.7,
+  § 5.7.1, § 5.9, § 6.3, § 6.4, § 6.7, § 6.10, § 6.11, § 7, appendices, examples, checker — video
+  and audio inventory. `break_position` sells position and pod slot as priced
+  `BreakPositionOption`s (§ 5.2.3). `programs` makes content selectable: a `ProgramOption` nests
+  AdCOM `Content` under `content`, beside `id` and a named `schedule` (`EventSchedule`), and
+  § 5.2.9 says what happens when an event doesn't air. `content_detail` is removed, and
+  `episodes` is its own field. `placement` has a `Placement` key table, takes `IntegerFlag` on
+  `reward`, `instl`, and `skip`, and gains `feed` and `ssai`. It is REQUIRED when `channel` is
+  `video` or `audio`, `plcmt` when `channel` is `video`, and the presence of `plcmt` states that
+  a line item is video. `serving_mode` drops `client_side` and `ssai` and defines `dai`,
+  `scheduled`, and `embedded` for every channel. An `embedded` line item carries `retention` and
+  `controlling_measurement`, its post-flight delivery counts until `final_after` elapses, and
+  its `time_zone` isn't `viewer_local`. `plcmt` and `feed` link their AdCOM lists and take any
+  code in them. `source_type` links its list and takes any code but Unknown (`0`).
+  `creative_delivery.protocol` and `third_party_tags` become `protocols[]` of AdCOM Creative
+  Subtypes codes and `other_protocols[]` of terms. `production.available[].cost` is removed:
+  `deltas` prices a build. `build_owner` becomes `built_by`, and `production` says what nothing
+  in effect means. Breaking
+  ([#99](https://github.com/IABTechLab/OpenProposal/issues/99),
+  [#100](https://github.com/IABTechLab/OpenProposal/issues/100),
+  [#101](https://github.com/IABTechLab/OpenProposal/issues/101),
+  [#89](https://github.com/IABTechLab/OpenProposal/issues/89)).
+
 - § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
   examples, checker — DOOH properties, plays, and impressions. When `channel` is `dooh`, a
   property is a set of screens of one venue type. It carries `venue_type`, `allocation`,

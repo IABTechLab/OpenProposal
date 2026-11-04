@@ -2,6 +2,7 @@
 line_item_id:   "streaming-audio"
 status:         published
 channel:        audio
+placement:      { feed: 1 }                 # Music streaming service (1) (§ 5.2.2)
 environments:   { available: ["web_mobile", "app_mobile"],
                   included:  ["web_mobile", "app_mobile"] }
 formats:        { available: ["audio/host-read-30s", "audio/produced-30s"],
@@ -9,8 +10,8 @@ formats:        { available: ["audio/host-read-30s", "audio/produced-30s"],
                   deltas: { "audio/host-read-30s": { delta_cpm: 9.00 } } }
 
 production:
-  available:    [{ id: "seller_built", build_owner: seller, lead_time: "P14D" },
-                 { id: "buyer_supplied", build_owner: buyer, lead_time: "P0D" }]
+  available:    [{ id: "seller_built", built_by: seller, lead_time: "P14D" },
+                 { id: "buyer_supplied", built_by: buyer, lead_time: "P0D" }]
   included:     ["buyer_supplied"]
   deltas:       { seller_built: { delta_flat: 12000.00 } }
 

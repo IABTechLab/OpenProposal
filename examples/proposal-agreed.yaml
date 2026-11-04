@@ -19,12 +19,12 @@ description: >
 
 assent:
   - { role: commitment, version: 2,
-      record_digest: "sha256:6849bfa8901d427a71ebce8e988d274cc2d9ba3a01a0bfefecc2430dc2ec4730",
+      record_digest: "sha256:b9557e0619f77d4f8a0f29845bd9a9be74b59d4e07e7e1f1826e223e236f92fa",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:14:03Z",
       idempotency_key: "agency-a-camp1-q4-2026-5d10e2c7" }
   - { role: acceptance, version: 2,
-      record_digest: "sha256:6849bfa8901d427a71ebce8e988d274cc2d9ba3a01a0bfefecc2430dc2ec4730",
+      record_digest: "sha256:b9557e0619f77d4f8a0f29845bd9a9be74b59d4e07e7e1f1826e223e236f92fa",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:31:47Z" }
 
@@ -66,7 +66,7 @@ line_items:
     formats:
       available:    ["display/300x250"]
       included:     ["display/300x250"]
-    creative_delivery: { method: buyer_hosted, protocol: javascript_tag, secure_required: true }
+    creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
     materials_due:  { at: "2026-09-28T23:59:59Z" }   # version 1 had "2026-09-24T23:59:59Z"
     pricing:
       - { pricing_id: "bd-cpm-usd", cost_method: CPM, list_rate: 24.00, agreed_rate: 24.00,
@@ -109,10 +109,11 @@ line_items:
     status:         agreed
     channel:        ctv
     properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+    placement:      { plcmt: 1 }          # Instream (1) (§ 5.2)
     formats:
       available:    ["ctv/instream-15s"]
       included:     ["ctv/instream-15s"]
-    creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
+    creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
     pricing:
       - { pricing_id: "ctv-pa-cpm-usd", cost_method: CPM, list_rate: 45.00, agreed_rate: 45.00, min_rate: 39.60,
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD,

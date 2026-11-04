@@ -34,11 +34,13 @@ SPEC = Path(__file__).resolve().parent.parent / "spec" / "openproposal-3.0.md"
 
 FIELD_LAYOUT = ("Field", "Type", "Required", "Mutability", "Description")
 KEY_LAYOUT = ("Key", "Type", "Required", "Meaning")
+KEY_SOURCE_LAYOUT = ("Key", "Type", "Required", "Meaning", "AdCOM 1.0, OpenRTB 2.6")
 KEY_MUTABILITY_LAYOUT = ("Key", "Type", "Required", "Meaning", "Mutability")
 
 LAYOUTS = {
     FIELD_LAYOUT,
     KEY_LAYOUT,
+    KEY_SOURCE_LAYOUT,
     KEY_MUTABILITY_LAYOUT,
     ("Type", "Form", "Rules"),
     ("Marker", "Meaning"),
@@ -79,14 +81,13 @@ PENDING_TYPES = {
 # Objects typed Object: open by definition, small and inline, or waiting on the
 # change that names them. Remove an entry when its table lands. Only shrinks.
 PENDING_OBJECTS = {
-    "`content_detail`": "waiting: the content the line item serves within",
     "`specs`": "waiting: the format spec",
-    "`third_party_tags`": "waiting: the accepted tag protocols",
     "`approval`": "waiting: the review policy",
     "`exclusions_accepted`": "waiting: the accepted exclusion terms",
     "`exclusions`": "waiting: the exclusion lists",
     "`creative_policy`": "waiting: the creative policy",
     "`contacts[]`": "imported: OpenDirect 2.1 Contact",
+    "`content`": "imported: AdCOM 1.0 Content",
     "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
 }
 
@@ -172,7 +173,7 @@ def lint_tables(lines, markers, errors):
         header = tuple(c)
         if header not in LAYOUTS:
             errors.append(f"line {i + 1}: table layout not in LAYOUTS: {line}")
-        if header in (KEY_LAYOUT, KEY_MUTABILITY_LAYOUT):
+        if header in (KEY_LAYOUT, KEY_SOURCE_LAYOUT, KEY_MUTABILITY_LAYOUT):
             name = lead_in(lines, i)
             if not name:
                 errors.append(f"line {i + 1}: a key table follows a lead-in that names its type")
@@ -183,7 +184,7 @@ def lint_tables(lines, markers, errors):
             where = f"line {i + 1}"
             if len(row) != len(header):
                 errors.append(f"{where}: {len(row)} cells under a {len(header)}-cell header")
-            elif header in (FIELD_LAYOUT, KEY_LAYOUT, KEY_MUTABILITY_LAYOUT):
+            elif header in (FIELD_LAYOUT, KEY_LAYOUT, KEY_SOURCE_LAYOUT, KEY_MUTABILITY_LAYOUT):
                 key, typ, required = row[0], row[1], row[2]
                 if not ONE_KEY.match(key):
                     errors.append(f"{where}: a row names one key: {key}")
