@@ -57,6 +57,29 @@ part of an ISO 3166-2 code after the hyphen.
 
 ### 1.2 Relationship to other AAMP artifacts
 
+OpenProposal is normative for the proposal and line-item object: its fields,
+their mutability, the declared option space, and the binding record. It is also
+normative for the lifecycle of the object to its terminal statuses, and for what
+a section of this document says a request or response carries, such as `errors[]`
+(§ 2.4), an `AvailabilityRead` (§ 3.3), and a `Commit` and its `CommitResult` (§ 5.6.1).
+
+OpenProposal is not normative for the envelope or binding of a message, or the
+mapping of its values to the types of the AAMP wire and lifecycle contract
+(provisional name), including monetary values. It is not normative for replay
+semantics beyond the rule in § 5.6.1, for any lifecycle after `agreed`, or for how a
+message states the buyer's `Party`, the form of a brief, or how an issued proposal
+reaches the buyer. These belong to that contract.
+
+The correspondence between values defined in this document and the values of that
+contract (status, negotiation actions, transaction mechanism, money, hold status) is for the
+[AAMP hub](https://github.com/IABTechLab/AAMP/blob/0f3eaff7a979df835f6bee5290333c8e3666c95d/README.md)
+to maintain. This document references that correspondence and does not define it.
+Until that contract is published on an IAB Tech Lab standards track, the
+correspondence is informative and this document governs. Once it is published,
+where the two documents disagree on a concern this section assigns to the contract,
+the contract governs. Where they disagree on a concern this section assigns to
+OpenProposal, this document governs.
+
 **Identity.** Three questions about a party stay separate, for the buyer and the
 seller alike. An answer to one is not an answer to another.
 
@@ -71,6 +94,25 @@ origin speaks for: a hosted agent's origin is the host's, and a mandate the part
 publishes or signs connects them. An `assent[]` entry travels in the body of a
 signed message, as optional evidence, and § 4.1.2 states when the signature
 attributes it to a party. Reading a public file (§ 2.3) needs none of this.
+
+**After `agreed`.** This specification's lifecycle ends at `agreed`. The
+downstream standard executes against the agreed line item as baseline: the
+`VersionRef` (§ 2.2) that names the line item and the `version` of its agreed
+record (§ 4.1.2). `external_references[]` (§ 5.10) holds the ids that join it to
+downstream systems. The parties request and apply any change to its
+terms downstream, against the options selected in that record,
+`cancellation_policy` and `shortfall_remedy` included. A change is not a state or
+action of this object, and it changes no agreed term; `change_requests[]` (§ 4.4)
+records the request beside the agreed terms. The applying system answers which
+terms are in force.
+
+NOTE: The IAB Tech Lab
+[`iab-agentic-primitives`](https://github.com/IABTechLab/iab-agentic-primitives/blob/ee9ea3c1c612b1be6ae00b75e0ab1b81435f62cc/README.md)
+repository defines a post-booking change request and its lifecycle
+(`ChangeRequest`, `ChangeRequestLifecycle`). `change_requests[]` (§ 4.4) takes the
+OpenDirect 2.1 fields, not that model. A change request made under it against an
+agreed line item is expected to name the baseline by the identity in this section.
+Defining that reference is a matter for that repository.
 
 ---
 
@@ -101,12 +143,13 @@ in their Full Representation. A full fetch MUST return it, except for line items
 requester may not read (§ 5.8).
 
 **Summary Representation:** what a buying agent reads when screening many
-sellers' shelves. A manifest entry holds it (§ 2.3), and a response MAY
-carry it. A summary is a strict path subset of the full object: a listed path has
-the type and value it has in the Full Representation, it appears when the full form
-has it, and no other path appears. A summary's own table adds keys beside these
-paths: `has_requires`, which the full object doesn't hold, and the `line_items[]` of
-`ProposalSummary`, whose entries are line item summaries.
+sellers' shelves. A manifest entry holds it (§ 2.3), and a response over the message binding
+(§ 1.2) MAY carry it. A summary is a strict path
+subset of the full object: a listed path has the type and value it has in the
+Full Representation, it appears when the full form has it, and no other path
+appears. A summary's own table adds keys beside these paths: `has_requires`, which the
+full object doesn't hold, and the `line_items[]` of `ProposalSummary`, whose entries are
+line item summaries.
 
 `LineItemSummary` lists these paths of a line item (§ 5):
 
@@ -310,8 +353,8 @@ Two-phase flow:
 ### 2.4 Errors
 
 A party that rejects a request MUST return `errors[]`, one or more
-`ErrorObject`s. This specification defines the object. The binding that carries
-the request carries the errors.
+`ErrorObject`s. This specification defines the object. The message binding that
+carries the request carries the errors.
 
 A seller's decline of a resolved `commitment`, or of a hold, answers a valid
 request and is not an error. What a party answers when a request fails message
@@ -355,7 +398,7 @@ Unprocessable Content. An error with `retry: same` fits 503 Service Unavailable.
 
 ### 2.5 Extensions
 
-The proposal and each line item MAY carry
+The proposal, each line item, and each `change_requests[]` entry (§ 4.4) MAY carry
 `ext`, an `Ext`. Each key MUST be a `Domain` that its owner controls, and each value
 is an object that the owner defines. A seller's own entries MUST use its
 `seller.domain` as the key.
@@ -376,7 +419,8 @@ ext:
   `ErrorObject` (§ 2.4) are unaffected.
 - On the proposal and a line item, `ext` is part of the Full Representation and
   of the record frozen at `agreed` (§ 4.1.1), and a seller change to it is a
-  revision.
+  revision. On a `change_requests[]` entry, it is outside the record, as the
+  entry is (§ 4.4).
 - Apart from an unknown term (§ 2.2), a receiver MAY skip a whole line item it
   cannot read, without assenting to it. It MUST NOT keep a line item after removing
   fields from it.
@@ -458,7 +502,7 @@ This section is informative. It sets no requirement on a party to a transaction.
 **Text is data.** Agents that can spend read this object, and much of it is text
 the counterparty wrote: `description`, `specifications`, `best_for[]`,
 `not_suitable_for[]`, `seasonality_notes`, `approval`, `creative_policy`, `ext` values,
-an error's `detail`, and the document behind a
+a change request's `comments`, an error's `detail`, and the document behind a
 `DocumentRef`. That text is data, and it can hold instructions aimed at a language
 model. An agent keeps it apart from its own instructions, and rests a decision to
 assent or spend on the structured fields, not on prose alone.
@@ -745,6 +789,7 @@ $.version
 $.status
 $.assent
 $.negotiation_history
+$.change_requests
 $.best_for
 $.not_suitable_for
 $.seasonality_notes
@@ -759,7 +804,6 @@ $.line_items[*].pricing[*].min_rate
 $.line_items[*].hold_status.*, except hold_available, hold_duration and hold_scope
 $.line_items[*].commitment.derived_units
 $.line_items[*].external_references
-$.line_items[*].correlation_id
 ```
 
 Restricting to S leaves `line_items[]` an array of the line items in S, in document
@@ -771,11 +815,11 @@ stays. The one exception is `buyer_supplied`: if it holds no key after these rem
 is removed too, whether the removals emptied it or it was written empty.
 
 Each removed path is one of three things: lifecycle state or sequence position
-(`version`, `status`, `assent[]`, `negotiation_history[]`, the hold's status); a
-seller assertion, advisory text, an informative figure, or an
+(`version`, `status`, `assent[]`, `negotiation_history[]`, `change_requests[]`,
+the hold's status); a seller assertion, advisory text, an informative figure, or an
 identifier minted downstream of agreement (`best_for[]`, `not_suitable_for[]`,
 `seasonality_notes`, `availability`, `addressable_scale`, `match_rate_expected`,
-`min_rate`, `derived_units`, `external_references[]`, `correlation_id`); or a buyer
+`min_rate`, `derived_units`, `external_references[]`); or a buyer
 delivery (`assets[]`, `segments[]`, `suppression_list`). The requirement on creative
 (`formats`, `specs`, `creative_policy`, `materials_due`) is a term, and so is the
 permission to deliver a list (`segments_allowed`, `suppression_allowed`,
@@ -885,7 +929,7 @@ commitment.
   `settable`, and `requestable` value of it and its `pricing[].agreed_rate` MUST
   remain as in the version `assent[]` names. A change to a value inside the record is
   applied outside it, in the downstream standard the line item lands in (§ 1.1),
-  against the agreed record as its baseline.
+  against the agreed record as its baseline (§ 1.2).
 
 **Agreed record.** The agreed record of a matching pair is its digest input (§ 4.1.1)
 and the two entries. To check a pair, a party recomputes `record_digest` from the
@@ -934,10 +978,11 @@ field, such as `pricing[].list_rate`; the seller-declared structure of `selectab
 and `settable` fields (`available[]`, `included[]`, `deltas`, `max_select`,
 `allowed[]`, `min`, `max`, `default`); and the set of `line_item_id`s the version
 carries. The following are not offered terms and MAY change without a new version: `status` (proposal
-and line item), `assent[]`, `negotiation_history[]`, `availability`,
+and line item), `assent[]`, `negotiation_history[]`, `change_requests[]`,
+`availability`,
 `addressable_scale`, the hold's status (every `hold_status` key except
 `hold_available`, `hold_duration` and `hold_scope`, which offer the hold),
-`external_references[]`, `correlation_id`, `assets[].approval_status`; `best_for[]`,
+`external_references[]`, `assets[].approval_status`; `best_for[]`,
 `not_suitable_for[]`, and `seasonality_notes`, which are advisory (§ 4.2);
 `pricing[].min_rate`, which is a hint; every value the buyer writes (a `BuyerWrites` value,
 `commitment`, any other `supplied` field, and a `requestable` ask); and
@@ -1008,7 +1053,7 @@ creates no `version`.
 so every later version stays with that buyer. Each issued proposal has an
 independent `status`, `version` and `negotiation_history[]`.
 
-A buyer that wants an issued proposal sends, over the binding, the ask, hold, or commit
+A buyer that wants an issued proposal sends, over the message binding, the ask, hold, or commit
 it would make, naming the shared proposal and `version` it read, or a brief. A seller
 that issues one answers with `publish`, and the buyer sends its ask, hold, or commit
 against the new `proposal_id`.
@@ -1118,6 +1163,42 @@ A seller `withdraw` of the proposal moves to `withdrawn` every line item that
 
 `hold_expires_at` MUST NOT exceed `offer_window.end` or the earliest
 `pricing[].price_valid_until`.
+
+### 4.4 Change requests
+
+The history of changes requested after a line item is `agreed`, under any
+`transaction_mechanism`. The agreed terms stay frozen (§ 4.1.2): an entry records a
+request and makes no change. The change itself belongs downstream (§ 1.2), and this
+section defines no workflow.
+
+| Field | Type | Required | Mutability | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `change_requests[]` | Array[ChangeRequest] | OPTIONAL | recorded | Ordered post-`agreed` history. Each entry carries the fields of the [OpenDirect 2.1 ChangeRequest](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_changerequest), except its `webhook`, plus `baseline`, `actor`, `at`, and `cancellation`. Outside the binding record (§ 4.1.1) and the offered terms (§ 4.1.3), like `negotiation_history[]`, so an entry changes neither `record_digest` nor `version` |
+
+**`ChangeRequest`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Opaque identifier of the change request |
+| `baseline` | VersionRef | REQUIRED | The agreed line item the request is against, at the `version` of its agreed record (§ 4.1.2). `line_item_id` is REQUIRED here |
+| `actor` | Side | REQUIRED | The side that wrote the entry |
+| `at` | Instant | REQUIRED | When that side wrote it |
+| `accountid` | String | OPTIONAL | The account of the advertiser and buyer that own the change, the same as the OpenDirect Order's. An OpenDirect 2.1 ChangeRequest requires it |
+| `comments` | String | OPTIONAL | Why the change is requested. Free text |
+| `contacts[]` | Array[Object] | OPTIONAL | Contacts for this change, in addition to the buyer's and the advertiser's, one per contact type. As OpenDirect 2.1 Contact |
+| `orderid` | String | REQUIRED when the line item has an `order` reference (§ 5.10) | The order the change is requested for: the id in the `order` entry |
+| `lineid` | String | OPTIONAL | The Line in that Order, for a change at line level |
+| `requesterid` | String | OPTIONAL | The organization that requests the change: usually the agency, or the publisher. An OpenDirect 2.1 ChangeRequest requires it |
+| `providerdata` | Object | OPTIONAL | Structured references a buyer uses to identify its order in the seller's system |
+| `status` | ApprovalStatus | OPTIONAL | The outcome of the request |
+| `cancellation` | CancellationNotice | OPTIONAL | The notice, when the request is to cancel under the `cancellation_policy` option in effect (§ 5.6) |
+| `ext` | Ext | OPTIONAL | See Extensions (§ 2.5) |
+
+A change of `status` is a new entry with the same `id` and `baseline`. A request
+that covers several line items takes one entry for each.
+
+The OpenDirect 2.1 ChangeRequest has no structured statement of the change, only
+free-text `comments`. § 8 asks how an entry states a change other than a cancellation.
 
 ---
 
@@ -1464,7 +1545,7 @@ MAY decline a resolved `commitment` with a `decline` entry; the buyer MAY recomp
 A decline for lack of availability MUST state the `availability` of each line item it covers,
 recomputed against the buyer's composition; the seller's determination is authoritative.
 The figures travel in a `CommitResult` with the `decline` entry, in whatever delivers it: the
-response to the `commit`, a replay, or a later delivery by the binding. A
+response to the `commit`, a replay, or a later delivery by the message binding (§ 1.2). A
 full fetch returns the entry without them, and a buyer that learns of the decline
 that way gets figures from an availability read (§ 3.3).
 While a buyer's hold (§ 5.6.2) runs, the seller MUST NOT decline that buyer's `commitment` for lack of
@@ -1525,7 +1606,7 @@ items (§ 4.1.2), returns `not_committable` with `retry: same`.
 A `commit` on an issued proposal that this specification gives the seller no ground to
 reject writes the buyer's `commitment` entry. The seller's answer comes in the same
 response or later. Either way it is an `assent[]` entry, which a full fetch returns
-(§ 2.1). How a buyer learns of a later answer belongs to the binding.
+(§ 2.1). How a buyer learns of a later answer belongs to the message binding (§ 1.2).
 
 For a replay from the same buyer of a `commit` the seller has already processed, with
 the same `idempotency_key` and an otherwise equal `Commit`, the seller MUST return the
@@ -1702,15 +1783,23 @@ expressed through `required_credentials[]`.
 | `seats` | SeatRef | OPTIONAL | The buyer's seats on the deal, as the Deals API 1.0 `wseat` | supplied |
 | `seat_owner` | Party | OPTIONAL | The legal entity that owns the seats. Absent: the `buyer` | supplied |
 
-### 5.10 External references and settlement
+### 5.10 External references, agreement, and billing
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `external_references[]` | Array[ExternalReference] | OPTIONAL | recorded | `{ system, namespace, id, role }`. Replaces platform-specific key names. The party that learns an id writes the entry. `role` is a `VocabularyTerm`. Core terms: `io`, an IO id generated by an order management system and carried back on the line item; `agreement`, a buyer-held agreement id |
-| `agreement` | Agreement | OPTIONAL | seller-set | The master or annual agreement the line item is priced under. An informative pointer; the agreement itself is outside this specification. A buyer-held agreement id travels as an `external_references[]` entry with `role: agreement` |
-| `correlation_id` | String | OPTIONAL | derived | One identity for this line item's commitment, carried across every system it touches |
+| `external_references[]` | Array[ExternalReference] | OPTIONAL | recorded | The ids other systems hold for this line item. The party that learns an id writes the entry |
+| `agreement` | Agreement | OPTIONAL | seller-set | The master or annual agreement the line item is priced under. An informative pointer; the agreement itself is outside this specification. A buyer-held agreement id travels as an `external_references[]` entry with `reference_type: agreement` |
 | `billing` | Billing | OPTIONAL | seller-set | Who delivers is not always who invoices |
 | `supported_order_systems[]` | Array[String] | OPTIONAL | seller-set | Declared up front so the agent knows it will reconcile |
+
+**`ExternalReference`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `system` | String | REQUIRED | The system that holds the id |
+| `namespace` | String | OPTIONAL | The namespace of the id in that system |
+| `id` | String | REQUIRED | The id |
+| `reference_type` | VocabularyTerm | REQUIRED | What the id names. Core terms: `order` \| `line` \| `agreement` \| `deal`. `order`: the order that books the line item, such as an OpenDirect Order or an IO. `line`: the line in that order, such as an OpenDirect Line. `agreement`: a buyer-held agreement id. `deal`: the deal ID that bid requests carry. It is the Deals API `id` and the OpenRTB 2.6 `Deal.id`. An ID that bid requests don't carry, such as a platform's internal record ID, is not a `deal` entry. A receiver that doesn't know the term ignores the entry |
 
 **`Agreement`** keys:
 
@@ -1733,11 +1822,12 @@ expressed through `required_credentials[]`.
 | `cycle_length` | Duration | REQUIRED when `invoice_period` is `cycle` | How long each `cycle` period runs, such as `P28D` (4 weeks) |
 | `time_zone` | IanaZone | OPTIONAL | The clock for a `month` invoice period. Absent: `UTC` |
 
-A buyer's own code for a supplier goes in `external_references[]`.
+A buyer's own code for a supplier goes in `external_references[]`, under an
+extension `reference_type`.
 
 This specification does not define IO generation. IO creation is a connector
-concern. OpenProposal supplies the agreed record, `terms_refs[]`, and
-`correlation_id` a connector needs.
+concern. OpenProposal supplies the agreed record and `terms_refs[]` a connector
+needs.
 
 ---
 
@@ -1779,12 +1869,13 @@ A manifest (§ 2.3) listing the public line items of the example proposal. The
 display line item is `registry_gated`, so it is not listed. See
 [`examples/manifest.json`](../examples/manifest.json).
 
-### 6.8 Agreed record
+### 6.8 Agreed proposal
 
 Shows a custom proposal after the seller counters a request and accepts a
 commitment: matching `assent[]` entries over one `record_digest` (§ 4.1.1,
-§ 4.1.2), which covers the `digest` of each document in `terms_refs[]` (§ 5.8), and
-the history that led there (§ 4.3). See
+§ 4.1.2), which covers the `digest` of each document in `terms_refs[]` (§ 5.8), the
+history that led there (§ 4.3), and `change_requests[]` entries outside the digest,
+one for each line item, the second a deal with no Order (§ 4.4). See
 [`examples/proposal-agreed.yaml`](../examples/proposal-agreed.yaml).
 
 ### 6.12 Issued proposal, partly agreed
@@ -1869,9 +1960,15 @@ see [docs/open-questions.md](../docs/open-questions.md).
    names the release a document follows, and § 2.5 makes a key the receiver's
    release does not list invalid. Nothing says whether a receiver rejects a release
    it does not know, or keeps and ignores keys it does not list.
+
+<!-- Questions 9 and 10 are added by later changes. -->
+
 11. **Must a manifest response carry both `ETag` and `Last-Modified`, or is either
     enough?** § 2.3 requires at least one, so a buyer's client handles whichever the
     seller sends.
+12. **How does a `change_requests[]` entry state a change other than a cancellation?**
+    `cancellation` states a notice to cancel. The OpenDirect 2.1 ChangeRequest has no
+    structured statement of any other change, only free-text `comments` (§ 4.4).
 
 ---
 
@@ -1904,6 +2001,7 @@ body is normative.**
 | `best_for[]` | 4.2 Agent comprehension | Array[String] | OPTIONAL | seller-set |
 | `not_suitable_for[]` | 4.2 Agent comprehension | Array[String] | OPTIONAL | seller-set |
 | `seasonality_notes` | 4.2 Agent comprehension | String | OPTIONAL | seller-set |
+| `change_requests[]` | 4.4 Change requests | Array[ChangeRequest] | OPTIONAL | recorded |
 | `line_item_id` | 5.1 Identity | String | REQUIRED | immutable |
 | `status` | 5.1 Identity | LineItemStatus | REQUIRED | lifecycle |
 | `channel` | 5.1 Identity | MediaChannel | REQUIRED | immutable |
@@ -1961,11 +2059,10 @@ body is normative.**
 | `serving_mode` | 5.9 Execution | VocabularyTerm | OPTIONAL | seller-set |
 | `buyer_requirements` | 5.9 Execution | BuyerRequirements | OPTIONAL | mixed |
 | `serving_platform` | 5.9 Execution | String | OPTIONAL | seller-set |
-| `external_references[]` | 5.10 External references and settlement | Array[ExternalReference] | OPTIONAL | recorded |
-| `agreement` | 5.10 External references and settlement | Agreement | OPTIONAL | seller-set |
-| `correlation_id` | 5.10 External references and settlement | String | OPTIONAL | derived |
-| `billing` | 5.10 External references and settlement | Billing | OPTIONAL | seller-set |
-| `supported_order_systems[]` | 5.10 External references and settlement | Array[String] | OPTIONAL | seller-set |
+| `external_references[]` | 5.10 External references, agreement, and billing | Array[ExternalReference] | OPTIONAL | recorded |
+| `agreement` | 5.10 External references, agreement, and billing | Agreement | OPTIONAL | seller-set |
+| `billing` | 5.10 External references, agreement, and billing | Billing | OPTIONAL | seller-set |
+| `supported_order_systems[]` | 5.10 External references, agreement, and billing | Array[String] | OPTIONAL | seller-set |
 
 ---
 
@@ -1979,9 +2076,9 @@ body is normative.**
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
 | requestable | 4 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `commitment_bounds`, `committed_metrics[]` |
-| derived | 4 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `pricing[].agreed_rate`, `correlation_id` |
+| derived | 3 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `pricing[].agreed_rate` |
 | lifecycle | 1 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item) |
-| recorded | 3 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `external_references[]` |
+| recorded | 4 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `change_requests[]`, `external_references[]` |
 | asserted | 2 | The seller states it from data the buyer can't recompute. Not a term, and it changes without a new version. | `addressable_scale`, `availability` |
 | mixed | 6 | The keys of the object carry different markers: in the Mutability column of its key table, in its lead-in for composed keys, or on its rows for `pricing[]`. | `buyer_supplied`, `assets[]`, `pricing[]`, `commitment`, `hold_status`, `buyer_requirements` |
 
@@ -1990,7 +2087,7 @@ body is normative.**
 Of 83 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
 `supplied` and 4 `requestable`. The remaining 61 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
-those: its own entries in `assent[]`, and its keys of `commitment`, `assets[]`,
+those: its own entries in `assent[]` and `change_requests[]`, and its keys of `commitment`, `assets[]`,
 `buyer_supplied`, and `buyer_requirements`.
 
 Only the 4 `requestable` fields require a round trip to resolve (§ 5.6.1).

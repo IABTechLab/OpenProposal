@@ -1,4 +1,4 @@
-# OpenProposal 3.0 — Example: Agreed record (spec § 6.8)
+# OpenProposal 3.0 — Example: Agreed proposal (spec § 6.8)
 # Illustrative only. Seller names and rates are fictional. Both line items are
 # agreed at version 2, after the seller countered a later materials_due.
 # record_digest recomputes from this document under § 4.1.1, and it covers the
@@ -39,6 +39,23 @@ negotiation_history:
       paths: [{ line_item_id: "business-daily-display", pointer: "/materials_due" }],
       at: "2026-09-14T09:40:05Z" }
 
+# Changes requested after agreed. Outside record_digest; the terms stay as agreed.
+# The first line item has an OpenDirect reservation. The second is a deal with no
+# Order, so its entry has no Order keys.
+change_requests:
+  - { id: "67853",
+      baseline: { proposal_id: "examplepub-agencya-custom-q4-2026", version: 2,
+                  line_item_id: "business-daily-display" },
+      actor: buyer, at: "2026-11-02T15:20:00Z",
+      accountid: "23873345", orderid: "345233", lineid: "778120",
+      requesterid: "7987654", status: PENDING,
+      comments: "Shorten the flight to end on 2026-12-07." }
+  - { id: "agency-a-change-0002",
+      baseline: { proposal_id: "examplepub-agencya-custom-q4-2026", version: 2,
+                  line_item_id: "weather-app-ctv" },
+      actor: buyer, at: "2026-11-03T09:05:00Z",
+      comments: "Shorten the flight to end on 2026-12-14." }
+
 line_items:
   - line_item_id:   "business-daily-display"
     status:         agreed
@@ -74,7 +91,10 @@ line_items:
           digest: "sha256:83e44f6fa723c35fef1b3528b16cc13a8a19ee34a32b658f6d3cc243ce12592e", version: "2026.1" }
       - { url: "https://examplepub.example/legal/agency-a-q4-addendum.pdf",
           digest: "sha256:ab4cac3cb240b5c6eec3d0bf40e8c0b0f21c2026837865d88a5c941702f2eeca" }
-    correlation_id: "ep-q4-2026-agency-a/business-daily-display"
+    external_references:
+      - { system: "orders.examplepub.example", id: "345233", reference_type: order }
+      - { system: "orders.examplepub.example", id: "778120", reference_type: line }
+      - { system: "adserver.example", id: "ep-agency-a-display-q4", reference_type: deal }
 
   - line_item_id:   "weather-app-ctv"
     status:         agreed
@@ -105,4 +125,5 @@ line_items:
           digest: "sha256:83e44f6fa723c35fef1b3528b16cc13a8a19ee34a32b658f6d3cc243ce12592e", version: "2026.1" }
       - { url: "https://examplepub.example/legal/agency-a-q4-addendum.pdf",
           digest: "sha256:ab4cac3cb240b5c6eec3d0bf40e8c0b0f21c2026837865d88a5c941702f2eeca" }
-    correlation_id: "ep-q4-2026-agency-a/weather-app-ctv"
+    external_references:
+      - { system: "ssp-a.example", id: "ep-agency-a-ctv-q4", reference_type: deal }

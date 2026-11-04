@@ -104,7 +104,5 @@ billing:                { invoicing_party: { domain: "examplepub-billing.example
                           payment_terms: "net 30", invoice_period: month,
                           time_zone: "America/New_York" }
 
-correlation_id:  "ep-q4-2026-commitment/business-daily-display"
-
 ext:
   examplepub.example: { placement_code: "BD-ROS-300x250-Q4" }

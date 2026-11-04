@@ -128,6 +128,18 @@ that serve the manifest send by default.
 
 ---
 
+### OQ-12 — How does a `change_requests[]` entry state a change other than a cancellation?
+
+**Issue:** [#68](https://github.com/IABTechLab/OpenProposal/issues/68)  ·  **Spec:** § 4.4
+
+`cancellation` states a notice to cancel. The OpenDirect 2.1 ChangeRequest has no
+structured statement of any other change, only free-text `comments`.
+
+**What would settle it:** how sellers and buyers state a change today, and what a
+system that applies one needs to read.
+
+---
+
 ## Not on this list but worth saying
 
 If you think the draft has a problem it has not asked about, file it as a

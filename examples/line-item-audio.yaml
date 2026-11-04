@@ -34,4 +34,3 @@ visibility:        public
 buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["preferred_deal"], included: ["preferred_deal"], max_select: 1 }
 serving_mode:      dai
-correlation_id:    "ep-q4-2026-commitment/streaming-audio"

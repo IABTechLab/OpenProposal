@@ -72,7 +72,7 @@ PENDING_TYPES = {
     "ExclusivityTerm": "the exclusivity term",
     "MinCommitment": "the purchase-level threshold",
     "CommittedMetric": "the committed metric tuple",
-    "ExternalReference": "the external reference entry",
+    "CancellationNotice": "the cancellation notice",
 }
 
 # Objects typed Object: open by definition, small and inline, or waiting on the
@@ -87,6 +87,8 @@ PENDING_OBJECTS = {
     "`availability`": "waiting: the availability figure",
     "`commitment_bounds`": "waiting: the commitment bounds",
     "`creative_policy`": "waiting: the creative policy",
+    "`contacts[]`": "imported: OpenDirect 2.1 Contact",
+    "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
 }
 
 BODY_SECTION = re.compile(r"^#{3,4} ((?:4|5)\.\d+(?:\.\d+)?)\s")

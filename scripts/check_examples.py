@@ -26,6 +26,8 @@ change to this script. It checks:
   - In those examples a withdrawal or decline matches a commitment entry before it,
     an acceptance matches a live commitment entry, and a line item is agreed only
     with a matching pair (section 4.1.2).
+  - A change_requests[] baseline names an agreed line item at the version of its
+    acceptance entry (section 4.4).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -73,6 +75,16 @@ def _committed_entry(item):
     return entries[0] if len(entries) == 1 else None
 
 
+def _has_order_reference(entry, proposal):
+    """Whether the line item a change_requests[] entry names has an order id."""
+    named = (entry.get("baseline") or {}).get("line_item_id")
+    for item in (proposal or {}).get("line_items", []):
+        if item.get("line_item_id") == named:
+            refs = item.get("external_references", [])
+            return any(r.get("reference_type") == "order" for r in refs)
+    return False
+
+
 # Each `REQUIRED when <condition>` wording, as (object, line item, proposal) -> bool.
 CONDITIONS = {
     "`type` is `custom`": lambda o, i, p: o.get("type") == "custom",
@@ -85,6 +97,8 @@ CONDITIONS = {
                             for e in (p or {}).get("negotiation_history", [])),
     "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
     "`role` is `commitment`": lambda o, i, p: o.get("role") == "commitment",
+    "the line item has an `order` reference (§ 5.10)":
+        lambda o, i, p: _has_order_reference(o, p),
     # No example holds a CommitResult. A ground of availability is the one sign of it.
     "`entries[]` holds a `decline` for lack of availability":
         lambda o, i, p: any(e.get("role") == "decline" and e.get("ground") == "availability"
@@ -738,6 +752,25 @@ def check_assent(checker, file, doc):
                                   f"and assent[] {'has' if name in agreed else 'has no'} matching pair")
 
 
+def check_change_requests(checker, file, doc):
+    """Section 4.4: each entry names an agreed line item at its agreed version."""
+    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    for n, entry in enumerate(doc.get("change_requests", [])):
+        where = f"{file}: change_requests[{n}].baseline"
+        baseline = entry.get("baseline", {})
+        named = baseline.get("line_item_id")
+        if baseline.get("proposal_id") != doc.get("proposal_id"):
+            checker.errors.append(f"{where}: names another proposal")
+        if named is None:
+            checker.errors.append(f"{where}: line_item_id is REQUIRED here")
+        elif items.get(named, {}).get("status") != "agreed":
+            checker.errors.append(f"{where}: {named} is not an agreed line item")
+        versions = {e["version"] for e in doc.get("assent", [])
+                    if e["role"] == "acceptance" and named in e["line_item_ids"]}
+        if baseline.get("version") not in versions:
+            checker.errors.append(f"{where}: no acceptance entry names {named} at that version")
+
+
 # Summary -------------------------------------------------------------------
 
 
@@ -851,6 +884,7 @@ def main():
     for name in ("proposal-agreed.yaml", "proposal-issued.yaml"):
         doc = load_yaml(EXAMPLES / name)
         check_assent(checker, name, doc)
+        check_change_requests(checker, name, doc)
         for entry in doc.get("assent", []):
             digest = record_digest(doc, spec.removal, entry["line_item_ids"])
             digests[name] = digest

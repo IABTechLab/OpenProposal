@@ -5,6 +5,24 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.2, § 2.1, § 2.4, § 2.5, § 2.7, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 4.4, § 5.6.1, § 5.10,
+  § 6.8, § 8, appendices, examples, docs, issue templates, checkers — after `agreed`. § 1.2 separates what a
+  request or response carries, which this document states, from the envelope and binding of the
+  message. "Message binding" names that layer. The contract has a provisional name, the hub is
+  named, and the contract governs only once it is published on a standards track. The baseline
+  is the `VersionRef` that names the agreed line item, at the `version` of its agreed record.
+  § 4.4 adds `change_requests[]`, outside the record, with the OpenDirect 2.1 ChangeRequest
+  fields except `webhook`, plus `baseline`, `actor`, `at`, and `cancellation`. `cancellation` is typed `CancellationNotice`, whose key table lands with the pricing change. `orderid` is
+  REQUIRED only when the line item has an `order` reference. `accountid` and `requesterid` are
+  OPTIONAL, because only an OpenDirect 2.1 ChangeRequest requires them. `status` is an
+  `ApprovalStatus`, a change of `status` is a new entry, and an entry MAY carry `ext`. § 8 asks
+  how an entry states a change other than a cancellation. `correlation_id` is removed: the
+  baseline and `external_references[]` do the job. `ExternalReference` has a key table, `role`
+  becomes `reference_type`, and `io` gives way to `order` and `line`. A receiver that doesn't know
+  a `reference_type` ignores the entry. § 5.10 and § 6.8 take new titles. Breaking
+  ([#59](https://github.com/IABTechLab/OpenProposal/issues/59),
+  [#68](https://github.com/IABTechLab/OpenProposal/issues/68)).
+
 - § 1.2, § 2.2, § 2.4, § 2.8, § 3.4, § 4, § 4.1, § 4.1.1, § 4.1.2, § 4.1.3, § 4.2, § 4.3,
   § 4.3.1, § 4.3.2, § 4.3.4, § 5.5, § 5.6, § 5.6.1, § 5.8, § 5.9, § 5.10, § 6, § 7, appendices,
   examples, checkers — what is signed, and how a seller checks it. `record_digest` sits only on

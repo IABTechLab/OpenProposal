@@ -26,6 +26,5 @@ visibility:        public
 buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["private_auction"], included: ["private_auction"], max_select: 1 }
 serving_mode:      ssai
-correlation_id:    "ep-q4-2026-commitment/weather-app-ctv"
 
 # Inspecting this line item's VAST creative is subject to § 5.4.1.
