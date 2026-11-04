@@ -31,7 +31,8 @@ whether resolving inside one is worth the modelling cost.
 The object is fully inline. A seller reuses catalog entries in its own systems, and
 a summary lists what § 2.1 names. A reference a buyer could fetch would buy
 compactness across a large shelf at the cost of a fetch rule, a resolution step
-during discovery, and a versioning regime sellers must operate.
+during discovery, and a versioning regime sellers must operate. A `Line.productid`
+would be one use: an agreed record doesn't say which OpenDirect `Product` it books.
 
 **What would settle it:** how large a real shelf gets, and whether sellers
 already maintain versioned, immutable catalog entries or would have to build

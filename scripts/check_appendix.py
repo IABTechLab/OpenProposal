@@ -43,12 +43,16 @@ LAYOUTS = {
     ("Type", "Form", "Rules"),
     ("Marker", "Meaning"),
     # Value tables (section 2.6): the first header cell names the key that holds the list.
+    ("`transaction_mechanism`", "Downstream standard", "`reference_type` (§ 5.10)", "Change path"),
+    ("`transaction_mechanism`", "Deal mechanism", "`delivery_type`"),
+    ("`method`", "Who hosts the creative", "What reaches the seller"),
     ("`code`", "Returned when"),
     ("`channel`", "Condition"),
     ("`environments`", "Distribution channel", "Device types"),
     # Other tables state rules as prose does (section 2.6).
-    ("OpenProposal concept", "Downstream standard"),
+    ("OpenDirect 2.1", "From the agreed line item"),
     ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
+    ("Deals API 1.0", "OpenRTB 2.6", "From the agreed line item"),
     ("Interaction", "Actor", "Effect; history `action`"),
     ("Instant", "Ends", "Effect when passed"),
     ("Rule", "Profile choice"),

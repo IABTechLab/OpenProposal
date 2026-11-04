@@ -16,6 +16,9 @@ change to this script. It checks:
   - A settable field holds its form, and each buyer value is within its bounds
     (section 3.2). A line item declares geo or markets, not both (section 5.5).
   - agreed_rate recomputes under section 5.6, on the committed entry only.
+  - Each mechanism option fits its row in section 5.9. deal_origin is on a deal line
+    item only, a deal reference names deal_origin (section 5.10), and availability is
+    forecast under non_guaranteed (section 5.6).
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
@@ -65,6 +68,21 @@ KNOWN = {
 EMPTY_ALLOWED = set()
 # The cost methods delta_cpm applies to (section 3.1).
 IMPRESSION_METHODS = set()
+# The mechanism table of section 5.9.
+MECHANISMS = {}
+
+
+def _options(item):
+    options = (item.get("transaction_mechanism") or {}).get("available", [])
+    return [o for o in options if isinstance(o, dict)]
+
+
+def _mechanisms(item):
+    return {o.get("id") for o in _options(item)}
+
+
+def _is_deal(mechanisms):
+    return any(MECHANISMS.get(m, {}).get("deal") for m in mechanisms)
 
 
 def _committed_entry(item):
@@ -111,6 +129,11 @@ CONDITIONS = {
     "this is the committed entry": lambda o, i, p: _committed_entry(i) is o,
     "`daypart` or `frequency_cap` is present":
         lambda o, i, p: "daypart" in o or "frequency_cap" in o,
+    "an option's `delivery_type` is `share_of_voice`":
+        lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
+    "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
+    "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
+    "the entry prices a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
 }
 
 BASE = {"String", "Integer", "Number", "Boolean", "Enum", "Object"}
@@ -162,6 +185,8 @@ SCALARS = {
     "ProposalStatus": (lambda v: v in PROPOSAL_STATUS),
     "LineItemStatus": (lambda v: v in PROPOSAL_STATUS or v == "sold_out"),
     "ApprovalStatus": (lambda v: v in ("PENDING", "APPROVED", "REJECTED")),
+    "TransactionMechanism": (lambda v: v in MECHANISMS),
+    "DeliveryType": (lambda v: v in ("guaranteed", "share_of_voice", "non_guaranteed")),
     "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
     "Ext": (lambda v: isinstance(v, dict) and all(
@@ -242,6 +267,20 @@ class Spec:
         self._read_key_tables()
         self._read_lists()
         self._read_option_rules()
+        self._read_mechanisms()
+
+    def _read_mechanisms(self):
+        """The section 5.9 table: deal or not, and the allowed delivery types."""
+        start = self.lines.index(
+            "| `transaction_mechanism` | Deal mechanism | `delivery_type` |")
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            MECHANISMS[clean_key(c[0])] = {
+                "deal": c[1] == "Yes",
+                "delivery": None if c[2] == "Any" else re.findall(r"`([^`]+)`", c[2]),
+            }
 
     def _read_option_rules(self):
         """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
@@ -573,6 +612,25 @@ class Checker:
         if rate != decimal(committed["agreed_rate"]):
             self.err(file, path, "agreed_rate", f"agreed_rate recomputes to {rate}")
 
+    def check_mechanisms(self, file, path, item):
+        """Sections 5.6, 5.9, and 5.10: the mechanism options and what they require."""
+        for option in _options(item):
+            row = MECHANISMS.get(option.get("id"))
+            if row and row["delivery"] is not None and option.get("delivery_type") not in row["delivery"]:
+                self.err(file, path, option["id"],
+                         f"{option['id']} does not allow delivery_type {option.get('delivery_type')!r}")
+        if "deal_origin" in item and not _is_deal(_mechanisms(item)):
+            self.err(file, path, "deal_origin", "deal_origin on a line item with no deal mechanism")
+        for ref in item.get("external_references") or []:
+            if ref.get("reference_type") == "deal" and ref.get("system") != item.get("deal_origin"):
+                self.err(file, path, "deal", "a deal reference has system other than deal_origin")
+        mechanism = item.get("transaction_mechanism") or {}
+        in_effect = mechanism.get("selected", mechanism.get("included", []))
+        delivery = {o.get("delivery_type") for o in _options(item) if o.get("id") in in_effect}
+        figures = item.get("availability")
+        if figures and delivery == {"non_guaranteed"} and figures.get("type") != "forecast":
+            self.err(file, path, "availability", "availability.type is forecast when delivery_type is non_guaranteed")
+
     def check_fields(self, file, path, doc, fields):
         known = {bare(k): r for k, r in fields.items() if "[]." not in k}
         if "line_item_id" in doc:
@@ -599,6 +657,7 @@ class Checker:
                     self.check_value(file, sub, doc[key], row)
         if "line_item_id" in doc:
             self.check_agreed_rate(file, path or "(root)", doc)
+            self.check_mechanisms(file, path or "(root)", doc)
             if "geo" in doc and "markets" in doc:
                 self.err(file, path or "(root)", "markets", "a line item declares geo or markets")
 

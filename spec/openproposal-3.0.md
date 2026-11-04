@@ -41,19 +41,93 @@ Two shapes of the object exist:
 ### 1.1 Downstream standards
 
 OpenProposal does not replace IAB Tech Lab execution standards. Each line item
-lands in the one its `transaction_mechanism` maps to:
+lands in the one that the `transaction_mechanism` in effect (§ 5.9) maps to:
 
-| OpenProposal concept | Downstream standard |
-| :--- | :--- |
-| Direct buy | OpenDirect 2.1 · Order + Line |
-| Programmatic guaranteed | OpenDirect 2.1 + Deals API · `deal_id` |
-| PMP deal | Deals API + OpenRTB 2.6 · Deal |
-| Open market | OpenRTB 2.6 · open auction, no deal |
+| `transaction_mechanism` | Downstream standard | `reference_type` (§ 5.10) | Change path |
+| :--- | :--- | :--- | :--- |
+| `direct_io` | OpenDirect 2.1 · Order + Line | `order`, `line` | An [OpenDirect 2.1 ChangeRequest](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_changerequest) on the booked Line (`lineid`). `change_requests[]` (§ 4.4) records it against the baseline `VersionRef` (§ 2.2). A partial cancel uses ChangeRequestLine, and a full cancel uses Line `?cancel` at the effective date |
+| `programmatic_guaranteed` | OpenDirect 2.1 · Order + Line, as the reservation; Deals API 1.0 · `Deal` | `order`, `line`, `deal` | The reservation: as for `direct_io`. The deal: as for `preferred_deal` |
+| `preferred_deal` | Deals API 1.0 · `Deal` + OpenRTB 2.6 · `Deal` | `deal` | By agreement between implementers, against the same baseline. A full stop is `sellerstatus` 4 (archived) |
+| `private_auction` | Deals API 1.0 · `Deal` + OpenRTB 2.6 · `Deal` | `deal` | As for `preferred_deal` |
+
+Buying in the OpenRTB 2.6 open auction is outside this specification: with no deal
+ID, no bid request can name a line item.
+
+The deal rows name no operation: the Deals API, published as the
+[Deal Sync API 1.0](https://github.com/IABTechLab/deal-api/blob/3028ddcb8d5faea44bdab272aeaa9be6b5980f81/deal1.0.md#matching-bid-requests-to-deals), "does not support deal revisions".
+
+**Deals API handoff.** A line item agreed under a deal mechanism (§ 5.9) becomes a
+Deals API 1.0 `Deal`. The system named by `deal_origin` (§ 5.9) pushes the `Deal` to
+the DSP named by `buyer_requirements.seats.dsp`. The deal ID is in that system's namespace: it
+assigns the ID, or accepts one the seller supplies. The `Deal` takes these
+values from the agreed line item:
+
+| Deals API 1.0 | OpenRTB 2.6 | From the agreed line item |
+| :--- | :--- | :--- |
+| `id` | `Deal.id`, `Bid.dealid` | None: the ID in `deal_origin`'s namespace. The `external_references[]` entry with `reference_type: deal` records it (§ 5.10) |
+| `origin` | | `deal_origin` |
+| `seller` | | The proposal's `seller.domain` |
+| `wseat` | `Deal.wseat` | `buyer_requirements.seats.ids[]` |
+| `adtypes` | | From `channel`: `display` 1, `video` 2, `audio` 3, `native` 4. Otherwise unset: the record doesn't state the ad's type |
+| `terms.startdate`, `terms.enddate` | | `commitment.flight.start`, `commitment.flight.end` |
+| `terms.countries` | | The countries of `geo` or `markets` in effect, in alpha-3 (below), without a country excluded whole. Unset when the line item declares neither |
+| `terms.dealfloor` | `Deal.bidfloor` | `agreed_rate` of the committed `pricing[]` entry |
+| `terms.cur` | `Deal.bidfloorcur` | That entry's `currency`, always sent |
+| `terms.pricetype` | `Deal.at`, the same value, omitted for Dynamic (0) | That entry's `price_type`, always sent |
+| `terms.guar` | `Deal.guar` | `1` when the mechanism in effect is `programmatic_guaranteed`, `0` otherwise |
+| `terms.units` | | `commitment.amount` when `basis` is `units`, otherwise `derived_units` |
+| `terms.totalcost` | | `commitment.amount` when `basis` is `spend`, otherwise `amount` × `agreed_rate` ÷ 1,000, plus any `delta_flat` charges in effect |
+
+`commitment.flight.end` and `terms.enddate` are the flight's last second,
+inclusive. The Deals API 1.0 doesn't say whether `enddate` is inclusive, so this mapping
+states it.
+
+`terms.dealfloor` and `Deal.bidfloor` are prices per thousand impressions, so this
+table maps a `CPM` entry. Other cost methods have no mapping yet.
 
 A `GeoCode` (§ 5.5) converts for the
 [OpenRTB 2.6 `Geo` object](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectgeo):
 `country` takes the ISO 3166-1 alpha-3 code of the country, and `region` takes the
 part of an ISO 3166-2 code after the hyphen.
+
+`terms.countries` takes the same alpha-3 code. The Deals API 1.0 says "ISO-3166-3", and
+this mapping reads that as ISO 3166-1 alpha-3. The list names whole countries, so `US`
+minus `US-TX` sends `USA`, and `geo` in the agreed record holds the exclusion. The record
+holds no country for an extension term, so the system that pushes the `Deal` supplies the
+one the term lies in.
+
+The line item's `status` ends at `agreed` (§ 5.1). After the push, the deal's
+state is the Deals API `sellerstatus` and, for each seat, `BuyerStatus.status`.
+OpenProposal has no field for either.
+
+**OpenDirect handoff.** A `direct_io` line item that books in
+[OpenDirect 2.1](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_line),
+and the reservation of a `programmatic_guaranteed` line item, become a `Line` in an
+`Order`. OpenDirect says who acts: on the seller's OpenDirect server, the buyer adds
+the `Order` to its `Account`, adds the `Line`, and reserves or books it. The `Order`
+and `Line` take these values from the agreed line item:
+
+| OpenDirect 2.1 | From the agreed line item |
+| :--- | :--- |
+| `Order.currency` | The committed `pricing[]` entry's `currency` |
+| `Line.startdate`, `Line.enddate` | `commitment.flight.start`, `commitment.flight.end` |
+| `Line.ratetype` | That entry's `cost_method`: `CPM` and `CPC` as written, and `FLAT` as `FlatRate` |
+| `Line.rate` | That entry's `agreed_rate` |
+| `Line.qty` | `commitment.amount` when `basis` is `units`, `1` for `FLAT`, otherwise `derived_units` |
+| `Line.cost` | `commitment.amount` when `basis` is `spend`, otherwise `Line.qty` × `agreed_rate`, ÷ 1,000 on a `CPM` entry, plus any `delta_flat` charges in effect |
+| `Line.frequencycount`, `Line.frequencyinterval` | `frequency_cap.count` in effect, and `frequency_cap.period` in OpenDirect's spelling, with `flight` as `LineDuration` |
+
+Any other `cost_method` has no `ratetype` and no mapping here. A `direct_io` line item
+under one books in another order system, which its `order` entry names (§ 5.10), and
+changes there. OpenDirect's cap counts a unique user,
+so it has no key for `frequency_cap.per`.
+
+The record holds no value for `Order.name` and `Line.name`, or for `Order.accountid`,
+`Order.publisherid`, `Order.advertiserbrandid`, and `Line.productid`, which name the
+server's own `Account`, `Organization`, `AdvertiserBrand`, and `Product` resources.
+OpenDirect 2.1 has the buyer obtain those ids from the publisher and its server, and no
+key here says which `Product` a line item books. The ids of the `Order` and the `Line`
+go in `external_references[]`, and the `Line`'s state is its `bookingstatus`. OpenProposal has no field for it.
 
 ### 1.2 Relationship to other AAMP artifacts
 
@@ -169,6 +243,7 @@ markets
 pricing[].cost_method
 pricing[].list_rate
 pricing[].currency
+pricing[].price_type
 min_spend
 commitment_bounds
 addressable_scale
@@ -482,7 +557,8 @@ that isn't a noun keeps its form, such as `available[]`, `include[]`, `best_for[
 **Values.** Every term compares byte for byte. A list this specification owns is
 lower snake case. A list taken from another standard keeps that standard's spelling
 and names it. A list built on another standard's list follows its case and names it:
-`cost_method` is upper case, like OpenDirect 2.1 `Line.ratetype`.
+`cost_method` is upper case, like OpenDirect 2.1 `Line.ratetype`, and § 1.1 maps it to
+that list.
 
 **Yes or no.** A key from another standard keeps that standard's values, as
 `IntegerFlag` does. Every other flag is a Boolean.
@@ -1297,9 +1373,9 @@ which 5.1.1 gives the line item's `channel`.
 | `formats` | Selectable[String] | OPTIONAL | selectable | Registry format ids namespaced by channel, such as `display/300x250` and `audio/host-read-30s` |
 | `specs` | Object | OPTIONAL | seller-set | As defined by the referenced format registry entry. OpenProposal does not hardcode a shape per channel |
 | `third_party_tags` | Object | OPTIONAL | seller-set | Accepted wrapper types and VAST versions |
-| `creative_delivery` | CreativeDelivery | OPTIONAL | seller-set | How creative reaches the seller |
-| `assets[]` | Array[Asset] | OPTIONAL | mixed | Buyer-delivered |
-| `materials_due` | MaterialsDue | OPTIONAL | requestable | Deadline for creative to land. A buyer MAY request a later date |
+| `creative_delivery` | CreativeDelivery | OPTIONAL | seller-set | How creative travels. See the creative path below. Absent: this line item states no path, and a `materials_due` still applies |
+| `assets[]` | Array[Asset] | OPTIONAL | mixed | A record of the creative that reaches the seller |
+| `materials_due` | MaterialsDue | OPTIONAL | requestable | Deadline for creative to reach the seller. A buyer MAY request a later date |
 | `approval` | Object | OPTIONAL | seller-set | Review SLA and revision policy |
 | `production` | Selectable[ProductionOption] | OPTIONAL | selectable | Custom units. See `ProductionOption` below |
 
@@ -1325,10 +1401,24 @@ which 5.1.1 gives the line item's `channel`.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `method` | VocabularyTerm | REQUIRED | Core terms: `buyer_hosted` \| `seller_hosted` \| `api` \| `platform_managed` |
+| `method` | VocabularyTerm | REQUIRED | Core terms: `buyer_hosted` \| `seller_hosted` \| `api` \| `platform_managed`, defined in the creative path below |
 | `protocol` | String | OPTIONAL | How the creative is delivered, such as a VAST version or a JavaScript tag |
-| `secure_required` | Boolean | OPTIONAL | Whether the creative must load over a secure connection |
+| `secure_required` | Boolean | OPTIONAL | Whether the creative must load over a secure connection. Absent: this line item states no such requirement |
 | `endpoint` | Url | OPTIONAL | Where the buyer sends creative |
+
+**Creative path.** `creative_delivery.method` routes the creative under any
+`transaction_mechanism`:
+
+| `method` | Who hosts the creative | What reaches the seller |
+| :--- | :--- | :--- |
+| `buyer_hosted` | The buyer's ad server | A URL or tag, in `assets[]`. When the bid carries the tag, nothing |
+| `seller_hosted` | The seller | The creative, in `assets[]` |
+| `api` | The seller | The creative, through the seller's API, at `endpoint` when the seller names one. `assets[]` records it |
+| `platform_managed` | The platform that runs the buy, such as the DSP | Nothing. The platform holds the creative and its review |
+
+`materials_due` doesn't apply when nothing reaches the seller. Under OpenDirect 2.1,
+an `assets[]` entry is a `Creative` assigned to the `Line`, and `approval_status` reads
+as the seller's status in its `creativeapprovals`.
 
 **`ProductionOption`** keys:
 
@@ -1433,7 +1523,7 @@ exclusions:
 subdivision code, or an extension `VocabularyTerm` for any other area, such as a
 metro list. The country of an ISO 3166-2 code is the part before the hyphen, and a
 country covers every subdivision code it prefixes. An extension term covers only
-itself. § 1.1 states the conversion to OpenRTB 2.6.
+itself. § 1.1 states the conversion to OpenRTB 2.6 and the Deals API.
 
 ```yaml
 geo:
@@ -1505,8 +1595,9 @@ Monday.
 | `pricing[].agreed_rate` | Number | REQUIRED when this is the committed entry | derived | The transacted rate (below). Absent on every other entry |
 | `pricing[].price_valid_until` | Instant | OPTIONAL | seller-set | How long the entry holds (§ 4.3.2). Distinct from the proposal's `offer_window.end` |
 | `pricing[].currency` | String | REQUIRED | seller-set | ISO-4217 |
+| `pricing[].price_type` | Integer | REQUIRED when the entry prices a deal mechanism | seller-set | How `agreed_rate` clears, as Deals API 1.0 `terms.pricetype`: Dynamic (0), the auction type of each bid request; First Price (1); Second Price Plus (2); Fixed Price (3); or an exchange-specific value, 500 and up |
 | `pricing[].min_rate` | Number | OPTIONAL | seller-set | A hint: the lowest `list_rate` the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
-| `availability` | Object | OPTIONAL | asserted | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`, with `as_of` an `Instant` and `granularity` a `CalendarUnit`. Recomputed against the buyer's selection |
+| `availability` | Object | OPTIONAL | asserted | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`, with `as_of` an `Instant` and `granularity` a `CalendarUnit`. Recomputed against the buyer's selection. `type` MUST be `forecast` when the line item's `delivery_type` (§ 5.9) is `non_guaranteed` |
 | `commitment_bounds` | Object | OPTIONAL | requestable | The envelope inside which a buyer may commit, and a buyer MAY request another: `{ min_impressions, max_impressions, min_budget, max_budget }` |
 | `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
 | `hold_status` | HoldStatus | OPTIONAL | mixed | See 5.6.2 |
@@ -1529,6 +1620,12 @@ A delta counts when its option is in effect and not in `included[]`, on any fiel
 line item marked `selectable`. A `delta_cpm` enters only a `CPM` entry (§ 3.1), and
 the option's other deltas still count. So `list_rate` 24.00 with one `delta_cpm` of
 3.00 and one `delta_fraction` of 0.02 is 27.54. `delta_flat` stays outside it.
+
+**Deal price.** For a deal on a `CPM` entry (§ 1.1), the committed entry's `agreed_rate`
+is the deal's price per thousand impressions, in that entry's `currency`. Under Fixed Price
+(3), it is the price the buyer pays. Under an auction `price_type`, it is the
+deal's minimum bid. The Deals API treats it as guidance: per-impression floors
+can be higher, so a bid at `agreed_rate` is not guaranteed to clear.
 
 #### 5.6.1 commitment
 
@@ -1765,14 +1862,32 @@ expressed through `required_credentials[]`.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `buying_route` | Enum | OPTIONAL | seller-set | `DIRECT_PUBLISHER` \| `PUBLISHER_AD_SERVER` \| `SSP_PLATFORM` \| `DSP` \| `SEARCH_SOCIAL` |
-| `transaction_mechanism` | Selectable[TransactionMechanism] | REQUIRED | selectable | See `TransactionMechanism` below. A seller MAY offer the same inventory through more than one. `max_select: 1` |
+| `transaction_mechanism` | Selectable[MechanismOption] | REQUIRED | selectable | The mechanisms the seller offers. A seller MAY offer the same inventory through more than one. `max_select: 1` |
+| `sov_basis` | Enum | REQUIRED when an option's `delivery_type` is `share_of_voice` | seller-set | `impressions` \| `loop_time`. `impressions`: a share of the line item's eligible impressions (digital placements, pooled DOOH products). `loop_time`: a share of each named screen's loop time (fixed-loop DOOH spots) |
+| `sov_share` | Fraction | REQUIRED when `sov_basis` is `impressions` | seller-set | Absent under `loop_time`. The promised share, greater than 0 |
 | `serving_mode` | VocabularyTerm | OPTIONAL | seller-set | Core terms: `client_side` \| `ssai` \| `dai` |
+| `deal_origin` | RegistrableDomain | REQUIRED when the line item offers a deal mechanism | seller-set | Absent otherwise. The advertising system domain whose namespace holds the deal ID and that pushes the deal, as the Deals API 1.0 `origin`: typically an SSP, or the ad server for a deal it books itself |
 | `buyer_requirements` | BuyerRequirements | OPTIONAL | mixed | See below |
-| `serving_platform` | String | OPTIONAL | seller-set | Where the line item serves |
+| `serving_platform` | Domain | OPTIONAL | seller-set | The ad platform that serves the line item, such as the seller's ad server, by its domain. For a deal sold through a separate SSP it differs from `deal_origin` |
 
-**`TransactionMechanism`** is `direct_io` \| `programmatic_guaranteed` \|
-`preferred_deal` \| `private_auction` \| `open_auction`.
+**`MechanismOption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | TransactionMechanism | REQUIRED | The mechanism, which is the option id (§ 3.1) |
+| `delivery_type` | DeliveryType | REQUIRED | What the seller promises under this mechanism. The value on the mechanism in effect (§ 3.1) applies to the line item |
+
+**`TransactionMechanism`** is `direct_io` \| `programmatic_guaranteed` \| `preferred_deal` \|
+`private_auction`. A **deal mechanism** is one that
+lands in a Deals API `Deal` (§ 1.1). An option's `delivery_type` MUST be one its row
+allows.
+
+| `transaction_mechanism` | Deal mechanism | `delivery_type` |
+| :--- | :--- | :--- |
+| `direct_io` | No | Any |
+| `programmatic_guaranteed` | Yes | `guaranteed`, `share_of_voice` |
+| `preferred_deal` | Yes | `non_guaranteed` |
+| `private_auction` | Yes | `non_guaranteed` |
 
 **`BuyerRequirements`** keys:
 
@@ -1783,14 +1898,28 @@ expressed through `required_credentials[]`.
 | `seats` | SeatRef | OPTIONAL | The buyer's seats on the deal, as the Deals API 1.0 `wseat` | supplied |
 | `seat_owner` | Party | OPTIONAL | The legal entity that owns the seats. Absent: the `buyer` | supplied |
 
+**`DeliveryType`** is `guaranteed` \| `share_of_voice` \| `non_guaranteed`: what the
+seller promises to deliver, independent of how the line item transacts and how it is
+priced.
+
+- `guaranteed`: the seller reserves the committed units for the flight.
+- `share_of_voice`: the seller reserves a fixed share of the inventory, up to
+  all of it, for the flight. With a `daypart` (§ 5.5), the share is of the
+  daypart's hours only, read in the line item's `time_zone`. Sponsorships,
+  roadblocks, takeovers, and DOOH loop and rotary buys.
+- `non_guaranteed`: the seller reserves nothing.
+
+Under `impressions`, `sov_share` states the share. Its denominator
+is impressions; a share counted in plays is a different product and doesn't
+use this basis. Its scope is the line item's flight and `daypart`.
+
 ### 5.10 External references, agreement, and billing
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `external_references[]` | Array[ExternalReference] | OPTIONAL | recorded | The ids other systems hold for this line item. The party that learns an id writes the entry |
+| `external_references[]` | Array[ExternalReference] | OPTIONAL | recorded | The ids other systems hold for this line item. The party that learns an id writes the entry. Once the deal exists in `deal_origin`, the seller MUST record its ID as one `deal` entry on the line item. An entry is not a term and MAY be added after `agreed` |
 | `agreement` | Agreement | OPTIONAL | seller-set | The master or annual agreement the line item is priced under. An informative pointer; the agreement itself is outside this specification. A buyer-held agreement id travels as an `external_references[]` entry with `reference_type: agreement` |
 | `billing` | Billing | OPTIONAL | seller-set | Who delivers is not always who invoices |
-| `supported_order_systems[]` | Array[String] | OPTIONAL | seller-set | Declared up front so the agent knows it will reconcile |
 
 **`ExternalReference`** keys:
 
@@ -1799,7 +1928,7 @@ expressed through `required_credentials[]`.
 | `system` | String | REQUIRED | The system that holds the id |
 | `namespace` | String | OPTIONAL | The namespace of the id in that system |
 | `id` | String | REQUIRED | The id |
-| `reference_type` | VocabularyTerm | REQUIRED | What the id names. Core terms: `order` \| `line` \| `agreement` \| `deal`. `order`: the order that books the line item, such as an OpenDirect Order or an IO. `line`: the line in that order, such as an OpenDirect Line. `agreement`: a buyer-held agreement id. `deal`: the deal ID that bid requests carry. It is the Deals API `id` and the OpenRTB 2.6 `Deal.id`. An ID that bid requests don't carry, such as a platform's internal record ID, is not a `deal` entry. A receiver that doesn't know the term ignores the entry |
+| `reference_type` | VocabularyTerm | REQUIRED | What the id names. Core terms: `order` \| `line` \| `agreement` \| `deal`. `order`: the order that books the line item, such as an OpenDirect Order or an IO. `line`: the line in that order, such as an OpenDirect Line. `agreement`: a buyer-held agreement id. `deal`: the deal ID that bid requests carry, with `system` set to `deal_origin`. It is the Deals API `id` and the OpenRTB 2.6 `Deal.id`, whether `deal_origin` assigned it or accepted it from the seller. An ID that bid requests don't carry, such as the origin's internal record ID, is not a `deal` entry. A receiver that doesn't know the term ignores the entry |
 
 **`Agreement`** keys:
 
@@ -1843,7 +1972,8 @@ shown in their own files, §§ 6.2 to 6.5.
 
 ### 6.2 Display line item — fully worked
 
-Shows `selectable` audiences with per-option pricing and `settable` bounds. See
+Shows `selectable` audiences with per-option pricing, `settable` bounds, and a
+`delivery_type` per mechanism. See
 [`examples/line-item-display.yaml`](../examples/line-item-display.yaml).
 
 ### 6.3 CTV line item
@@ -1942,7 +2072,8 @@ see [docs/open-questions.md](../docs/open-questions.md).
    buyer selects whole line items and everything else is a round trip.
 2. **Is a fetchable reference to a seller catalog needed?** The object is fully
    inline: a seller reuses catalog entries in its own systems, and a summary lists
-   what § 2.1 names.
+   what § 2.1 names. A `Line.productid` would be one use: an agreed record doesn't say
+   which OpenDirect `Product` it books.
 3. **Cross-channel guarantee comparability is unsolved.** Once one line item
    guarantees `viewable_rate` and another `completion_rate`, there is no
    normalised way for a buying agent to compare or optimise across them. Likely
@@ -2035,6 +2166,7 @@ body is normative.**
 | `pricing[].agreed_rate` | 5.6 Commercial terms | Number | REQUIRED when this is the committed entry | derived |
 | `pricing[].price_valid_until` | 5.6 Commercial terms | Instant | OPTIONAL | seller-set |
 | `pricing[].currency` | 5.6 Commercial terms | String | REQUIRED | seller-set |
+| `pricing[].price_type` | 5.6 Commercial terms | Integer | REQUIRED when the entry prices a deal mechanism | seller-set |
 | `pricing[].min_rate` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `availability` | 5.6 Commercial terms | Object | OPTIONAL | asserted |
 | `commitment_bounds` | 5.6 Commercial terms | Object | OPTIONAL | requestable |
@@ -2054,15 +2186,16 @@ body is normative.**
 | `eligible_buyers[]` | 5.8 Transaction eligibility | Array[RegistrableDomain] | OPTIONAL | seller-set |
 | `eligible_seats[]` | 5.8 Transaction eligibility | Array[SeatRef] | OPTIONAL | seller-set |
 | `terms_refs[]` | 5.8 Transaction eligibility | Array[DocumentRef] | OPTIONAL | seller-set |
-| `buying_route` | 5.9 Execution | Enum | OPTIONAL | seller-set |
-| `transaction_mechanism` | 5.9 Execution | Selectable[TransactionMechanism] | REQUIRED | selectable |
+| `transaction_mechanism` | 5.9 Execution | Selectable[MechanismOption] | REQUIRED | selectable |
+| `sov_basis` | 5.9 Execution | Enum | REQUIRED when an option's `delivery_type` is `share_of_voice` | seller-set |
+| `sov_share` | 5.9 Execution | Fraction | REQUIRED when `sov_basis` is `impressions` | seller-set |
 | `serving_mode` | 5.9 Execution | VocabularyTerm | OPTIONAL | seller-set |
+| `deal_origin` | 5.9 Execution | RegistrableDomain | REQUIRED when the line item offers a deal mechanism | seller-set |
 | `buyer_requirements` | 5.9 Execution | BuyerRequirements | OPTIONAL | mixed |
-| `serving_platform` | 5.9 Execution | String | OPTIONAL | seller-set |
+| `serving_platform` | 5.9 Execution | Domain | OPTIONAL | seller-set |
 | `external_references[]` | 5.10 External references, agreement, and billing | Array[ExternalReference] | OPTIONAL | recorded |
 | `agreement` | 5.10 External references, agreement, and billing | Agreement | OPTIONAL | seller-set |
 | `billing` | 5.10 External references, agreement, and billing | Billing | OPTIONAL | seller-set |
-| `supported_order_systems[]` | 5.10 External references, agreement, and billing | Array[String] | OPTIONAL | seller-set |
 
 ---
 
@@ -2071,7 +2204,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 9 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 36 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].min_rate`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
+| seller-set | 38 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -2084,8 +2217,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 83 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
-`supplied` and 4 `requestable`. The remaining 61 are `seller-set`, `immutable`,
+Of 85 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+`supplied` and 4 `requestable`. The remaining 63 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, and its keys of `commitment`, `assets[]`,
 `buyer_supplied`, and `buyer_requirements`.

@@ -5,6 +5,29 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.1, § 2.1, § 2.6, § 5.4, § 5.5, § 5.6, § 5.9, § 5.10, § 6.2, § 8, appendices, examples,
+  docs, checkers — downstream handoff. § 5.9 has one table of `transaction_mechanism` values.
+  It states which are deal mechanisms and which `delivery_type` each allows. § 1.1 keys on
+  those values, with each one's `reference_type` and change path. An option is
+  `{ id, delivery_type }`. `delivery_type` says what the seller promises: `guaranteed`,
+  `share_of_voice`, or `non_guaranteed`. A share of voice carries `sov_basis` and `sov_share`,
+  and `availability` is a forecast under `non_guaranteed`. `open_auction` is removed: with no
+  deal ID, no bid request can name a line item. A line item agreed under a deal mechanism maps
+  to a Deals API 1.0 `Deal`, which the system named by `deal_origin` pushes. The seller records
+  the deal ID as an `external_references[]` entry with `reference_type: deal`. The Deals API
+  table maps a `CPM` entry and says other cost methods have no mapping yet. `agreed_rate` is the
+  deal's price, and `pricing[].price_type` says how it clears. § 1.1 gains an OpenDirect 2.1
+  mapping for a `direct_io` line item and a `programmatic_guaranteed` reservation. It covers who
+  acts, which `cost_method` values have a `ratetype`, and what the record doesn't hold. Each
+  `creative_delivery.method` is defined, and it routes the creative under any mechanism:
+  `assets[]` and `materials_due` read only where creative reaches the seller. `buying_route`
+  and `supported_order_systems[]` are removed, and `serving_platform` is a `Domain`. The bonus
+  example sells as `direct_io`. Breaking
+  ([#132](https://github.com/IABTechLab/OpenProposal/issues/132),
+  [#133](https://github.com/IABTechLab/OpenProposal/issues/133),
+  [#93](https://github.com/IABTechLab/OpenProposal/issues/93),
+  [#109](https://github.com/IABTechLab/OpenProposal/issues/109)).
+
 - § 1.2, § 2.1, § 2.4, § 2.5, § 2.7, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 4.4, § 5.6.1, § 5.10,
   § 6.8, § 8, appendices, examples, docs, issue templates, checkers — after `agreed`. § 1.2 separates what a
   request or response carries, which this document states, from the envelope and binding of the
