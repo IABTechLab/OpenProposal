@@ -232,6 +232,10 @@ line_item_id
 channel
 environments.available[]
 content_detail
+placement.reward
+placement.instl
+placement.plcmt
+placement.skip
 properties.available[].id
 properties.available[].name
 properties.available[].domains[]
@@ -1343,6 +1347,7 @@ General (1), Phone (4), and Tablet (5).
 | `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | Options of `{ id, name, domains[], venue_type, allocation, min_screens, screens[], slots_per_loop, sync_groups[] }`. The DOOH keys are below |
 | `content_detail` | Object | OPTIONAL | seller-set | Shows, series, sections, network verticals |
 | `environments` | Selectable[Environment] | OPTIONAL | selectable | The distribution channels and device types the line item runs on. See 5.2.1. Absent: the seller promises no environment |
+| `placement` | Object | OPTIONAL | seller-set | What every impression of this line item is: rewarded, interstitial, video placement subtype, skippability, playback, API frameworks and refresh. `plcmt` is REQUIRED for video ads. See 5.2.1 |
 
 **DOOH properties.** When `channel` is `dooh`, a property is a set of screens of one
 venue type, and `domains[]` holds the inventory owner's domain, as OpenRTB 2.6
@@ -1397,6 +1402,54 @@ row. Device types are as in 5.1.1.
 
 Each `environments.available[]` value MUST match at least one impression to
 which 5.1.1 gives the line item's `channel`.
+
+#### 5.2.1 placement
+
+Keys follow [AdCOM 1.0 `Placement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_placement) and its
+[`DisplayPlacement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_displayplacement),
+[`VideoPlacement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_videoplacement) and
+[`AudioPlacement`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_audioplacement) subtypes, and the matching
+[OpenRTB 2.6 `Imp`](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectimp) attributes.
+
+Each key takes an integer, except `playmethod[]` and `api[]`, which take
+arrays of integers, and `refresh`, an object whose `min_interval_s` is a
+REQUIRED integer. `plcmt`, `playmethod[]` and `api[]` take any code in
+[List: Plcmt Subtypes - Video](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_plcmtsubtypesvideo),
+[List: Playback Methods](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_playbackmethods) and
+[List: API Frameworks](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_apiframeworks) respectively. This
+section names each code by its AdCOM name followed by the code, such as
+Instream (1).
+
+| Key | Required | Meaning | AdCOM 1.0, OpenRTB 2.6 |
+| :--- | :--- | :--- | :--- |
+| `reward` | OPTIONAL | `0` (no) \| `1` (yes). The user receives a reward for viewing the ad | `Placement.reward`, `imp.rwdd` |
+| `instl` | OPTIONAL | `0` (no) \| `1` (yes). The ad is interstitial or full screen | `DisplayPlacement.instl`, `imp.instl` |
+| `plcmt` | REQUIRED for video ads (`channel` `video`, or video on `channel` `ctv`); otherwise OPTIONAL | One value from List: Plcmt Subtypes - Video: Instream (1), Accompanying Content (2), Interstitial (3), No Content/Standalone (4), Pause (5), Screensaver (6), Overlay (7), Squeezeback (8), In-scene (9) | `VideoPlacement.ptype`, `video.plcmt` |
+| `skip` | OPTIONAL | Video or audio. `0` (no) \| `1` (yes). The placement lets the user skip the ad | `VideoPlacement.skip`, `AudioPlacement.skip`, `video.skip` |
+| `skipafter` | OPTIONAL | When `skip` is `1`: seconds the ad plays before the placement enables skipping | `VideoPlacement.skipafter`, `AudioPlacement.skipafter`, `video.skipafter` |
+| `playmethod[]` | OPTIONAL | Video or audio. Values from List: Playback Methods in use, such as Initiates without any specific user interaction with Sound On (1), Initiates without any specific user interaction Sound Off by Default (2), Initiates on Click with Sound On (3) and Continuous Playback (7) | `VideoPlacement.playmethod`, `AudioPlacement.playmethod`, `video.playbackmethod` |
+| `api[]` | OPTIONAL | Values from List: API Frameworks that every impression supports, such as MRAID 3.0 (6), OMID 1.0 (7) and SIMID 1.1 (9) | `DisplayPlacement.api`, `VideoPlacement.api`, `AudioPlacement.api`, `banner.api`, `video.api`, `audio.api` |
+| `refresh` | OPTIONAL | `{ min_interval_s }`: minimum seconds a creative renders before the slot refreshes | OpenRTB 2.6 only: `imp.refresh.refsettings[].minint` |
+
+`plcmt` takes its OpenRTB 2.6 name. AdCOM 1.0 carries the same list as
+`VideoPlacement.ptype`. OpenRTB 2.6 `Audio` has no `skip`, `skipafter` or
+`playbackmethod`, so for audio those keys map to AdCOM 1.0 `AudioPlacement`
+only.
+
+- A key that is present holds for every impression of the line item. An absent
+  key does not constrain it: a line item that omits `instl` can deliver to
+  interstitial and non-interstitial impressions alike. AdCOM 1.0 reads an
+  absent `reward` or `instl` as `0`; here it means either value.
+- The seller MUST NOT deliver the line item to an impression that does not
+  match a key that is present. An impression matches `api[]` when it supports
+  every listed framework, `playmethod[]` when its playback method is one of the
+  listed values, and `refresh` when the slot renders each creative for at least
+  `min_interval_s` seconds before it refreshes, or does not refresh. It matches
+  any other key when its value is equal.
+- Unless `api[]` includes OMID 1.0 (7), a line item whose `committed_metrics[]`
+  includes `viewable_rate` and whose `environments.available[]` includes
+  `app_mobile` or `ctv` SHOULD NOT offer a `measurement_source` vendor other
+  than the seller.
 
 ### 5.3 Audience reach
 
@@ -2471,6 +2524,12 @@ the digest is over that line item alone (§ 4.1.2). A `change_requests[]` entry 
 cancel part of the agreed line item (§ 5.6.6). See
 [`examples/proposal-issued.yaml`](../examples/proposal-issued.yaml).
 
+### 6.5 Rewarded video line item
+
+Shows `placement` on in-app rewarded video, with OMID support that lets a
+buyer select a third-party `measurement_source`. See
+[`examples/line-item-rewarded-video.yaml`](../examples/line-item-rewarded-video.yaml).
+
 ---
 
 ## 7. Why this split
@@ -2601,6 +2660,7 @@ body is normative.**
 | `properties` | 5.2 Inventory composition | Selectable[PropertyOption] | OPTIONAL | selectable |
 | `content_detail` | 5.2 Inventory composition | Object | OPTIONAL | seller-set |
 | `environments` | 5.2 Inventory composition | Selectable[Environment] | OPTIONAL | selectable |
+| `placement` | 5.2 Inventory composition | Object | OPTIONAL | seller-set |
 | `audiences` | 5.3 Audience reach | Selectable[AudienceOption] | OPTIONAL | selectable |
 | `addressable_scale` | 5.3 Audience reach | Integer | OPTIONAL | asserted |
 | `activation_route` | 5.3 Audience reach | Selectable[VocabularyTerm] | OPTIONAL | selectable |
@@ -2674,7 +2734,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `placement`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 14 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -2687,8 +2747,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 94 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 70 are `seller-set`, `immutable`,
+Of 95 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 71 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.

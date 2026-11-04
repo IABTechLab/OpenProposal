@@ -338,6 +338,11 @@ issue that caused it, so the comment record and the spec history line up.
   Breaking ([#111](https://github.com/IABTechLab/OpenProposal/issues/111)).
 - § 5.6 — `pricing[].floor` is the offer floor, not the downstream auction
   floor. Editorial clarification ([#16](https://github.com/IABTechLab/OpenProposal/issues/16)).
+- § 2.1, § 5.2 — `placement` on the line item states what every impression
+  is, in AdCOM 1.0 and OpenRTB 2.6 terms: rewarded, interstitial, video
+  placement subtype, skippability, playback, API frameworks and refresh.
+  `plcmt` is REQUIRED for video ads. Breaking
+  ([#89](https://github.com/IABTechLab/OpenProposal/issues/89)).
 
 ## [3.0-draft-1] — 2026-09-22
 
