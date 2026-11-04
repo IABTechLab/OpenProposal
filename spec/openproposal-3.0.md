@@ -1398,6 +1398,20 @@ row. Device types are as in 5.1.1.
 Each `environments.available[]` value MUST match at least one impression to
 which 5.1.1 gives the line item's `channel`.
 
+**App identity.** `apps[]` identifies the apps behind a property sold in
+`app_mobile` or `ctv`. Keys follow the OpenRTB 2.6 `app` object where one
+exists.
+
+| Key | Required | Meaning |
+| :--- | :--- | :--- |
+| `platform` | REQUIRED | The app store that issued `bundle`: `ios` (Apple App Store) \| `android` (Google Play) \| `roku` (Roku Channel Store) \| `fire_tv` (Amazon Appstore) \| `samsung_tv` (Samsung Apps TV) and other stores. A `bundle` is unique only within its store. No OpenRTB equivalent |
+| `bundle` | REQUIRED | Store ID. As OpenRTB 2.6 `app.bundle` |
+| `storeurl` | OPTIONAL | Store listing URL. As `app.storeurl` |
+| `developer_domain` | RECOMMENDED | Developer domain from the store listing, against which `app-ads.txt` is checked. No OpenRTB equivalent: not `app.domain`, which is the domain of the app |
+
+Seller authorisation for an app is checked through `app-ads.txt` on its
+developer domain, not through the property's `domains`.
+
 ### 5.3 Audience reach
 
 | Field | Type | Required | Mutability | Description |
