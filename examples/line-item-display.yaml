@@ -27,25 +27,120 @@ environments:
 
 audiences:
   available:
-    - { id: "ep:smb-decision-makers", provenance: first_party, addressable_scale: 2600000 }
-    - { id: "ep:hnw-investors", provenance: modeled, addressable_scale: 1100000 }
-    - { id: "ep:cfo-finance-leaders", provenance: first_party, addressable_scale: 480000 }
-  included:     ["ep:smb-decision-makers"]
-  deltas:       { "ep:hnw-investors":       { delta_cpm: 4.00 },
-                  "ep:cfo-finance-leaders": { delta_cpm: 6.50 } }
+    - id: "smb-decision-makers"
+      name: "SMB decision makers"
+      taxonomy: 4
+      sensitive_categories: []
+      data_label:
+        provider_name: "Business Daily Media"
+        provider_domain: "business-daily.example"
+        provider_email: "data@business-daily.example"
+        audience_name: "SMB decision makers"
+        audience_id: 10451
+        taxonomy_id_list: "26"             # Director/Managerial
+        audience_criteria: "Registered readers who declared a managerial role at a small or mid-sized business at sign-up"
+        audience_precision_levels: ["Individual"]
+        audience_scope: "Single domain / App"
+        originating_domain: "business-daily.example"
+        audience_size: 2600000
+        id_types: ["Platform ID"]
+        geocode_list: "USA"
+        privacy_compliance_mechanisms: ["USPrivacy", "GPC"]
+        privacy_policy_url: "https://business-daily.example/privacy"
+        iab_techlab_compliant: "No"
+        data_sources: ["Web Usage"]
+        audience_inclusion_methodology: ["Declared"]
+        audience_expansion: "No"
+        device_expansion: "No"
+        audience_refresh: "Daily"
+        lookback_window: "Monthly"
+        onboarder_match_keys: ["N/A"]
+        onboarder_audience_expansion: "N/A"
+        onboarder_device_expansion: "N/A"
+        onboarder_audience_precision_level: ["N/A"]
+    - id: "hnw-investors"
+      name: "High-net-worth investors"
+      taxonomy: 4
+      sensitive_categories: []
+      data_label:
+        provider_name: "Business Daily Media"
+        provider_domain: "business-daily.example"
+        provider_email: "data@business-daily.example"
+        audience_name: "High-net-worth investors"
+        audience_id: 10452
+        taxonomy_id_list: "190"            # Demographic | Personal Finance | $1,000,000+
+        audience_criteria: "Readers of markets coverage, modeled from subscribers who declared personal affluence over $1,000,000"
+        audience_precision_levels: ["Browser"]
+        audience_scope: "Cross-domain within O&O"
+        originating_domain: "N/A (Cross-domain, Offline)"
+        audience_size: 1100000
+        id_types: ["Cookie ID"]
+        geocode_list: "USA"
+        privacy_compliance_mechanisms: ["USPrivacy", "GPC"]
+        privacy_policy_url: "https://business-daily.example/privacy"
+        iab_techlab_compliant: "No"
+        data_sources: ["Web Usage", "Online Survey"]
+        audience_inclusion_methodology: ["Modeled"]
+        audience_expansion: "Yes"
+        device_expansion: "No"
+        audience_refresh: "Weekly"
+        lookback_window: "Quarterly"
+        onboarder_match_keys: ["N/A"]
+        onboarder_audience_expansion: "N/A"
+        onboarder_device_expansion: "N/A"
+        onboarder_audience_precision_level: ["N/A"]
+    - id: "cfo-finance-leaders"
+      name: "CFOs and finance leaders"
+      taxonomy: 4
+      excludable: true
+      sensitive_categories: []
+      data_label:
+        provider_name: "Business Daily Media"
+        provider_domain: "business-daily.example"
+        provider_email: "data@business-daily.example"
+        audience_name: "CFOs and finance leaders"
+        audience_id: 10453
+        taxonomy_id_list: "26,270"         # Director/Managerial; Business Accounting & Finance
+        audience_criteria: "Registered readers who declared a finance director or CFO role at sign-up"
+        audience_precision_levels: ["Individual"]
+        audience_scope: "Single domain / App"
+        originating_domain: "business-daily.example"
+        audience_size: 480000
+        id_types: ["Platform ID"]
+        geocode_list: "USA"
+        privacy_compliance_mechanisms: ["USPrivacy", "GPC"]
+        privacy_policy_url: "https://business-daily.example/privacy"
+        iab_techlab_compliant: "No"
+        data_sources: ["Web Usage"]
+        audience_inclusion_methodology: ["Declared"]
+        audience_expansion: "No"
+        device_expansion: "No"
+        audience_refresh: "Daily"
+        lookback_window: "Monthly"
+        onboarder_match_keys: ["N/A"]
+        onboarder_audience_expansion: "N/A"
+        onboarder_device_expansion: "N/A"
+        onboarder_audience_precision_level: ["N/A"]
+  included:     ["smb-decision-makers"]
+  deltas:       { "hnw-investors":       { delta_cpm: 4.00 },
+                  "cfo-finance-leaders": { delta_cpm: 6.50 } }
   max_select:   2
+  combine:      { available: [any, all], included: [any], max_select: 1 }   # the buyer's selected[] can change it
 
-addressable_scale: 3200000            # asserted; recomputed on selection
+addressable_scale:                    # asserted; recomputed on selection
+  quantity: 3200000
+  unit:     device
+  window:   { start: "2026-10-05T00:00:00Z", end: "2026-12-31T23:59:59Z" }
 
 activation_route:
-  available:    ["publisher_side", "clean_room"]
-  included:     ["publisher_side"]
+  available:    ["seller_side", "clean_room"]
+  included:     ["seller_side"]
   deltas:       { clean_room: { delta_cpm: 1.50 } }
 
 buyer_supplied:
   segments_allowed:    true
   suppression_allowed: true
-  match_rate_expected: 0.65
+  expected_match_rate: 0.65
 
 formats:
   available:    ["display/300x250", "display/728x90", "display/970x250"]
@@ -65,10 +160,11 @@ daypart:
 frequency_cap:  { count: { min: 1, max: 5, default: 3 }, period: day, per: device }
 time_zone:      "America/New_York"
 
-exclusions_accepted:                   # what this seller can enforce (§ 5.5)
-  types:        [domain, iab_content_category, keyword]
-  max_entries:  { domain: 5000, keyword: 500 }
-  enforcement:  { domain: pre_serve, iab_content_category: pre_serve, keyword: best_effort }
+accepted_exclusions:                   # what this seller can enforce (§ 5.5)
+  types:
+    domains:    { enforcement: pre_serve, max_entries: 5000 }
+    categories: { enforcement: pre_serve }
+    keywords:   { enforcement: best_effort, max_entries: 500 }
 
 pricing:
   - pricing_id:        "bd-cpm-usd"

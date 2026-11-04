@@ -461,7 +461,7 @@ Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_referenc
 | :--- | :--- |
 | `validation` | A value breaks a rule of this specification and no other code applies |
 | `not_found` | A named proposal or line item does not exist, or the requester may not read it (§ 5.8) |
-| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.5, § 5.6, § 5.6.1), or a buyer asks for a hold where `hold_terms` offers none (§ 5.6.2) |
+| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.3, § 5.5, § 5.6, § 5.6.1), or a buyer asks for a hold where `hold_terms` offers none (§ 5.6.2) |
 | `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
 | `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `requires` that is unmet rules out a `commit` (§ 5.6.3), a live `commitment` entry already names a line item (§ 4.1.2), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
 | `stale_version` | An ask is stale (§ 4.1.3) |
@@ -558,7 +558,7 @@ every other list is closed, and in a row it opens the Meaning cell.
 another standard and says so; that object keeps the standard's spelling and cites
 it. A key name repeats only where it means the same thing, and each row's Type cell
 states its form there. An array named by a noun is plural, except the mass nouns
-`pricing[]`, `evidence[]`, and `negotiation_history[]`, and a name another standard
+`pricing[]`, `evidence[]`, `verification[]`, and `negotiation_history[]`, and a name another standard
 spells. A name that isn't a noun keeps its form, such as `available[]`, `include[]`,
 `best_for[]`, and `all_of[]`. The suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
 `_allowed` or `_required`, and a list never does.
@@ -606,7 +606,7 @@ it before reading the bytes, and `unresolved_reference` (§ 2.4) reports a misma
 **Buyer lists.** `exclusions`, `buyer_supplied.segments[]`, and
 `buyer_supplied.suppression_list` show a buyer's strategy and can hold data about
 people. A party that holds them limits who can read them, in stored records and
-logs as well as in responses. § 5.8 states the disclosure rule for `exclusions`.
+logs as well as in responses. § 5.5 states the disclosure rule for `exclusions`.
 
 ### 2.8 Web Bot Auth profile
 
@@ -670,8 +670,8 @@ an offer to buy (§ 5.6.1).
 A field is never silently reverted. With no buyer write, what § 3.1 and § 3.2 put in
 effect applies, and the seller declares it in the proposal.
 
-`selected[]` and `value` are keys of the field and carry no marker of their own. The
-buyer MUST NOT alter the keys the seller declares beside them.
+`selected[]`, `value`, and `excluded[]` (§ 5.3) are keys of the field and carry no
+marker of their own. The buyer MUST NOT alter the keys the seller declares beside them.
 
 ### 3.1 Selectable structure
 
@@ -775,6 +775,8 @@ and `<settable>` is a field marked `settable` other than `frequency_cap`:
 ```text
 <selectable>.selected[]
 <settable>.value
+audiences.excluded[]
+audiences.combine.selected[]
 frequency_cap.count.value
 exclusions
 buyer_requirements.seats
@@ -884,7 +886,7 @@ $.line_items[*].status
 $.line_items[*].availability
 $.line_items[*].addressable_scale
 $.line_items[*].assets
-$.line_items[*].buyer_supplied.match_rate_expected
+$.line_items[*].buyer_supplied.expected_match_rate
 $.line_items[*].buyer_supplied.segments
 $.line_items[*].buyer_supplied.suppression_list
 $.line_items[*].pricing[*].min_rate
@@ -905,12 +907,12 @@ Each removed path is one of three things: lifecycle state or sequence position
 (`version`, `status`, `assent[]`, `negotiation_history[]`, `change_requests[]`,
 `hold`); a seller assertion, advisory text, an informative figure, or an
 identifier minted downstream of agreement (`best_for[]`, `not_suitable_for[]`,
-`seasonality_notes`, `availability`, `addressable_scale`, `match_rate_expected`,
+`seasonality_notes`, `availability`, `addressable_scale`, `expected_match_rate`,
 `min_rate`, `derived_units`, `external_references[]`); or a buyer
 delivery (`assets[]`, `segments[]`, `suppression_list`). The requirement on creative
 (`formats`, `specs`, `creative_policy`, `materials_due`) is a term, and so is the
 permission to deliver a list (`segments_allowed`, `suppression_allowed`,
-`exclusions_accepted`).
+`accepted_exclusions`).
 
 Every other value is inside the record, named here or not: `proposal_id`,
 `spec_version`, `seller`, `buyer`, `type`, `proposal_template_id`, `brief_id`,
@@ -1070,7 +1072,8 @@ and line item), `assent[]`, `negotiation_history[]`, `change_requests[]`,
 `addressable_scale`, `hold`,
 `external_references[]`, `assets[].approval_status`; `best_for[]`,
 `not_suitable_for[]`, and `seasonality_notes`, which are advisory (§ 4.2);
-`pricing[].min_rate`, which is a hint; every value the buyer writes (a `BuyerWrites` value,
+`pricing[].min_rate`, which is a hint; `buyer_supplied.expected_match_rate`, which is
+the seller's stated expectation; every value the buyer writes (a `BuyerWrites` value,
 `commitment`, any other `supplied` field, and a `requestable` ask); and
 every `derived` value computed from a buyer's writes (`pricing[].agreed_rate`,
 `commitment.derived_units`). A buyer composes against a named `version` and never increments it.
@@ -1491,10 +1494,74 @@ operating hour.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `audiences` | Selectable[AudienceOption] | OPTIONAL | selectable | Options of `{ id, name, taxonomy_ref, provenance, addressable_scale }`. Their `deltas` are `delta_cpm` |
-| `addressable_scale` | Integer | OPTIONAL | asserted | Reachable units in the flight, recomputed against the buyer's selection. Not segment size |
-| `activation_route` | Selectable[VocabularyTerm] | OPTIONAL | selectable | Core terms: `publisher_side` \| `clean_room` \| `id_partner` |
-| `buyer_supplied` | BuyerSupplied | OPTIONAL | mixed | `{ segments_allowed, suppression_allowed, match_rate_expected, segments[], suppression_list }`. `segments_allowed`, `suppression_allowed` and `match_rate_expected` are `seller-set`; `match_rate_expected` is the seller's stated expectation. `segments[]` and `suppression_list` are `supplied` |
+| `audiences` | AudienceSelectable | OPTIONAL | selectable | See below |
+| `addressable_scale` | AddressableScale | OPTIONAL | asserted | What the line item can reach, recomputed against the buyer's selection. Not segment size. See below |
+| `activation_route` | Selectable[VocabularyTerm] | OPTIONAL | selectable | Where the audience is matched. Core terms: `seller_side` (the seller's systems) \| `clean_room` (a clean room) \| `id_partner` (a third-party identity provider) |
+| `buyer_supplied` | BuyerSupplied | OPTIONAL | mixed | See below |
+
+**`AudienceOption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
+| `name` | String | OPTIONAL | The audience's name, for people |
+| `taxonomy` | Integer | REQUIRED | The integer from the OpenRTB segment taxonomies list for the IDs that name this option: `4` (IAB Tech Lab Audience Taxonomy 1.1) for the label's `taxonomy_id_list`, or the seller's registered vendor value (500 and up) for the label's `audience_id`. When the seller signals the segment in an OpenRTB 2.6 request, these are the `data.ext.segtax` and `segment.id` values |
+| `data_label` | Object | REQUIRED | The option's IAB Tech Lab Data Transparency Standard 1.1 label: every field in its "Minimum Segment Disclosures: Required Fields" table, keyed by its API flat file key, with values exactly as the standard publishes them, such as `Observed/Known` or `TCF (Europe)`. A multi-select field the standard gives no separator for is an array of those values. The standard's conditional rules apply: offline data sources require the Onboarder Details fields, which otherwise take the standard's `N/A` option; `Modeled` requires `audience_expansion: Yes`; and `Single domain / App` scope requires a domain or app store URL in `originating_domain` |
+| `sensitive_categories[]` | Array[VocabularyTerm] | REQUIRED | The categories the option's membership is derived from or reveals. Core terms: `racial_or_ethnic_origin` \| `political_opinions` \| `religious_or_philosophical_beliefs` \| `trade_union_membership` \| `genetic` \| `biometric` \| `health` \| `sex_life_or_sexual_orientation` \| `precise_geolocation` \| `minors` (under 18). An empty array declares none |
+| `excludable` | Boolean | OPTIONAL | Whether the buyer may name this option in `excluded[]`. Absent means `false` |
+
+**`AudienceSelectable`** holds the keys of `Selectable[AudienceOption]` and these:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `combine` | Selectable[CombineOperator] | REQUIRED when more than one seller audience can be in effect | The operators the seller supports. `max_select: 1`. `included[]` MUST name exactly one option. It carries no `deltas` |
+| `excluded[]` | Array[String] | OPTIONAL | The buyer's write: option ids of options whose `excludable` is `true`, disjoint from the seller audiences in effect. `max_select` does not count them |
+
+**`CombineOperator`** is `any` \| `all`.
+
+The line item targets users who match all of the following conditions:
+
+1. The seller audiences in effect (§ 3.1), under the `combine` option in effect. `any`
+   matches a user in at least one of them. `all` matches a user in every one. An empty
+   set adds no condition.
+2. At least one of `buyer_supplied.segments[]`, when that list is not empty.
+3. None of the options in `excluded[]`.
+4. Not in `buyer_supplied.suppression_list`.
+
+An option in `excluded[]` adds its delta to `agreed_rate` (§ 5.6), under either
+operator.
+
+`addressable_scale` and `availability` (§ 3.3) MUST be recomputed against
+conditions 1 and 3. Conditions 2 and 4 need the buyer's data matched first;
+until then, the figures for them are estimates.
+
+**`BuyerSupplied`** keys:
+
+| Key | Type | Required | Meaning | Mutability |
+| :--- | :--- | :--- | :--- | :--- |
+| `segments_allowed` | Boolean | OPTIONAL | Whether the buyer may supply `segments[]` | seller-set |
+| `suppression_allowed` | Boolean | OPTIONAL | Whether the buyer may supply `suppression_list` | seller-set |
+| `expected_match_rate` | Fraction | OPTIONAL | The seller's stated expectation of the share of a buyer's list that matches | asserted |
+| `segments[]` | Array[BuyerList] | OPTIONAL | The buyer's segments | supplied |
+| `suppression_list` | BuyerList | OPTIONAL | The users the line item doesn't target | supplied |
+
+**`BuyerList`** describes a list the buyer supplies. Its members travel outside this
+object.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `list_id` | String | REQUIRED | Identity of the list within the line item. The buyer uses it wherever the list's members travel |
+| `source` | String | OPTIONAL | Where the list comes from, such as `advertiser_crm` |
+| `size` | Integer | OPTIONAL | How many members it holds |
+| `match_method` | VocabularyTerm | OPTIONAL | How its members match users. Core terms: `hashed_email` \| `device_id`. A receiver that doesn't know a term reads the method as unstated |
+
+**`AddressableScale`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `quantity` | Integer | REQUIRED | How many |
+| `unit` | VocabularyTerm | REQUIRED | What `quantity` counts. Core terms: the `frequency_cap.per` terms (§ 5.5), and `person`. A receiver that doesn't know a term reads the figure as unstated |
+| `window` | Interval | REQUIRED | The dates `quantity` covers |
 
 ### 5.4 Creative requirements
 
@@ -1602,9 +1669,9 @@ of the applicable execution standard.
 ### 5.5 Targeting envelope
 
 `geo`, `device`, `daypart`, and `frequency_cap` declare bounds, not a value (§ 3.2), and
-one that is absent declares none. `markets` declares options (§ 3.1). For
-`exclusions_accepted` and `exclusions`, the seller declares what it can enforce, and the
-buyer supplies its lists.
+one that is absent declares none.
+`markets` declares options (§ 3.1). For `accepted_exclusions` and `exclusions`, the
+seller declares what it can enforce, and the buyer supplies its lists.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
@@ -1614,39 +1681,69 @@ buyer supplies its lists.
 | `daypart` | Settable[ClockWindow] | OPTIONAL | settable | `allowed[]` of `ClockWindow` (below). A window covers any window inside it |
 | `time_zone` | ZoneName | REQUIRED when `daypart` or `frequency_cap` is present | seller-set | The clock for `daypart` and a calendar `frequency_cap.period` |
 | `frequency_cap` | FrequencyCap | OPTIONAL | settable | See below |
-| `exclusions_accepted` | Object | OPTIONAL | seller-set | What the seller can enforce: `{ types[], max_entries, enforcement, verification[] }`. See below |
-| `exclusions` | Object | OPTIONAL | supplied | The buyer's block lists: `{ domain[], apps[], iab_content_category[], keyword[], list_ref }`. See below |
+| `accepted_exclusions` | AcceptedExclusions | OPTIONAL | seller-set | What the seller can enforce. See below |
+| `exclusions` | Map[ExclusionType, ExclusionList] | OPTIONAL | supplied | The buyer's block lists, keyed by exclusion type. See below |
 
 **Block lists.** The seller declares which exclusion types it accepts and how it
 enforces each; the buyer supplies its lists within that declaration.
 
 ```yaml
-exclusions_accepted:
-  types:        [domain, apps, iab_content_category, keyword]
-  max_entries:  { domain: 5000, keyword: 500 }
-  enforcement:  { domain: pre_serve, apps: pre_serve,
-                  iab_content_category: pre_serve, keyword: best_effort }
+accepted_exclusions:
+  types:
+    domains:    { enforcement: pre_serve, max_entries: 5000 }
+    apps:       { enforcement: pre_serve }
+    categories: { enforcement: pre_serve }
+    keywords:   { enforcement: best_effort, max_entries: 500 }
   verification: ["integralads.com", "doubleverify.com"]
 
 exclusions:
-  domain:           ["example-gambling.example"]
-  apps:             [{ store: roku_channel_store, bundle: "123456" }]
-  iab_content_category: ["IAB-CT3.0:<id>"]   # IAB Content Taxonomy ids
-  keyword:          ["crypto"]
-  list_ref:         { url: "<url>", digest: "<Digest>" }
+  domains:    ["example-gambling.example"]
+  apps:       [{ store: roku_channel_store, bundle: "123456" }]
+  categories: [{ taxonomy: 7, ids: ["181"] }]         # IAB Content Taxonomy 3.0: Casinos & Gambling
+  keywords:   { url: "https://agency-a.example/lists/keywords-2026-10.json",   # a long list, by reference
+                digest: "sha256:ca833e169e39bcaae9fc5b74f8dd3cfddf5b1c4158b6bc19bb3ae9112a347b06" }
 ```
 
-- Each `apps[]` entry is an `AppId` (§ 5.2.5). A seller MUST reject an entry whose
-  `store` it doesn't know, rather than apply it across stores, with `validation`.
-- `iab_content_category[]` entries are IAB Content Taxonomy ids.
-- `enforcement` is `pre_serve` or `best_effort` per type.
-- `verification[]` holds the third parties that can attest the seller enforced these
-  lists, each a `RegistrableDomain`.
+**`ExclusionType`** is a `VocabularyTerm` (§ 2.2). Core terms: `domains` \| `apps` \| `categories` \|
+`keywords`.
+
+| `exclusions` | Entry | Meaning |
+| :--- | :--- | :--- |
+| `domains` | `Domain` | A domain. It covers only itself, not its subdomains |
+| `apps` | `AppId` | An app (§ 5.2.5). A seller MUST reject an entry whose `store` it doesn't know, rather than apply it across stores, with `validation` |
+| `categories` | `TaxonomyCodes` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers only itself, not its descendants |
+| `keywords` | `String` | A keyword |
+
+**`ExclusionList`** is an array of entries, or a `DocumentRef` (§ 2.2) to a JSON array
+of them. The Entry cell of an exclusion type's row gives an entry's form, and an
+extension term's definition gives its own. Each entry in that document counts as
+that type.
+
+**`AcceptedExclusions`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `types` | Map[ExclusionType, ExclusionTerms] | REQUIRED | The exclusion types the seller accepts (core terms above), and its terms for each |
+| `verification[]` | Array[RegistrableDomain] | OPTIONAL | The third parties that can attest the seller enforced these lists |
+
+**`ExclusionTerms`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `enforcement` | Enum | REQUIRED | `pre_serve` \| `best_effort` |
+| `max_entries` | Integer | OPTIONAL | The most entries of this type the seller accepts |
+
 - A buyer MUST NOT supply an exclusion type absent from
-  `exclusions_accepted.types`. A seller MUST reject it deterministically
+  `accepted_exclusions.types`. A seller MUST reject it deterministically
   rather than ignore it, with `not_offered`.
 - A seller MUST NOT present `best_effort` enforcement as a guarantee.
-- `list_ref` is a `DocumentRef` (§ 2.2).
+- An exclusion the buyer adds after `agreed` is a delivery under
+  `accepted_exclusions` (§ 4.1.1). It travels outside this object, as the members of a
+  `BuyerList` (§ 5.3) do, and `exclusions` stays as it stood at `agreed`.
+
+A buyer's exclusions reveal its strategy. A seller MUST NOT disclose them to anyone
+but that buyer and the systems and vendors that enforce or verify them for this line
+item.
 
 **`GeoCode`** is a String: an ISO 3166-1 alpha-2 country code, an ISO 3166-2
 subdivision code, or an extension `VocabularyTerm` for any other area, such as a
@@ -1773,7 +1870,7 @@ agreed_rate = (list_rate + sum of delta_cpm) × product of (1 + delta_fraction)
 ```
 
 A delta counts when its option is in effect and not in `included[]`, on any field of the
-line item marked `selectable`. A `delta_cpm` enters
+line item marked `selectable`; § 5.3 adds excluded audience options. A `delta_cpm` enters
 only a `CPM` or `CPMV` entry (§ 3.1), and the option's other deltas still count. So
 `list_rate` 24.00 with one `delta_cpm` of 3.00 and one `delta_fraction` of 0.02 is
 27.54. `delta_flat` stays outside it.
@@ -1805,9 +1902,9 @@ quantity on a `dooh` line item.
 Absent on a shared proposal (§ 4.3). The buyer writes it on its composed record
 (§ 4.1.1), and a `commit` carries it to the seller. The buyer writes
 its `settable` keys itself, and they have no `default` (§ 3.2). A
-`commitment` resolves under § 3 when the buyer is eligible (§ 5.8), every `selected[]`
-and `value` on the line item is within what the seller declared (§ 3.1,
-§ 3.2), and the commitment fits `commitment_bounds.spend` and the committed entry's `unit_bounds`, is not
+`commitment` resolves under § 3 when the buyer is eligible (§ 5.8), every `selected[]`,
+`excluded[]`, and `value` on the line item is within what the seller declared (§ 3.1,
+§ 3.2, § 5.3), and the commitment fits `commitment_bounds.spend` and the committed entry's `unit_bounds`, is not
 stale (§ 4.1.3), and meets `requires` (§ 5.6.3). A resolved `commitment` is an offer to buy. It
 binds only when the seller accepts it;
 `assent[]` (§ 4.1.2) records that acceptance for the binding `version`. A seller
@@ -2322,9 +2419,6 @@ accepts (§ 4.1.2).
 | `eligible_seats[]` | Array[SeatRef] | OPTIONAL | seller-set | The seats that may commit. An entry with an absent or empty `ids[]` names no seat and admits no one, unlike an absent OpenRTB 2.6 `Deal.wseat`, which sets no restriction |
 | `terms_refs[]` | Array[DocumentRef] | OPTIONAL | seller-set | The binding documents of this line item, such as a main agreement and its addenda, or an IO template. Every entry applies, with no AND or OR. A `commitment` entry accepts them all (§ 4.1.2). Absent: a `commitment` entry accepts no document |
 
-`exclusions` (§ 5.5) reveal the buyer's strategy. A seller MUST NOT disclose a
-buyer's `exclusions` to any party other than that buyer.
-
 **Who may read.** Each `visibility` value names who may read the line item:
 
 - `public`: any requester, with no authentication.
@@ -2506,7 +2600,8 @@ mechanism. See
 
 ### 6.3 CTV line item
 
-Shows priced cancellation options at three `notice_duration` values. See
+Shows priced cancellation options at three `notice_duration` values, and `keywords`
+accepted only as `best_effort` (§ 5.5). See
 [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
 
 Inspecting this line item's VAST creative is subject to § 5.4.1.
@@ -2687,8 +2782,8 @@ body is normative.**
 | `properties` | 5.2 Inventory composition | Selectable[PropertyOption] | OPTIONAL | selectable |
 | `content_detail` | 5.2 Inventory composition | Object | OPTIONAL | seller-set |
 | `environments` | 5.2 Inventory composition | Selectable[Environment] | OPTIONAL | selectable |
-| `audiences` | 5.3 Audience reach | Selectable[AudienceOption] | OPTIONAL | selectable |
-| `addressable_scale` | 5.3 Audience reach | Integer | OPTIONAL | asserted |
+| `audiences` | 5.3 Audience reach | AudienceSelectable | OPTIONAL | selectable |
+| `addressable_scale` | 5.3 Audience reach | AddressableScale | OPTIONAL | asserted |
 | `activation_route` | 5.3 Audience reach | Selectable[VocabularyTerm] | OPTIONAL | selectable |
 | `buyer_supplied` | 5.3 Audience reach | BuyerSupplied | OPTIONAL | mixed |
 | `formats` | 5.4 Creative requirements | Selectable[String] | OPTIONAL | selectable |
@@ -2705,8 +2800,8 @@ body is normative.**
 | `daypart` | 5.5 Targeting envelope | Settable[ClockWindow] | OPTIONAL | settable |
 | `time_zone` | 5.5 Targeting envelope | ZoneName | REQUIRED when `daypart` or `frequency_cap` is present | seller-set |
 | `frequency_cap` | 5.5 Targeting envelope | FrequencyCap | OPTIONAL | settable |
-| `exclusions_accepted` | 5.5 Targeting envelope | Object | OPTIONAL | seller-set |
-| `exclusions` | 5.5 Targeting envelope | Object | OPTIONAL | supplied |
+| `accepted_exclusions` | 5.5 Targeting envelope | AcceptedExclusions | OPTIONAL | seller-set |
+| `exclusions` | 5.5 Targeting envelope | Map[ExclusionType, ExclusionList] | OPTIONAL | supplied |
 | `pricing[]` | 5.6 Commercial terms | Array[PricingEntry] | REQUIRED | mixed |
 | `pricing[].pricing_id` | 5.6 Commercial terms | String | REQUIRED | immutable |
 | `pricing[].cost_method` | 5.6 Commercial terms | VocabularyTerm | REQUIRED | seller-set |
@@ -2760,7 +2855,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 14 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |

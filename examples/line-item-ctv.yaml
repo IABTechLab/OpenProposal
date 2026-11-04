@@ -21,6 +21,10 @@ creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required:
 
 frequency_cap:  { count: { min: 1, max: 4, default: 3 }, period: day, per: household }
 time_zone:      viewer_local
+accepted_exclusions:                   # what this seller can enforce (§ 5.5)
+  types:
+    domains:  { enforcement: pre_serve, max_entries: 5000 }
+    keywords: { enforcement: best_effort, max_entries: 500 }
 
 pricing:
   - { pricing_id: "ctv-pa-cpm-usd", cost_method: CPM, list_rate: 45.00, min_rate: 39.60,

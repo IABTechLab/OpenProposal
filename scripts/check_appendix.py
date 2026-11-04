@@ -47,6 +47,7 @@ LAYOUTS = {
     ("`transaction_mechanism`", "Downstream standard", "`reference_type` (§ 5.10)", "Change path"),
     ("`transaction_mechanism`", "Deal mechanism", "`delivery_type`"),
     ("`metric`", "Kind", "Usual `direction`", "Definition"),
+    ("`exclusions`", "Entry", "Meaning"),
     ("`method`", "Who hosts the creative", "What reaches the seller"),
     ("`code`", "Returned when"),
     ("`channel`", "Condition"),
@@ -72,10 +73,7 @@ BASE_TYPES = {
 
 # Named in a Type cell before the change that gives them a key table. Remove a
 # name when its table lands. This list only shrinks.
-PENDING_TYPES = {
-    "AudienceOption": "the audience option",
-    "BuyerSupplied": "the buyer-supplied audience data",
-}
+PENDING_TYPES = {}
 
 # Objects typed Object: open by definition, small and inline, or waiting on the
 # change that names them. Remove an entry when its table lands. Only shrinks.
@@ -84,10 +82,9 @@ PENDING_OBJECTS = {
     "`specs`": "waiting: the format spec",
     "`third_party_tags`": "waiting: the accepted tag protocols",
     "`approval`": "waiting: the review policy",
-    "`exclusions_accepted`": "waiting: the accepted exclusion terms",
-    "`exclusions`": "waiting: the exclusion lists",
     "`creative_policy`": "waiting: the creative policy",
     "`contacts[]`": "imported: OpenDirect 2.1 Contact",
+    "`data_label`": "imported: Data Transparency Standard 1.1",
     "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
 }
 
@@ -102,7 +99,7 @@ LEAD_IN = re.compile(r"^\*\*`([A-Z][A-Za-z]+)`")
 SHARED_TYPE = re.compile(r"`([A-Z][A-Za-z]+)`")
 SELECTABLE_OBJECT = re.compile(r"^Selectable\[([A-Z][A-Za-z]+)\]$")
 SELECTABLE_HOLDER = re.compile(r"^\*\*`[A-Za-z]+`\*\* holds the keys of `Selectable\[([A-Z][A-Za-z]+)\]`")
-STRING_OPTIONS = {"String", "VocabularyTerm", "GeoCode", "Environment"}
+STRING_OPTIONS = {"String", "VocabularyTerm", "GeoCode", "Environment", "CombineOperator"}
 ISSUE_CITE = re.compile(r"(?<![\w/&])#\d+\b|/issues/\d+")
 
 
