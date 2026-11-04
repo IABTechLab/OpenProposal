@@ -1759,7 +1759,20 @@ unavailable.
 | `url` | String | REQUIRED when `markup` is absent | Where the asset is, such as a tag URL with its macros unexpanded | supplied |
 | `markup` | String | REQUIRED when `url` is absent | The tag or creative markup | supplied |
 | `submitted_at` | Instant | OPTIONAL | When the buyer delivered it | supplied |
+| `provenance` | AssetProvenance | OPTIONAL | How the asset was made | supplied |
 | `approval_status` | ApprovalStatus | OPTIONAL | The seller's review outcome. The seller moves it | lifecycle |
+
+**`AssetProvenance`** records what the party that delivers an asset states about how
+it was made. It isn't itself a marking or a disclosure under any law.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `synthetic` | Boolean | REQUIRED | True when the content is artificially generated or manipulated, in whole or in part |
+| `generator` | String | OPTIONAL | The system that generated it |
+| `model_version` | String | OPTIONAL | The version of the model that generated it |
+| `voice_consent_ref` | DocumentRef | OPTIONAL | The consent of the person whose voice is synthesized |
+| `disclosure_methods[]` | Array[VocabularyTerm] | OPTIONAL | How the content is marked or disclosed. Core terms: `c2pa_manifest` \| `watermark` \| `audible_notice` \| `visible_label`. A receiver that doesn't know a term reads that method as unstated |
+| `content_digest` | Digest | OPTIONAL | Over the exact bytes served at `url` |
 
 **`CreativeDelivery`** keys:
 

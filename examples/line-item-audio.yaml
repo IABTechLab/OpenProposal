@@ -23,6 +23,8 @@ format_specs:                           # seller-defined: no spec_ref; values il
       language:        en
       delivery:        pre_recorded
       script_approval: { rounds: 2, lead_time: "P5D" }
+      voice:           human_only
+      pronunciation_guide: accepted
   "audio/produced-30s":
     spec:
       asset:           audio_file
