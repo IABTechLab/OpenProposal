@@ -924,7 +924,7 @@ Each removed path is one of three things: lifecycle state or sequence position
 `hold`); a seller assertion, advisory text, an informative figure, or an
 identifier minted downstream of agreement (`best_for[]`, `not_suitable_for[]`,
 `seasonality_notes`, `availability`, `addressable_scale`, `expected_match_rate`,
-`min_rate`, `derived_units`, `external_references[]`); or a buyer
+`min_rate`, `derived_units`, `external_references[]`); or a
 delivery (`assets[]`, `segments[]`, `suppression_list`). The requirement on creative
 (`formats`, `format_specs`, `creative_policy`, `materials_due`) is a term, and so is the
 permission to deliver a list (`segments_allowed`, `suppression_allowed`,
@@ -1086,7 +1086,8 @@ carries. The following are not offered terms and MAY change without a new versio
 and line item), `assent[]`, `negotiation_history[]`, `change_requests[]`,
 `availability`,
 `addressable_scale`, `hold`,
-`external_references[]`, `assets[].approval_status`; `best_for[]`,
+`external_references[]`, `assets[].approval_status`, a `built_by: seller` entry of
+`assets[]`; `best_for[]`,
 `not_suitable_for[]`, and `seasonality_notes`, which are advisory (§ 4.2);
 `pricing[].min_rate`, which is a hint; `buyer_supplied.expected_match_rate`, which is
 the seller's stated expectation; every value the buyer writes (a `BuyerWrites` value,
@@ -1716,7 +1717,7 @@ object.
 | `formats` | Selectable[FormatId] | OPTIONAL | selectable | Format ids, such as `display/300x250` and `audio/host-read-30s`. Absent: this line item states no format |
 | `format_specs` | Map[FormatId, FormatSpec] | REQUIRED when the proposal has left `draft` and `formats` is present | seller-set | Map from format id to `FormatSpec` |
 | `creative_delivery` | CreativeDelivery | OPTIONAL | seller-set | How creative travels. See the creative path below. Absent: this line item states no path, and a `materials_due` still applies |
-| `assets[]` | Array[Asset] | OPTIONAL | mixed | A record of the creative that reaches the seller |
+| `assets[]` | Array[Asset] | OPTIONAL | mixed | A record of the creative that reaches the seller or that the seller builds |
 | `materials_due` | MaterialsDue | OPTIONAL | requestable | Deadline for creative to reach the seller. A buyer MAY request a later date |
 | `approval` | String | OPTIONAL | seller-set | Review SLA and revision policy, in prose |
 | `creative_policy` | String | OPTIONAL | seller-set | Content and category restrictions on creative, in prose |
@@ -1758,9 +1759,13 @@ unavailable.
 | `format_id` | FormatId | REQUIRED | The `formats.available[]` id the asset is for | supplied |
 | `url` | String | REQUIRED when `markup` is absent | Where the asset is, such as a tag URL with its macros unexpanded | supplied |
 | `markup` | String | REQUIRED when `url` is absent | The tag or creative markup | supplied |
-| `submitted_at` | Instant | OPTIONAL | When the buyer delivered it | supplied |
+| `submitted_at` | Instant | OPTIONAL | When it was delivered | supplied |
+| `built_by` | Side | OPTIONAL | Which side built it. Absent: the buyer | supplied |
 | `provenance` | AssetProvenance | OPTIONAL | How the asset was made | supplied |
 | `approval_status` | ApprovalStatus | OPTIONAL | The seller's review outcome. The seller moves it | lifecycle |
+
+On an entry with `built_by: seller`, the seller writes the keys marked `supplied`. A
+live read has no file to record, so it has no entry.
 
 **`AssetProvenance`** records what the party that delivers an asset states about how
 it was made. It isn't itself a marking or a disclosure under any law.

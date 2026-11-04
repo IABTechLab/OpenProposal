@@ -15,7 +15,8 @@ issue that caused it, so the comment record and the spec history line up.
   format has no registry behind it, so `formats` holds format ids, and absent `formats` states no
   format. A `spec` MAY state `asset`, what the buyer supplies, as a `VocabularyTerm`. An `Asset` MAY state
   `provenance`: whether its content is synthetic, what generated it, the voice consent, how it is
-  marked or disclosed, and a digest of its bytes. `approval` and
+  marked or disclosed, and a digest of its bytes. `assets[]` also records creative the seller builds,
+  through `built_by`. `approval` and
   `creative_policy` are prose in § 5.4. § 2.5 exempts a `FormatSpec`'s
   `spec` from the closed-key rule, and § 2.7 lists it as text the counterparty wrote. § 8 states
   that this draft doesn't say which registry a `spec_ref` names or how to fetch an entry.
