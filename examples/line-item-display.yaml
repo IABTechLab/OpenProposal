@@ -70,8 +70,7 @@ pricing:
 
 commitment_bounds: { min_budget: 10000.00, max_budget: 500000.00 }
 
-hold_status:    { hold_available: true, hold_duration: "P7D",
-                  hold_scope: line_item }
+hold_terms:     { available: true, duration: "P7D" }
 
 committed_metrics:
   - { metric: viewable_rate, value: 0.70, basis: mrc }

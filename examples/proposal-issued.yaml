@@ -20,11 +20,11 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:cdcd75ebd66938fcd872cfc1bf66d10a3244758d7810125639beabe0dcf53430",
+      record_digest: "sha256:5bacc69b5ecb0f6bb6ff572d4c5ee6596cc5ff1e1f5daef35d535adc61d81d2e",
       line_item_ids: ["business-daily-display"],
       signed_at: "2026-10-05T10:14:03Z" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:cdcd75ebd66938fcd872cfc1bf66d10a3244758d7810125639beabe0dcf53430",
+      record_digest: "sha256:5bacc69b5ecb0f6bb6ff572d4c5ee6596cc5ff1e1f5daef35d535adc61d81d2e",
       line_item_ids: ["business-daily-display"],
       signed_at: "2026-10-05T10:31:47Z" }
 
@@ -84,8 +84,7 @@ line_items:
       advertisers:     [{ domain: "brand-a.example" }]
       derived_units:   2904865             # derived: 80000.00 / 27.54 × 1000
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9"
-    hold_status:    { hold_available: true, hold_duration: "P7D",
-                      hold_scope: line_item, state: none }
+    hold_terms:     { available: true, duration: "P7D" }
     visibility:     named
     eligible_buyers: ["agency-a.example"]
     transaction_mechanism: { available: ["programmatic_guaranteed"],
@@ -103,9 +102,24 @@ line_items:
       - { cost_method: CPM, list_rate: 45.00,
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
     commitment_bounds: { min_budget: 25000.00 }
-    hold_status:    { hold_available: true, hold_duration: "P14D",   # re-offered at version 2
-                      hold_scope: line_item, state: held,
-                      hold_expires_at: "2026-10-20T00:00:00Z" }
+    hold_terms:     { available: true, duration: "P14D" }
+    hold:                                # granted on version 1, re-offered at version 2
+      status:       held
+      version:      2
+      requested_terms:
+        commitment:
+          proposal_id:     "examplepub-agencya-q4-2026-omni"
+          version:         1
+          basis:           spend
+          amount:          160000.00
+          currency:        USD
+          flight:          { start: "2026-11-02T00:00:00Z", end: "2026-12-21T23:59:59Z" }
+          idempotency_key: "agency-a-camp1-weather-app-ctv-hold-3b7d20e4"
+        properties: { selected: ["weather-app"] }
+      held_availability: { unit: impressions, as_of: "2026-10-06T16:20:00Z",
+                           type: reservable, quantity: 3555555 }
+      position:     1
+      valid_until:  "2026-10-20T00:00:00Z"
     visibility:     named
     eligible_buyers: ["agency-a.example"]
     transaction_mechanism: { available: ["programmatic_guaranteed"],

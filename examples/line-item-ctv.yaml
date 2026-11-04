@@ -18,8 +18,7 @@ pricing:
 
 commitment_bounds: { min_budget: 25000.00 }
 
-hold_status:    { hold_available: true, hold_duration: "P14D",
-                  hold_scope: line_item }
+hold_terms:     { available: false }   # private_auction: no inventory reserved
 
 committed_metrics: [{ metric: completion_rate, value: 0.95, basis: seller_reported }]
 visibility:        public

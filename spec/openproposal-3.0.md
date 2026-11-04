@@ -333,7 +333,7 @@ Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_referenc
 | :--- | :--- |
 | `validation` | A value breaks a rule of this specification and no other code applies |
 | `not_found` | A named proposal or line item does not exist, or the requester may not read it (§ 5.8) |
-| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.5) |
+| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.5), or a buyer asks for a hold where `hold_terms` offers none (§ 5.6.2) |
 | `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
 | `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `requires` that is unmet rules out a `commit` (§ 5.6.3), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
 | `stale_version` | An ask is stale (§ 4.1.3) |
@@ -624,7 +624,7 @@ buyer_requirements.seat_owner
 ```
 
 **`LineItemWrites`** holds the keys of `BuyerWrites` and this one. It is the buyer's writes
-on one line item.
+on one line item, which a hold's `requested_terms` (§ 5.6.2) carries.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
@@ -711,9 +711,7 @@ Registry entry is buyer policy.
 The binding record of a document for a set of line items S is the JSON form of
 that document in its Full Representation (§ 2.1), restricted to the line items in
 S, with the following paths removed and no others. The paths are RFC 9535 JSONPath.
-Arrays hash in document order, and no party reorders an array it did not write. The
-hold's status is every `hold_status` key except `hold_available`, `hold_duration`
-and `hold_scope`.
+Arrays hash in document order, and no party reorders an array it did not write.
 
 ```
 $.version
@@ -728,7 +726,7 @@ $.line_items[*].assets
 $.line_items[*].buyer_supplied.match_rate_expected
 $.line_items[*].pricing[*].seller_rate
 $.line_items[*].pricing[*].min_rate
-$.line_items[*].hold_status.*, except hold_available, hold_duration and hold_scope
+$.line_items[*].hold
 $.line_items[*].commitment.version
 $.line_items[*].commitment.idempotency_key
 $.line_items[*].commitment.derived_units
@@ -738,8 +736,8 @@ $.line_items[*].correlation_id
 ```
 
 Each removed path is one of three things: lifecycle state or sequence position
-(`version`, `status`, `assent[]`, `record_digest`, `negotiation_history[]`, the
-hold's status, `commitment.version`, `idempotency_key`); a seller assertion, an
+(`version`, `status`, `assent[]`, `record_digest`, `negotiation_history[]`, `hold`,
+`commitment.version`, `idempotency_key`); a seller assertion, an
 informative figure, or an identifier minted downstream of agreement
 (`availability`, `addressable_scale`, `match_rate_expected`, `derived_units`,
 `deal_id_issuance`, `external_references[]`, `correlation_id`); or a value that
@@ -749,13 +747,13 @@ after agreement (`assets[]`). The requirement on creative (`formats`, `specs`,
 `creative_policy`, `materials_due`) is a term.
 
 Every other value is inside the record: `seller`, `buyer`, and `issued_from`; every
-`seller-set` field, including prose (`description`, `specifications`, `content_detail`,
-`creative_policy`, `specs`); the seller's value of a `requestable` field, such as
-`pricing[].list_rate`, including one a `grant` or `counter` put in force; every option
-space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`, `min` / `max`,
-`default`); every value the buyer writes under § 3 (`selected[]`, `value`,
-`commitment`, data under `supplied` fields other than `assets[]`);
-`pricing[].agreed_rate`; and `hold_available`, `hold_duration`, `hold_scope`.
+`seller-set` field, including `hold_terms` and prose (`description`, `specifications`,
+`content_detail`, `creative_policy`, `specs`); the seller's value of a `requestable`
+field, such as `pricing[].list_rate`, including one a `grant` or `counter` put in force;
+every option space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`,
+`min` / `max`, `default`); every value the buyer writes under § 3 (`selected[]`, `value`,
+`commitment`, data under `supplied` fields other than `assets[]`); and
+`pricing[].agreed_rate`.
 
 **Digest input.** The record is computed over the composed record as the parties
 exchange it: the Full Representation of `version` as the seller published it to
@@ -872,8 +870,7 @@ and `settable` fields (`available[]`, `included[]`, `deltas`, `max_select`,
 `allowed[]`, `min`, `max`, `default`); and the set of `line_item_id`s the version
 carries. The following are not offered terms and MAY change without a new version: `status` (proposal
 and line item), `assent[]`, `negotiation_history[]`, `availability`,
-`addressable_scale`, the hold's status (every `hold_status` key except
-`hold_available`, `hold_duration` and `hold_scope`, which offer the hold),
+`addressable_scale`, `hold`,
 `deal_id_issuance`, `external_references[]`, `correlation_id`,
 `assets[].approval_status`; `pricing[].seller_rate`, which is what the publisher
 receives and not a term offered to the buyer; every value the buyer writes (a
@@ -952,13 +949,13 @@ Asks, `under_review`, holds, and assent live on a proposal issued to one buyer; 
 shared proposal, or any other record more than one buyer can read (§ 5.8), carries
 none of them.
 
-**Asks.** A buyer `request` (`requestable`, not `hold_status`) or `commit`
+**Asks.** A buyer `request` (`requestable`, not a hold) or `commit`
 (§ 5.6.1) is an *ask*: it names a `version` and stays *open* until answered or
 withdrawn, or until it goes stale (§ 4.1.3) or void (§ 4.3.2, § 4.3.4). A `commit` is one
 act: the buyer's `assent[]` entry and the `commitment` of each line item that entry
 names. A `request` is identified by its `line_item_id`, `pointer`, and `requested_value`
 (§ 4.1). Two equal ones are one ask while that ask is open, and an equal `request` after
-it ends is a new ask. Holds change neither `status` nor `negotiation_history[]`.
+it ends is a new ask.
 
 #### 4.3.1 Interactions
 
@@ -973,7 +970,7 @@ it ends is a new ask. Holds change neither `status` nor `negotiation_history[]`.
 | `commit` | buyer | `commitment` (§ 5.6.1) pinned to `version`, with the buyer's `assent[]` entry; no entry |
 | `accept` | seller | of a `commit`: the seller's `assent[]` entry, no new `version`; no entry |
 | `withdraw` | seller: line item or proposal; buyer: its own ask | `withdrawn`. A seller's is one entry. For each line item it moved to `withdrawn`, its `paths[]` holds a `HistoryPath` with that `line_item_id` and the `pointer` `/status` |
-| hold request, grant, decline, release | buyer; seller; seller; buyer, or seller on a revision (rule 2) | `hold_status` only; no entry |
+| hold request, grant, decline, release, re-offer | buyer; seller; seller; buyer, or seller on a revision (rule 2); seller on a revision (rule 2) | `hold` only; no entry |
 
 A buyer that turns down an offer, including a counter, takes no action and leaves no entry.
 
@@ -995,11 +992,11 @@ exhaustive, so a status with none leading out of it is terminal.
   `counter`, or `decline`, by buyer `withdraw`, or by going stale on a new
   `version` (rule 2).
 - `under_review` → `agreed`: seller `accept` of a `commit` (§ 4.1.2); open asks are void.
-- `published` | `under_review` → `sold_out`: seller, never while `held`; open
-  asks are void.
+- `published` | `under_review` → `sold_out`: seller, never while `hold.status` is
+  `held`; open asks are void.
 - `published` | `under_review` | `sold_out` → `withdrawn`: seller, never while
-  `held`, nor until the latest `price_valid_until` of its `pricing[]` entries; open
-  asks are void.
+  `hold.status` is `held`, nor until the latest `price_valid_until` of its `pricing[]`
+  entries; open asks are void.
 - `sold_out` → `published`: seller, when quantity returns, with no new `version`,
   because `availability` is not an offered term.
 - `published` | `under_review` | `sold_out` → `expired`: `offer_window.end` passes
@@ -1026,7 +1023,7 @@ Two rules apply:
 2. A seller MAY revise a line item while an ask is open or a hold runs. The
    revision is a new `version` (§ 4.1.3). An ask it makes stale ends (rule 1), and
    the seller MUST release a `held` hold it makes stale or re-offer it at the new
-   `version`, where `state` stays `held`. A `commit` MUST NOT carry a `requestable`
+   `version`, where `hold.status` stays `held`. A `commit` MUST NOT carry a `requestable`
    ask: `accept` makes no new `version`, so another value takes a separate `request`.
 
 #### 4.3.3 Proposal status
@@ -1048,9 +1045,9 @@ A seller `withdraw` of the proposal moves to `withdrawn` every line item that
 | :--- | :--- | :--- |
 | `offer_window.end` | the offer window | every `published`, `under_review`, or `sold_out` line item is `expired`; open asks are void |
 | `pricing[].price_valid_until` | the firm entry | `status` unchanged; the seller MUST NOT accept a later `commit` under that entry, and SHOULD `publish` or `withdraw` |
-| `hold_status.hold_expires_at` | the hold | `hold_status.state` becomes `expired`; `status` unchanged |
+| `hold.valid_until` | the hold | `hold.status` becomes `expired`; `status` unchanged |
 
-`hold_expires_at` MUST NOT exceed `offer_window.end` or the earliest
+`hold.valid_until` MUST NOT exceed `offer_window.end` or the earliest
 `pricing[].price_valid_until`.
 
 ---
@@ -1364,7 +1361,8 @@ Monday.
 | `availability` | Object | OPTIONAL | asserted | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`, with `as_of` an `Instant` and `granularity` a `CalendarUnit`. Recomputed against the buyer's selection |
 | `commitment_bounds` | Object | OPTIONAL | requestable | The envelope inside which a buyer may commit, and a buyer MAY request another: `{ min_impressions, max_impressions, min_budget, max_budget }` |
 | `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
-| `hold_status` | HoldStatus | OPTIONAL | mixed | See 5.6.2 |
+| `hold_terms` | HoldTerms | OPTIONAL | seller-set | Offers a hold. Absent means `available` is `false`. See 5.6.2 |
+| `hold` | Hold | OPTIONAL | lifecycle | The buyer's hold. Absent until the buyer first asks. See 5.6.2 |
 | `min_spend` | Number | OPTIONAL | seller-set | Minimum spend for this line item |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | The cancellation rights the seller offers |
 | `exclusivity` | Selectable[ExclusivityTerm] | OPTIONAL | selectable | The exclusivity terms the seller offers |
@@ -1401,7 +1399,7 @@ of availability MUST return `availability` recomputed against the buyer's
 composition; the seller's determination is authoritative. While a buyer's hold
 (§ 5.6.2) runs, the seller MUST NOT decline that buyer's `commitment` for lack of
 availability. This does not cover inventory that a hold granted ahead of it
-(§ 5.6.2) reserves or took on converting. A firm entry limits a
+(`hold.position`, § 5.6.2) reserves or took on converting. A firm entry limits a
 decline to the grounds in § 4.3.2. Acceptance ends the availability check; booking
 is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 
@@ -1447,21 +1445,63 @@ is not a stored result, so the retry runs the checks again. Reusing an
 MUST NOT create or modify a commitment. A retry against a new `version` is a
 new attempt, with a new `idempotency_key`.
 
-#### 5.6.2 hold_status
+#### 5.6.2 Holds
 
-**`HoldStatus`** keys:
+`hold_terms` offers a hold. It is `seller-set`, and it is inside the binding record.
+`hold` is live state, outside the record (§ 4.1.1), and is absent on a shared
+proposal (§ 4.3).
 
-| Key | Type | Required | Meaning | Mutability |
-| :--- | :--- | :--- | :--- | :--- |
-| `hold_available` | Boolean | OPTIONAL | Whether this line item may be held | seller-set |
-| `hold_duration` | Duration | OPTIONAL | How long the hold runs | seller-set |
-| `hold_scope` | Enum | OPTIONAL | `line_item` \| `proposal` | seller-set |
-| `state` | Enum | OPTIONAL | `none` \| `requested` \| `held` \| `expired` \| `released` \| `converted`, moved as below | lifecycle |
-| `hold_expires_at` | Instant | OPTIONAL | Set when the hold is granted | lifecycle |
+**`HoldTerms`** keys:
 
-Transitions: `none` → `requested` → `held` → (`expired` | `released` |
-`converted`). `converted` is terminal and occurs when the line item reaches
-`agreed`.
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `available` | Boolean | REQUIRED | Whether this line item may be held |
+| `duration` | Duration | OPTIONAL | How long a hold runs from its grant |
+
+**`Hold`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `status` | HoldStatus | REQUIRED | Moved by the transitions below |
+| `version` | Integer | REQUIRED | The `version` the hold is on (§ 4.1.3) |
+| `requested_terms` | LineItemWrites | OPTIONAL | The composition the buyer asks to hold, which is not a `commit`. A field it doesn't name reads as § 3.1 and § 3.2 put in effect |
+| `held_availability` | Availability | OPTIONAL | What the hold reserves, as the seller states it on a grant or a re-offer. It can be less than `requested_terms` asks |
+| `position` | Integer | OPTIONAL | Seller-set, 1 for first in line, in the order granted. A later hold moves up only when the one ahead expires, is released or converts. Holds on the same inventory reserve it in that order, so a later hold reserves only what the holds granted ahead of it leave (§ 5.6.1) |
+| `valid_until` | Instant | REQUIRED when `status` is `held` | The grant time plus `hold_terms.duration`, or the § 4.3.4 cap if that comes first. With no `duration`, the seller sets it within the cap. It MAY remain on `expired` and `released` |
+
+**`HoldStatus`** is `requested` \| `held` \| `declined` \| `expired` \| `released` \|
+`converted`.
+
+These transitions are exhaustive:
+
+- No `hold`, or `declined` | `expired` | `released` → `requested`: the buyer asks,
+  writing `version` and any `requested_terms`. `hold_terms.available` MUST be `true`.
+  The ask replaces any earlier `hold`.
+- `requested` → `held`: the seller grants, writing `valid_until` and any
+  `held_availability`.
+- `requested` → `declined`: the seller declines, `hold_terms.available` becomes
+  `false`, or the line item leaves `published` or `under_review` other than to
+  `agreed`.
+- `held` → `held`: the seller re-offers a hold its revision makes stale, moving
+  `version` to the new one, writing any `held_availability`, and lowering `valid_until`
+  to the new version's cap (§ 4.3.4) where that comes first (§ 4.3.2, rule 2).
+- `held` → `expired`: `valid_until` passes.
+- `held` → `released`: the buyer releases, or the seller releases a hold its
+  revision makes stale (§ 4.3.2, rule 2).
+- `requested` | `held` → `converted`: the line item reaches `agreed`.
+  `converted` is terminal.
+
+While `status` is `held`, the held terms are the offered terms of `hold.version`,
+which § 4.1.3 freezes; a seller change is a new `version` under § 4.3.2, rule 2.
+
+A seller's answer MUST set `status` to `held` or `declined`. A repeated request
+while `requested` or `held` MUST NOT start a second hold. Under
+`linked_execution: all`, the holds on the proposal's line items move as a unit: each
+transition applies to all of them, and `valid_until` is the earliest any of them
+allows.
+
+Hold transitions do not change the line item's `status` (§ 5.1) and do not
+append to `negotiation_history[]` (§ 4.1).
 
 #### 5.6.3 requires
 
@@ -1849,7 +1889,8 @@ body is normative.**
 | `availability` | 5.6 Commercial terms | Object | OPTIONAL | asserted |
 | `commitment_bounds` | 5.6 Commercial terms | Object | OPTIONAL | requestable |
 | `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | mixed |
-| `hold_status` | 5.6 Commercial terms | HoldStatus | OPTIONAL | mixed |
+| `hold_terms` | 5.6 Commercial terms | HoldTerms | OPTIONAL | seller-set |
+| `hold` | 5.6 Commercial terms | Hold | OPTIONAL | lifecycle |
 | `min_spend` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
 | `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityTerm] | OPTIONAL | selectable |
@@ -1884,21 +1925,21 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 9 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 38 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].min_rate`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
+| seller-set | 39 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].min_rate`, `hold_terms`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
 | selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
 | requestable | 4 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `commitment_bounds`, `committed_metrics[]` |
 | derived | 6 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `record_digest`, `pricing[].agreed_rate`, `deal_id_issuance`, `correlation_id` |
-| lifecycle | 1 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item) |
+| lifecycle | 2 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item), `hold` |
 | recorded | 3 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `external_references[]` |
 | asserted | 2 | The seller states it from data the buyer can't recompute. Not a term, and it changes without a new version. | `addressable_scale`, `availability` |
-| mixed | 6 | The keys of the object carry different markers: in the Mutability column of its key table, in its lead-in for composed keys, or on its rows for `pricing[]`. | `buyer_supplied`, `assets[]`, `pricing[]`, `commitment`, `hold_status`, `buyer_requirements` |
+| mixed | 5 | The keys of the object carry different markers: in the Mutability column of its key table, in its lead-in for composed keys, or on its rows for `pricing[]`. | `buyer_supplied`, `assets[]`, `pricing[]`, `commitment`, `buyer_requirements` |
 
 ### What the distribution says
 
-Of 87 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
-`supplied` and 4 `requestable`. The remaining 65 are `seller-set`, `immutable`,
+Of 88 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+`supplied` and 4 `requestable`. The remaining 66 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]`, and its keys of `commitment`, `assets[]`,
 `buyer_supplied`, and `buyer_requirements`.

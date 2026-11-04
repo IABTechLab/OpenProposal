@@ -67,6 +67,7 @@ PENDING_TYPES = {
     "AssentEntry": "the assent entry",
     "PropertyOption": "the property option",
     "AudienceOption": "the audience option",
+    "Availability": "the availability figure",
     "BuyerSupplied": "the buyer-supplied audience data",
     "CancellationOption": "the cancellation option",
     "ExclusivityTerm": "the exclusivity term",

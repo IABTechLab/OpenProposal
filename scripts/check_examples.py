@@ -46,6 +46,8 @@ EXAMPLES = ROOT / "examples"
 OPEN_TYPES = {"DocumentRef", "ErrorObject"}
 # A named type that holds the keys of another.
 COMPOSES = {"Commitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSummary"]}
+# Named types that hold the keys of BuyerWrites (section 3.4), a path list.
+WRITES_TYPES = {"LineItemWrites"}
 
 # (file, path, finding): removed by the change named in the comment.
 KNOWN = {
@@ -90,6 +92,7 @@ CONDITIONS = {
     "this is the committed entry": lambda o, i, p: _committed_entry(i) is o,
     "`daypart` or `frequency_cap` is present":
         lambda o, i, p: "daypart" in o or "frequency_cap" in o,
+    "`status` is `held`": lambda o, i, p: o.get("status") == "held",
 }
 
 BASE = {"String", "Integer", "Number", "Boolean", "Enum", "Object"}
@@ -139,6 +142,8 @@ SCALARS = {
     "Side": (lambda v: v in SIDE),
     "ProposalStatus": (lambda v: v in PROPOSAL_STATUS),
     "LineItemStatus": (lambda v: v in PROPOSAL_STATUS or v == "sold_out"),
+    "HoldStatus": (lambda v: v in ("requested", "held", "declined", "expired", "released",
+                                   "converted")),
     "ApprovalStatus": (lambda v: v in ("PENDING", "APPROVED", "REJECTED")),
     "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
@@ -215,6 +220,7 @@ class Spec:
         self.tables = {}
         self.manifest_keys = {}
         self.summary_paths, self.proposal_paths = [], []
+        self.write_paths = []
         self.removal = []
         self._read_fields()
         self._read_key_tables()
@@ -281,6 +287,8 @@ class Spec:
         self.summary_paths = m.group(1).split()
         m = re.search(r"`ProposalSummary` lists these paths[^\n]*\n\n```text\n(.*?)```", text, re.S)
         self.proposal_paths = m.group(1).split()
+        m = re.search(r"`BuyerWrites` lists these paths.*?```text\n(.*?)```", text, re.S)
+        self.write_paths = m.group(1).split()
         m = re.search(r"#### 4\.1\.1.*?```\n(.*?)```", text, re.S)
         self.removal = [l for l in m.group(1).splitlines() if l.startswith("$")]
 
@@ -407,13 +415,26 @@ class Checker:
         known = {bare(k): r for k, r in self.rows_of(name).items()}
         if name not in OPEN_TYPES:
             for key in value:
-                if key not in known:
-                    self.err(file, path, key, f"key {key!r} is not in the {name} table")
+                if key in known:
+                    continue
+                if name in WRITES_TYPES:
+                    if not self.is_write(key):
+                        self.err(file, path, key, f"key {key!r} is not a BuyerWrites path")
+                    continue
+                self.err(file, path, key, f"key {key!r} is not in the {name} table")
         for key, row in known.items():
             if key not in value and self.required(file, path, row["required"], value):
                 self.err(file, path, key, f"REQUIRED key {key!r} of {name} is missing")
             if key in value:
                 self.check_value(file, f"{path}.{key}", value[key], row)
+
+    def is_write(self, key):
+        """Section 3.4: whether a key heads a BuyerWrites path."""
+        marker = self.spec.line_item.get(key, {}).get("marker")
+        if marker == "selectable" or (marker == "settable" and key != "frequency_cap"):
+            return True
+        return any(p.split(".")[0].removesuffix("[]") == key for p in self.spec.write_paths
+                   if not p.startswith("<"))
 
     def check_selectable(self, file, path, value, option_type):
         if not isinstance(value, dict):
@@ -595,9 +616,7 @@ class Checker:
 
     def check_removal_paths(self):
         for path in self.spec.removal:
-            head_path = path.split(",")[0]
-            parts = [p for p in head_path.lstrip("$.").split(".") if p != "*"]
-            parts = [re.sub(r"\[\*\]$", "", p) for p in parts]
+            parts = [re.sub(r"\[\*\]$", "", p) for p in path.lstrip("$.").split(".")]
             fields = self.spec.proposal
             if parts[0] == "line_items":
                 fields, parts = self.spec.line_item, parts[1:]
@@ -635,24 +654,18 @@ def jcs(value):
     return "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + jcs(value[k]) for k in keys) + "}"
 
 
-def remove_path(node, parts, keep=()):
+def remove_path(node, parts):
     if not parts:
         return
     head, rest = parts[0], parts[1:]
     if head.endswith("[*]"):
         for item in (node.get(head[:-3]) or []):
-            remove_path(item, rest, keep)
-        return
-    if head == "*":
-        if isinstance(node, dict):
-            for key in list(node):
-                if key not in keep:
-                    del node[key]
+            remove_path(item, rest)
         return
     if not rest:
         node.pop(head, None)
     elif isinstance(node.get(head), dict):
-        remove_path(node[head], rest, keep)
+        remove_path(node[head], rest)
 
 
 def record_digest(doc, removal, line_item_ids):
@@ -660,9 +673,7 @@ def record_digest(doc, removal, line_item_ids):
     copy = json.loads(json.dumps(doc))
     copy["line_items"] = [i for i in copy.get("line_items", []) if i["line_item_id"] in line_item_ids]
     for path in removal:
-        head, _, tail = path.partition(", except ")
-        keep = re.split(r",\s*|\s+and\s+", tail) if tail else ()
-        remove_path(copy, head[2:].split("."), keep)
+        remove_path(copy, path[2:].split("."))
     return "sha256:" + hashlib.sha256(jcs(copy).encode("utf-8")).hexdigest()
 
 

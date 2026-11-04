@@ -5,6 +5,23 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2.4, § 3.4, § 4.1.1, § 4.1.3, § 4.3, § 4.3.1, § 4.3.2, § 4.3.4, § 5.6, § 5.6.1, § 5.6.2,
+  appendices, examples, checkers — holds. `hold_status` splits in two: `hold_terms`,
+  `{ available, duration }`, is `seller-set` and inside the record, and `hold` is `lifecycle`
+  and outside it, so the removal path has no exception. An absent `hold_terms` means
+  `available` is `false`, and asking for a hold it doesn't offer returns `not_offered`.
+  `state` and `hold_expires_at` become `status` and `valid_until`, and `none` goes: `hold`
+  is absent until the buyer first asks. `HoldStatus` adds `declined`, a lapsed hold can be
+  asked again, and the transitions are exhaustive. The held terms are the offered terms of
+  `hold.version`. `hold` gains `version`, `position`, the queue order of granted holds, and
+  two optional keys: `requested_terms`, the `LineItemWrites` the buyer asks to hold, and
+  `held_availability`, what the seller reserves. `held_availability` is typed
+  `Availability`, whose keys the `availability` row lists until its key table lands.
+  `hold_scope` is removed: under `linked_execution: all`, holds move as a unit. The re-offer
+  is a listed transition, and `valid_until` states its cap. The CTV example no longer offers
+  a hold on a `private_auction` line item. Breaking
+  ([#66](https://github.com/IABTechLab/OpenProposal/issues/66),
+  [#134](https://github.com/IABTechLab/OpenProposal/issues/134)).
 - § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
