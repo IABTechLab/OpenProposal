@@ -16,6 +16,13 @@ change to this script. It checks:
   - A settable field holds its form, and each buyer value is within its bounds
     (section 3.2). A line item declares geo or markets, not both (section 5.5).
   - agreed_rate recomputes under section 5.6, on the committed entry only.
+  - A commitment's arithmetic holds under section 5.6.5, on FLAT and TIME as well,
+    and it fits commitment_bounds.spend and the committed entry's unit_bounds.
+  - pricing_id is unique, two entries don't share a cost method, cost parameters, a
+    currency, and a mechanism, and the committed entry covers the mechanism in effect
+    (section 5.6).
+  - A Range's min is not greater than its max, and an Interval's end is later than its
+    start (section 2.2).
   - Each mechanism option fits its row in section 5.9. deal_origin is on a deal line
     item only, a deal reference names deal_origin (section 5.10), and availability is
     forecast under non_guaranteed (section 5.6).
@@ -23,6 +30,7 @@ change to this script. It checks:
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
   - Each section 4.1.1 removal path resolves to a table row.
+  - An array whose row says MUST be non-empty holds an entry.
   - record_digest in examples/proposal-agreed.yaml and examples/proposal-issued.yaml
     recomputes under section 4.1.1, over the line items each entry names, and a
     buyer_supplied that holds no key after the removals moves no digest.
@@ -30,7 +38,9 @@ change to this script. It checks:
     an acceptance matches a live commitment entry, and a line item is agreed only
     with a matching pair (section 4.1.2).
   - A change_requests[] baseline names an agreed line item at the version of its
-    acceptance entry (section 4.4).
+    acceptance entry (section 4.4). A cancellation names an option in effect, and its
+    cancelled_share is within the max_share of the range holding its effective date, or
+    the top-level one, and an option's dated_shares[] windows don't overlap (section 5.6.6).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -42,6 +52,7 @@ import hashlib
 import json
 import re
 import sys
+from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
@@ -52,9 +63,10 @@ SPEC = ROOT / "spec" / "openproposal-3.0.md"
 EXAMPLES = ROOT / "examples"
 
 # Object types whose extra keys are allowed.
-OPEN_TYPES = {"DocumentRef", "ErrorObject"}
+OPEN_TYPES = {"DocumentRef", "ErrorObject", "CostParameters"}
 # A named type that holds the keys of another.
-COMPOSES = {"Commitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSummary"]}
+COMPOSES = {"Commitment": ["CommitmentAmount"], "MinCommitment": ["CommitmentAmount"],
+            "ManifestEntry": ["ProposalSummary"]}
 # Named types that hold the keys of BuyerWrites (section 3.4), a path list.
 WRITES_TYPES = {"LineItemWrites"}
 
@@ -72,6 +84,9 @@ EMPTY_ALLOWED = set()
 IMPRESSION_METHODS = set()
 # The mechanism table of section 5.9.
 MECHANISMS = {}
+# The cost table of section 5.6.5, as cost_method -> rate per.
+RATE_PER = {}
+RATE_UNIT_SECONDS = {"hour": 3600, "day": 86400, "week": 604800}
 
 
 def _options(item):
@@ -88,11 +103,37 @@ def _is_deal(mechanisms):
 
 
 def _committed_entry(item):
-    """The pricing[] entry the line item's commitment is priced against, if any."""
-    entries = item.get("pricing") or []
-    if not item.get("commitment"):
+    """The pricing[] entry the line item's commitment is under, if any."""
+    commitment, entries = item.get("commitment"), item.get("pricing") or []
+    if not commitment:
         return None
-    return entries[0] if len(entries) == 1 else None
+    named = commitment.get("pricing_id")
+    if named is None:
+        return entries[0] if len(entries) == 1 else None
+    return next((e for e in entries if e.get("pricing_id") == named), None)
+
+
+def _cost_method(parameters, item):
+    """The cost_method of the pricing[] entry that holds these cost_parameters."""
+    for entry in item.get("pricing", []):
+        if entry.get("cost_parameters") is parameters:
+            return entry.get("cost_method")
+    return None
+
+
+def applicable_max_share(terms, notice):
+    """Section 5.6.6: the range holding the effective date, or the top-level max_share."""
+    parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
+    effective = parse(notice["requested_effective_at"])
+    length = re.fullmatch(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", terms.get("notice_duration", "P0D"))
+    if length:  # a length in months or years has no fixed span; the requested date stands
+        days, hours, minutes, seconds = (int(part or 0) for part in length.groups())
+        earliest = parse(notice["notice_received_at"]) + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        effective = max(effective, earliest)
+    for span in terms.get("dated_shares", []):
+        if parse(span["window"]["start"]) <= effective <= parse(span["window"]["end"]):
+            return span["max_share"]
+    return terms.get("max_share", 1)
 
 
 def _has_order_reference(entry, proposal):
@@ -123,7 +164,22 @@ CONDITIONS = {
     "`entries[]` holds a `decline` for lack of availability":
         lambda o, i, p: any(e.get("role") == "decline" and e.get("ground") == "availability"
                             for e in o.get("entries", [])),
-    "`basis` is `spend`": lambda o, i, p: o.get("basis") == "spend",
+    "`cost_method` is an extension term": lambda o, i, p: ":" in str(o.get("cost_method")),
+    "the term requires keys":
+        lambda o, i, p: o.get("cost_method") in ("CPMV", "CPV", "CPP", "CPA", "TIME"),
+    "`pricing[]` has more than one entry": lambda o, i, p: len(i.get("pricing", [])) > 1,
+    "`cost_method` is `CPMV`": lambda o, i, p: _cost_method(o, i) == "CPMV",
+    "`cost_method` is `CPV` and `view_fraction` is absent":
+        lambda o, i, p: _cost_method(o, i) == "CPV" and "view_fraction" not in o,
+    "`cost_method` is `CPV` and `view_s` is absent":
+        lambda o, i, p: _cost_method(o, i) == "CPV" and "view_s" not in o,
+    "`cost_method` is `CPP`": lambda o, i, p: _cost_method(o, i) == "CPP",
+    "`cost_method` is `CPA`": lambda o, i, p: _cost_method(o, i) == "CPA",
+    "`cost_method` is `TIME`": lambda o, i, p: _cost_method(o, i) == "TIME",
+    "`calculation` is `cancelled` or `commitment`":
+        lambda o, i, p: o.get("calculation") in ("cancelled", "commitment"),
+    "`calculation` is `fixed`": lambda o, i, p: o.get("calculation") == "fixed",
+    "`scope` is `category`": lambda o, i, p: o.get("scope") == "category",
     "`at` is absent": lambda o, i, p: "at" not in o,
     "`before_start` is absent": lambda o, i, p: "before_start" not in o,
     "`url` is absent": lambda o, i, p: "url" not in o,
@@ -136,7 +192,8 @@ CONDITIONS = {
         lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
     "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
     "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
-    "the entry prices a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
+    "the entry prices a deal mechanism":
+        lambda o, i, p: _is_deal(o.get("transaction_mechanisms") or _mechanisms(i)),
 }
 
 BASE = {"String", "Integer", "Number", "Boolean", "Enum", "Object"}
@@ -274,6 +331,7 @@ class Spec:
         self._read_lists()
         self._read_option_rules()
         self._read_mechanisms()
+        self._read_cost_methods()
 
     def _read_mechanisms(self):
         """The section 5.9 table: deal or not, and the allowed delivery types."""
@@ -287,6 +345,15 @@ class Spec:
                 "deal": c[1] == "Yes",
                 "delivery": None if c[2] == "Any" else re.findall(r"`([^`]+)`", c[2]),
             }
+
+    def _read_cost_methods(self):
+        """The section 5.6.5 table: the rate per of each core cost_method."""
+        start = self.lines.index("| `cost_method` | `unit` | One unit | Rate per | `cost_parameters` |")
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            RATE_PER[clean_key(c[0])] = int(c[3].replace(",", "")) if c[3] else None
 
     def _read_option_rules(self):
         """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
@@ -408,6 +475,8 @@ class Checker:
         if values is not None and value not in values:
             self.err(file, path, repr(value), f"{value!r} is not on the list {values}")
             return
+        if "MUST be non-empty" in row.get("meaning", row.get("description", "")) and value == []:
+            self.err(file, path, "empty", "an array this row says MUST be non-empty is empty")
         self.check_type(file, path, value, row["type"])
 
     def check_type(self, file, path, value, typ):
@@ -441,6 +510,9 @@ class Checker:
                 return
             for k, item in value.items():
                 self.check_type(file, f"{path}.{k}", item, args[0])
+            low, high = value.get("min"), value.get("max")
+            if isinstance(low, (int, float)) and isinstance(high, (int, float)) and low > high:
+                self.err(file, path, "range", "min is greater than max")
             return
         if base == "Enum":
             if not isinstance(value, str):
@@ -454,6 +526,10 @@ class Checker:
             if not SCALARS[base](value):
                 self.err(file, path, repr(value), f"{value!r} is not a {base}")
             return
+        if base == "Interval" and isinstance(value, dict):
+            starts, ends = value.get("start"), value.get("end")
+            if isinstance(starts, str) and isinstance(ends, str) and ends <= starts:
+                self.err(file, path, "interval", "an Interval's end is not later than its start")
         if base in self.spec.tables:
             self.check_object(file, path, value, base)
 
@@ -648,9 +724,92 @@ class Checker:
         mechanism = item.get("transaction_mechanism") or {}
         in_effect = mechanism.get("selected", mechanism.get("included", []))
         delivery = {o.get("delivery_type") for o in _options(item) if o.get("id") in in_effect}
-        figures = item.get("availability")
-        if figures and delivery == {"non_guaranteed"} and figures.get("type") != "forecast":
-            self.err(file, path, "availability", "availability.type is forecast when delivery_type is non_guaranteed")
+        hold = item.get("hold") or {}
+        for key, figures in (("availability", item.get("availability")),
+                             ("hold.held_availability", hold.get("held_availability"))):
+            if figures and delivery == {"non_guaranteed"} and figures.get("certainty") != "forecast":
+                self.err(file, path, key, f"{key}.certainty is forecast when delivery_type is non_guaranteed")
+        committed = _committed_entry(item)
+        if committed and committed.get("transaction_mechanisms"):
+            for name in in_effect:
+                if name not in committed["transaction_mechanisms"]:
+                    self.err(file, path, name, f"the committed entry does not price {name}")
+
+    def check_commitment(self, file, path, item):
+        """A commitment's arithmetic and its bounds (sections 5.6.1 and 5.6.5)."""
+        for entry in item.get("pricing") or []:
+            if entry.get("cost_method") == "FLAT" and "unit_bounds" in entry:
+                self.err(file, path, "unit_bounds", "unit_bounds on a FLAT entry")
+        commitment, committed = item.get("commitment"), _committed_entry(item)
+        if not commitment or not committed or "agreed_rate" not in committed:
+            return
+        decimal = lambda n: Decimal(str(n))
+        method, rate = committed.get("cost_method"), decimal(committed["agreed_rate"])
+        basis, amount = commitment.get("basis"), decimal(commitment.get("amount", 0))
+        charges = Decimal(0)
+        for value in item.values():
+            if isinstance(value, dict) and "available" in value:
+                included = value.get("included", [])
+                names = [n for n in value.get("selected", included) if n not in included]
+                for name in names + value.get("excluded", []):
+                    charges += decimal((value.get("deltas") or {}).get(name, {}).get("delta_flat", 0))
+        flight = commitment.get("flight") or {}
+        starts, ends = flight.get("start"), flight.get("end")
+        total, units, elapsed = amount, None, None
+        rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
+        size = RATE_UNIT_SECONDS.get((committed.get("cost_parameters") or {}).get("rate_unit"))
+        if method == "TIME" and starts and ends and size:
+            parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
+            elapsed = int(((parse(ends) - parse(starts)).total_seconds() + 1) // size)
+        if method == "FLAT":
+            if basis != "spend":
+                self.err(file, path, "basis", "a FLAT commitment has basis spend")
+            if amount != rate + charges:
+                self.err(file, path, "amount", f"a FLAT amount is {rate + charges}")
+            if "derived_units" in commitment:
+                self.err(file, path, "derived_units", "derived_units on a FLAT commitment")
+        elif elapsed is not None:
+            units, total = elapsed, elapsed * rate + charges
+            if amount != (elapsed if basis == "units" else total):
+                self.err(file, path, "amount", f"a TIME commitment is for {elapsed} units, {total} in all")
+        elif basis == "spend":
+            if charges > amount:
+                self.err(file, path, "amount", "delta_flat charges exceed the amount")
+            if rate > 0:
+                units = int((amount - charges) / rate * rate_per)
+        else:
+            total, units = amount / rate_per * rate + charges, amount
+        if units is not None and "derived_units" in commitment and commitment["derived_units"] != units:
+            self.err(file, path, "derived_units", f"derived_units recomputes to {units}")
+        spend = (item.get("commitment_bounds") or {}).get("spend") or {}
+        if ("min" in spend and total < decimal(spend["min"])) or ("max" in spend and total > decimal(spend["max"])):
+            self.err(file, path, "commitment_bounds", f"seller total {total} is outside spend")
+        unit_limits = committed.get("unit_bounds") or {}
+        if units is not None and (units < unit_limits.get("min", units) or units > unit_limits.get("max", units)):
+            self.err(file, path, "unit_bounds", f"{units} units are outside unit_bounds")
+
+    def check_pricing_entries(self, file, path, item):
+        """Section 5.6: entry ids are unique, and two entries differ on a key or mechanism."""
+        entries = item.get("pricing") or []
+        ids = [e.get("pricing_id") for e in entries]
+        if len(ids) != len(set(ids)):
+            self.err(file, path, "pricing_id", "two pricing[] entries share a pricing_id")
+        seen = set()
+        for entry in entries:
+            for name in entry.get("transaction_mechanisms") or _mechanisms(item):
+                key = (entry.get("cost_method"), json.dumps(entry.get("cost_parameters"), sort_keys=True),
+                       entry.get("currency"), name)
+                if key in seen:
+                    self.err(file, path, "pricing", f"two pricing[] entries are the same on {name}")
+                seen.add(key)
+
+    def check_dated_shares(self, file, path, item):
+        """Section 5.6.6: an option's dated_shares[] windows don't overlap."""
+        for option in (item.get("cancellation_policy") or {}).get("available", []):
+            windows = sorted((r["window"]["start"], r["window"]["end"]) for r in option.get("dated_shares", []))
+            for earlier, later in zip(windows, windows[1:]):
+                if later[0] <= earlier[1]:
+                    self.err(file, path, "dated_shares", f"{option.get('id')}: dated_shares[] windows overlap")
 
     def check_fields(self, file, path, doc, fields):
         known = {bare(k): r for k, r in fields.items() if "[]." not in k}
@@ -678,7 +837,10 @@ class Checker:
                     self.check_value(file, sub, doc[key], row)
         if "line_item_id" in doc:
             self.check_agreed_rate(file, path or "(root)", doc)
+            self.check_commitment(file, path or "(root)", doc)
             self.check_mechanisms(file, path or "(root)", doc)
+            self.check_pricing_entries(file, path or "(root)", doc)
+            self.check_dated_shares(file, path or "(root)", doc)
             if "geo" in doc and "markets" in doc:
                 self.err(file, path or "(root)", "markets", "a line item declares geo or markets")
 
@@ -839,6 +1001,17 @@ def check_change_requests(checker, file, doc):
                     if e["role"] == "acceptance" and named in e["line_item_ids"]}
         if baseline.get("version") not in versions:
             checker.errors.append(f"{where}: no acceptance entry names {named} at that version")
+        notice = entry.get("cancellation") or {}
+        option = notice.get("option_id")
+        if option is not None:
+            policy = items.get(named, {}).get("cancellation_policy") or {}
+            if option not in policy.get("selected", policy.get("included", [])):
+                checker.errors.append(f"{file}: change_requests[{n}].cancellation: "
+                                      f"{option} is not an option in effect")
+            terms = next((o for o in policy.get("available", []) if o.get("id") == option), {})
+            if notice.get("cancelled_share", 0) > applicable_max_share(terms, notice):
+                checker.errors.append(f"{file}: change_requests[{n}].cancellation: "
+                                      f"cancelled_share is above the max_share that applies")
 
 
 # Summary -------------------------------------------------------------------

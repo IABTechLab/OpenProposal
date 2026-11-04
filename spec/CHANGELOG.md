@@ -5,6 +5,34 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.1, § 2.1, § 2.2, § 2.4, § 2.5, § 3.1 to § 3.3, § 4.1, § 4.3.2, § 4.4, § 5.6, § 5.6.1, § 5.6.3,
+  § 5.6.5 to § 5.6.7, § 6, § 8, appendices, examples, docs, checkers, pricing fixtures — pricing.
+  `cost_method` is an open vocabulary, with core terms that have a `unit` and a rate per in
+  § 5.6.5. An extension term is domain-prefixed and has `rate_per`, `unit_label`, and a
+  `cost_definition` that is a `DocumentRef`. `pricing[]` entries are alternatives, each with a `pricing_id`, and a commitment
+  names one. `Amount` is the one money type, read in the committed entry's `CurrencyCode`, so
+  `commitment.currency` and the currency on `requires.min_commitments[]` are gone. Every `Amount` is
+  on one basis, which § 8 asks about. `min_spend` and the budget keys become
+  `commitment_bounds.spend`, and `commitment_bounds` gains the informative `earliest_start` and
+  `latest_end`. `min_impressions` and `max_impressions` become `pricing[].unit_bounds`, which counts
+  the entry's unit and which a `grant` MAY widen. `derived_units` rounds down, `FLAT` and `TIME` set
+  the figures from the rate and the flight, and `FLAT` delivery is days of the flight.
+  `Availability` has a key table: `type` becomes `certainty`, `as_of` becomes `computed_at`, `basis`
+  goes, and `window` names the dates. A cancellation option has `notice_duration`, `fees[]`, and
+  `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
+  exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
+  names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
+  `version`, so `accepted_counter` and `selection_key` are removed. Breaking
+  ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
+  [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
+  [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
+  [#127](https://github.com/IABTechLab/OpenProposal/issues/127),
+  [#115](https://github.com/IABTechLab/OpenProposal/issues/115),
+  [#70](https://github.com/IABTechLab/OpenProposal/pull/70),
+  [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
+  [#125](https://github.com/IABTechLab/OpenProposal/issues/125),
+  [#121](https://github.com/IABTechLab/OpenProposal/issues/121)).
+
 - § 2.4, § 3.4, § 4.1.1, § 4.1.3, § 4.3, § 4.3.1, § 4.3.2, § 4.3.4, § 5.6, § 5.6.1, § 5.6.2,
   appendices, examples, checkers — holds. `hold_status` splits in two: `hold_terms`,
   `{ available, duration }`, is `seller-set` and inside the record, and `hold` is `lifecycle`

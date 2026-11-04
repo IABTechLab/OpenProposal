@@ -80,7 +80,7 @@ jobs:
       - run: python3 scripts/check_examples.py
 
   pricing-fixtures:
-    name: Pricing discussion fixtures
+    name: Pricing arithmetic vectors
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

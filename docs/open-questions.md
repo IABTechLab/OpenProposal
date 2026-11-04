@@ -117,6 +117,21 @@ they don't move at the same time, and whether unread keys can reach an assent.
 
 ---
 
+### OQ-9 — What basis is a money value on?
+
+**Issue:** [#30](https://github.com/IABTechLab/OpenProposal/issues/30), [#115](https://github.com/IABTechLab/OpenProposal/issues/115)  ·  **Spec:** § 5.6
+
+Every `Amount` on a line item is on one basis. The draft doesn't say whether that
+basis is gross or net of agency commission, or whether it includes tax. A
+`commitment.amount` of 80,000.00 at an `agreed_rate` of 24.00 `CPM` buys 3,333,333
+impressions if 24.00 is what the seller invoices. If 24.00 is gross of a 15%
+commission, the seller invoices 20.40, and 80,000.00 stated net buys 3,921,568.
+
+**What would settle it:** how sellers and agencies state a rate today, and what the
+invoice is expected to match.
+
+---
+
 ### OQ-11 — Must a manifest response carry both `ETag` and `Last-Modified`?
 
 **Issue:** [#29](https://github.com/IABTechLab/OpenProposal/issues/29)  ·  **Spec:** § 2.3

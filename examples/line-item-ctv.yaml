@@ -13,11 +13,21 @@ frequency_cap:  { count: { min: 1, max: 4, default: 3 }, period: day, per: house
 time_zone:      viewer_local
 
 pricing:
-  - { cost_method: CPM, list_rate: 45.00, min_rate: 39.60,
+  - { pricing_id: "ctv-pa-cpm-usd", cost_method: CPM, list_rate: 45.00, min_rate: 39.60,
       price_valid_until: "2026-12-01T23:59:59Z", currency: USD,
       price_type: 1 }                  # First Price
 
-commitment_bounds: { min_budget: 25000.00 }
+commitment_bounds: { spend: { min: 25000.00 } }
+
+cancellation_policy:
+  available:
+    - { id: "notice-30d", notice_duration: "P30D", max_share: 1, fees: [{ calculation: none }] }
+    - { id: "notice-14d", notice_duration: "P14D", max_share: 1, fees: [{ calculation: none }] }
+    - { id: "notice-48h", notice_duration: "PT48H", max_share: 1,
+        fees: [{ calculation: cancelled, share: 0.10 }] }
+  included:     ["notice-30d"]
+  deltas:       { "notice-14d": { delta_fraction: 0.03 }, "notice-48h": { delta_fraction: 0.06 } }
+  max_select:   1
 
 hold_terms:     { available: false }   # private_auction: no inventory reserved
 

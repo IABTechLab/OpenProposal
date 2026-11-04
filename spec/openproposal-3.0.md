@@ -75,8 +75,8 @@ values from the agreed line item:
 | `terms.cur` | `Deal.bidfloorcur` | That entry's `currency`, always sent |
 | `terms.pricetype` | `Deal.at`, the same value, omitted for Dynamic (0) | That entry's `price_type`, always sent |
 | `terms.guar` | `Deal.guar` | `1` when the mechanism in effect is `programmatic_guaranteed`, `0` otherwise |
-| `terms.units` | | `commitment.amount` when `basis` is `units`, otherwise `derived_units` |
-| `terms.totalcost` | | `commitment.amount` when `basis` is `spend`, otherwise `amount` × `agreed_rate` ÷ 1,000, plus any `delta_flat` charges in effect |
+| `terms.units` | | `commitment.amount` when `basis` is `units`, otherwise `derived_units` (§ 5.6.5) |
+| `terms.totalcost` | | The seller total (§ 5.6.5) |
 
 `commitment.flight.end` and `terms.enddate` are the flight's last second,
 inclusive. The Deals API 1.0 doesn't say whether `enddate` is inclusive, so this mapping
@@ -111,15 +111,15 @@ and `Line` take these values from the agreed line item:
 | :--- | :--- |
 | `Order.currency` | The committed `pricing[]` entry's `currency` |
 | `Line.startdate`, `Line.enddate` | `commitment.flight.start`, `commitment.flight.end` |
-| `Line.ratetype` | That entry's `cost_method`: `CPM` and `CPC` as written, and `FLAT` as `FlatRate` |
+| `Line.ratetype` | That entry's `cost_method`: `CPM`, `CPMV`, and `CPC` as written, `FLAT` as `FlatRate`, and `TIME` with `rate_unit: day` as `CPD` |
 | `Line.rate` | That entry's `agreed_rate` |
-| `Line.qty` | `commitment.amount` when `basis` is `units`, `1` for `FLAT`, otherwise `derived_units` |
-| `Line.cost` | `commitment.amount` when `basis` is `spend`, otherwise `Line.qty` × `agreed_rate`, ÷ 1,000 on a `CPM` entry, plus any `delta_flat` charges in effect |
+| `Line.qty` | `commitment.amount` when `basis` is `units`, `1` for `FLAT`, otherwise `derived_units` (§ 5.6.5) |
+| `Line.cost` | The seller total (§ 5.6.5) |
 | `Line.frequencycount`, `Line.frequencyinterval` | `frequency_cap.count` in effect, and `frequency_cap.period` in OpenDirect's spelling, with `flight` as `LineDuration` |
 
-Any other `cost_method` has no `ratetype` and no mapping here. A `direct_io` line item
-under one books in another order system, which its `order` entry names (§ 5.10), and
-changes there. OpenDirect's cap counts a unique user,
+Any other `cost_method`, and `TIME` with another `rate_unit`, has no `ratetype` and no
+mapping here. A `direct_io` line item under one books in another order system, which
+its `order` entry names (§ 5.10), and changes there. OpenDirect's cap counts a unique user,
 so it has no key for `frequency_cap.per`.
 
 The record holds no value for `Order.name` and `Line.name`, or for `Order.accountid`,
@@ -240,11 +240,12 @@ audiences.available[].name
 formats.included[]
 geo
 markets
+pricing[].pricing_id
 pricing[].cost_method
 pricing[].list_rate
 pricing[].currency
 pricing[].price_type
-min_spend
+pricing[].unit_bounds
 commitment_bounds
 addressable_scale
 committed_metrics[]
@@ -300,7 +301,7 @@ shared type or changes its form.
 | `CalendarUnit` | `hour` \| `day` \| `week` \| `month` | A calendar bucket |
 | `TimeUnit` | A `CalendarUnit`, or `flight` | `flight` is the whole of `commitment.flight` |
 | `IntegerFlag` | Integer: `0` (no) \| `1` (yes) | A yes or no that another standard writes as an integer. Each field says what `1` affirms |
-| `Amount` | Number | Money. It carries no currency: the field that holds it states which one it reads in |
+| `Amount` | Number within the limits of § 4.1.1 | Money. It carries no currency: § 5.6 states which one it reads in |
 | `Fraction` | Number from 0 to 1 | A proportion |
 | `FractionDelta` | Number greater than -1 | Used only by `delta_fraction` (§ 3.1) |
 | `Instant` | String: an RFC 3339 `date-time` in whole seconds, ending in `Z` | A point in time. One written form, so one instant has one digest input |
@@ -320,7 +321,7 @@ A receiver that doesn't know a term treats the option or entry that holds it as
 unavailable. A term in an `Array[VocabularyTerm]` is not an entry of its own: it
 belongs to the option or entry that holds the array. Where the term binds outside
 any option or entry, the receiver skips the line item and doesn't reject the
-proposal because of it. For a `channel` (§ 5.1.1) or `cost_method` (§ 5.6) term,
+proposal because of it. For a `channel` (§ 5.1.1) or `cost_method` (§ 5.6.5) term,
 these effects are a MUST. A receiver never assents to what it can't read. A field MAY
 state another effect.
 
@@ -453,7 +454,7 @@ Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_referenc
 | :--- | :--- |
 | `validation` | A value breaks a rule of this specification and no other code applies |
 | `not_found` | A named proposal or line item does not exist, or the requester may not read it (§ 5.8) |
-| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.5), or a buyer asks for a hold where `hold_terms` offers none (§ 5.6.2) |
+| `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.5, § 5.6, § 5.6.1), or a buyer asks for a hold where `hold_terms` offers none (§ 5.6.2) |
 | `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
 | `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `requires` that is unmet rules out a `commit` (§ 5.6.3), a live `commitment` entry already names a line item (§ 4.1.2), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
 | `stale_version` | An ask is stale (§ 4.1.3) |
@@ -490,8 +491,8 @@ ext:
   reject a document because of it. It MUST keep `ext` unchanged when it
   stores or forwards the document.
 - In an object whose keys this specification lists, a key outside `ext` that
-  it does not list is invalid. The open objects `DocumentRef` (§ 2.2) and
-  `ErrorObject` (§ 2.4) are unaffected.
+  it does not list is invalid. The open objects `DocumentRef` (§ 2.2), `ErrorObject`
+  (§ 2.4), and `CostParameters` (§ 5.6.5) are unaffected.
 - On the proposal and a line item, `ext` is part of the Full Representation and
   of the record frozen at `agreed` (§ 4.1.1), and a seller change to it is a
   revision. On a `change_requests[]` entry, it is outside the record, as the
@@ -694,9 +695,9 @@ items.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `delta_cpm` | Number | OPTIONAL | Added to the rate of a `CPM` entry, and to no other |
+| `delta_cpm` | Amount | OPTIONAL | Added to the rate of a `CPM` or `CPMV` entry (§ 5.6.5), and to no other |
 | `delta_fraction` | FractionDelta | OPTIONAL | Multiplies the rate of any entry by 1 plus this value. `0.20` is 20 percent more |
-| `delta_flat` | Number | OPTIONAL | A charge on any entry, outside the rate |
+| `delta_flat` | Amount | OPTIONAL | A charge on any entry, outside the rate |
 
 An option priced only by `delta_cpm` MUST NOT resolve against any other entry.
 
@@ -704,8 +705,8 @@ An option priced only by `delta_cpm` MUST NOT resolve against any other entry.
 
 A field marked `settable` declares its bounds in one of two forms, and the buyer
 writes one key, `value`. `frequency_cap` holds its form in `count`. The keys of
-`commitment` are the one exception: `commitment_bounds` holds their bounds (§ 5.6,
-§ 5.6.1).
+`commitment` are the one exception: `commitment_bounds.spend` and the committed entry's
+`unit_bounds` hold its bounds (§ 5.6, § 5.6.1).
 
 **`Settable`** is the envelope form. `value` only narrows `allowed[]`.
 
@@ -750,6 +751,7 @@ no `status`, writes no history, reserves nothing, and doesn't limit a later decl
 | :--- | :--- | :--- | :--- |
 | `offer` | VersionRef | REQUIRED | The line item and the `version` whose options the figures are computed against. `line_item_id` is REQUIRED here |
 | `flight` | Interval | REQUIRED | The flight, as `commitment.flight` (§ 5.6.1) |
+| `pricing_id` | String | OPTIONAL | The entry the buyer means to commit under, as `commitment.pricing_id`, so that the figure can count that entry's `unit` (§ 5.6.5) |
 
 ### 3.4 Buyer writes
 
@@ -828,8 +830,9 @@ form its row states. `pointer` says which `pricing[]` entry.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `list_rate` | Number | OPTIONAL | A `pricing[].list_rate` |
-| `commitment_bounds` | Object | OPTIONAL | The line item's `commitment_bounds` |
+| `list_rate` | Amount | OPTIONAL | A `pricing[].list_rate` |
+| `unit_bounds` | Range[Integer] | OPTIONAL | A `pricing[].unit_bounds` |
+| `commitment_bounds` | CommitmentBounds | OPTIONAL | The line item's `commitment_bounds` |
 | `materials_due` | MaterialsDue | OPTIONAL | The line item's `materials_due` |
 | `committed_metrics[]` | Array[CommittedMetric] | OPTIONAL | The line item's `committed_metrics[]` |
 
@@ -1190,17 +1193,18 @@ exhaustive, so a status with none leading out of it is terminal.
 
 A *firm entry* is a `pricing[]` entry with a `price_valid_until`. It holds until
 that date or `offer_window.end`, whichever comes first. While it holds, a seller
-revision MUST NOT change that entry, and MUST NOT end it sooner by moving
-`offer_window.end`. A `grant` or `counter` of a `request` on that entry MAY lower its
-`list_rate`. A revision that narrows who may commit (§ 5.8) does not apply, while the
-entry holds, to a buyer that was eligible when the entry was first offered.
-The seller of an issued proposal MUST answer a resolved `commit` under it that arrives
-while the entry holds, on or after `offer_window.start`, and passes the checks of
-§ 5.6.1 and any authority check the seller applies (§ 5.8): accept it, or decline it
-on an allowed ground. The allowed grounds are lack of availability, an exclusivity
-conflict (§ 5.6), and a ground stated in the `terms_refs[]` in force when the entry was
-first offered. `sold_out` is lack of availability: a `commit` that arrives while the
-line item is `sold_out` returns `not_committable` (§ 2.4).
+revision MUST NOT change that entry, `pricing_id` included, and MUST NOT end it
+sooner by moving `offer_window.end`. A `grant` or `counter` of a `request` on that
+entry MAY lower its `list_rate` or widen its `unit_bounds`. A revision that narrows
+who may commit (§ 5.8) does not apply, while the entry holds, to a buyer that was
+eligible when the entry was first offered. The seller of an issued proposal MUST answer
+a resolved `commit` under it that arrives while the entry holds, on or after
+`offer_window.start`, and passes the checks of § 5.6.1 and any authority check the seller applies (§ 5.8):
+accept it, or decline it on an allowed ground. The allowed grounds are lack of
+availability, an exclusivity conflict (§ 5.6.7), and a ground stated in the
+`terms_refs[]` in force when the entry was first offered.
+`sold_out` is lack of availability: a `commit` that arrives while the line item is
+`sold_out` returns `not_committable` (§ 2.4).
 
 Two rules apply:
 
@@ -1263,7 +1267,7 @@ section defines no workflow.
 | `requesterid` | String | OPTIONAL | The organization that requests the change: usually the agency, or the publisher. An OpenDirect 2.1 ChangeRequest requires it |
 | `providerdata` | Object | OPTIONAL | Structured references a buyer uses to identify its order in the seller's system |
 | `status` | ApprovalStatus | OPTIONAL | The outcome of the request |
-| `cancellation` | CancellationNotice | OPTIONAL | The notice, when the request is to cancel under the `cancellation_policy` option in effect (§ 5.6) |
+| `cancellation` | CancellationNotice | OPTIONAL | The notice, when the request is to cancel under the option in effect (§ 5.6.6) |
 | `ext` | Ext | OPTIONAL | See Extensions (§ 2.5) |
 
 A change of `status` is a new entry with the same `id` and `baseline`. A request
@@ -1586,25 +1590,46 @@ Monday.
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `pricing[]` | Array[PricingEntry] | REQUIRED | mixed | See below |
-| `pricing[].cost_method` | VocabularyTerm | REQUIRED | seller-set | The billable unit. Core terms: `CPM` \| `CPC` \| `FLAT` |
-| `pricing[].list_rate` | Number | REQUIRED | requestable | The rate before options. A buyer MAY request another value, and a granted value is the `list_rate` of the next `version` |
-| `pricing[].agreed_rate` | Number | REQUIRED when this is the committed entry | derived | The transacted rate (below). Absent on every other entry |
+| `pricing[].pricing_id` | String | REQUIRED | immutable | Names the entry within the line item. A revision MUST NOT reuse it for a different `cost_method`, `cost_parameters`, `currency`, or `transaction_mechanisms[]` |
+| `pricing[].cost_method` | VocabularyTerm | REQUIRED | seller-set | The billable unit. Core terms in § 5.6.5 |
+| `pricing[].rate_per` | Integer | REQUIRED when `cost_method` is an extension term | seller-set | `1` \| `1000`. Units per rate. For a core term, the vocabulary sets it, and a present value MUST match |
+| `pricing[].unit_label` | String | REQUIRED when `cost_method` is an extension term | seller-set | A short label for one unit, such as `engagement` |
+| `pricing[].cost_definition` | DocumentRef | REQUIRED when `cost_method` is an extension term | seller-set | Public definition of one unit and the `cost_parameters` keys (§ 5.6.5) |
+| `pricing[].cost_parameters` | CostParameters | REQUIRED when the term requires keys | seller-set | The keys the term requires (§ 5.6.5). Absent when it requires none |
+| `pricing[].transaction_mechanisms[]` | Array[TransactionMechanism] | OPTIONAL | seller-set | The `transaction_mechanism` options this entry prices. Absent: every offered option |
+| `pricing[].list_rate` | Amount | REQUIRED | requestable | The rate before options. A buyer MAY request another value, and a granted value is the `list_rate` of the next `version` |
+| `pricing[].agreed_rate` | Amount | REQUIRED when this is the committed entry | derived | The transacted rate (below). Absent on every other entry |
 | `pricing[].price_valid_until` | Instant | OPTIONAL | seller-set | How long the entry holds (§ 4.3.2). Distinct from the proposal's `offer_window.end` |
-| `pricing[].currency` | String | REQUIRED | seller-set | ISO-4217 |
+| `pricing[].currency` | CurrencyCode | REQUIRED | seller-set | The currency of the entry's rates (below) |
 | `pricing[].price_type` | Integer | REQUIRED when the entry prices a deal mechanism | seller-set | How `agreed_rate` clears, as Deals API 1.0 `terms.pricetype`: Dynamic (0), the auction type of each bid request; First Price (1); Second Price Plus (2); Fixed Price (3); or an exchange-specific value, 500 and up |
-| `pricing[].min_rate` | Number | OPTIONAL | seller-set | A hint: the lowest `list_rate` the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
-| `availability` | Object | OPTIONAL | asserted | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`, with `as_of` an `Instant` and `granularity` a `CalendarUnit`. Recomputed against the buyer's selection. `type` MUST be `forecast` when the line item's `delivery_type` (§ 5.9) is `non_guaranteed` |
-| `commitment_bounds` | Object | OPTIONAL | requestable | The envelope inside which a buyer may commit, and a buyer MAY request another: `{ min_impressions, max_impressions, min_budget, max_budget }` |
+| `pricing[].min_rate` | Amount | OPTIONAL | seller-set | A hint: the lowest `list_rate` the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
+| `pricing[].unit_bounds` | Range[Integer] | OPTIONAL | requestable | Bounds on the units committed under this entry, counted in its unit (§ 5.6.5): `commitment.amount` when `basis` is `units`, otherwise `derived_units`. A buyer MAY request another. Absent on a `FLAT` entry |
+| `availability` | Availability | OPTIONAL | asserted | What the seller says it can deliver, recomputed against the buyer's selection (§ 3.3). See below |
+| `commitment_bounds` | CommitmentBounds | OPTIONAL | requestable | The envelope inside which a buyer may commit, and a buyer MAY request another. See 5.6.1 |
 | `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
 | `hold_terms` | HoldTerms | OPTIONAL | seller-set | Offers a hold. Absent means `available` is `false`. See 5.6.2 |
 | `hold` | Hold | OPTIONAL | lifecycle | The buyer's hold. Absent until the buyer first asks. See 5.6.2 |
-| `min_spend` | Number | OPTIONAL | seller-set | Minimum spend for this line item |
-| `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | The cancellation rights the seller offers |
-| `exclusivity` | Selectable[ExclusivityTerm] | OPTIONAL | selectable | The exclusivity terms the seller offers |
+| `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | See § 5.6.6. Absent: this field states no right to cancel, and `terms_refs[]` (§ 5.8) may state one |
+| `exclusivity` | Selectable[ExclusivityOption] | OPTIONAL | selectable | See § 5.6.7. Nothing in effect: no exclusivity |
 | `creative_policy` | Object | OPTIONAL | seller-set | Content and category restrictions on creative |
 | `requires` | Requires | OPTIONAL | seller-set | Conditions that must hold in the same `commit` for this line item to be committable. See 5.6.3 |
 
-The *committed entry* is the `pricing[]` entry the commitment is priced against.
+`pricing[]` entries are alternatives. The buyer commits under exactly one, the
+*committed entry*, named by `commitment.pricing_id`, or the only entry when that key is absent; it MUST cover the mechanism in effect. Only that
+entry enters `agreed_rate` and `derived_units`. Two entries MUST NOT share
+`cost_method`, `cost_parameters`, `currency`, and a mechanism.
+
+**`CurrencyCode`** is a String: an ISO 4217 alphabetic code, such as `USD`.
+
+A rate reads in its own entry's `currency`. A commitment reads in the committed
+entry's `currency`, and so does every other `Amount` on the line item:
+`commitment_bounds.spend`, § 3.1 `delta_cpm` and `delta_flat`, and a cancellation
+fee. OpenProposal never converts, so a figure is the same number in whichever
+currency is committed. A seller that wants another figure in another currency
+publishes separate line items.
+
+Every `Amount` on a line item is on one basis, so that rates, charges, and totals add
+and compare. § 8 asks what that basis is.
 
 **`agreed_rate`** is computed on the committed entry from the options in effect
 (§ 3.1), in exact decimal, and rounded once, half up, to 6 decimal places:
@@ -1614,9 +1639,10 @@ agreed_rate = (list_rate + sum of delta_cpm) × product of (1 + delta_fraction)
 ```
 
 A delta counts when its option is in effect and not in `included[]`, on any field of the
-line item marked `selectable`. A `delta_cpm` enters only a `CPM` entry (§ 3.1), and
-the option's other deltas still count. So `list_rate` 24.00 with one `delta_cpm` of
-3.00 and one `delta_fraction` of 0.02 is 27.54. `delta_flat` stays outside it.
+line item marked `selectable`. A `delta_cpm` enters
+only a `CPM` or `CPMV` entry (§ 3.1), and the option's other deltas still count. So
+`list_rate` 24.00 with one `delta_cpm` of 3.00 and one `delta_fraction` of 0.02 is
+27.54. `delta_flat` stays outside it.
 
 **Deal price.** For a deal on a `CPM` entry (§ 1.1), the committed entry's `agreed_rate`
 is the deal's price per thousand impressions, in that entry's `currency`. Under Fixed Price
@@ -1624,15 +1650,30 @@ is the deal's price per thousand impressions, in that entry's `currency`. Under 
 deal's minimum bid. The Deals API treats it as guidance: per-impression floors
 can be higher, so a bid at `agreed_rate` is not guaranteed to clear.
 
+**`Availability`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `unit` | VocabularyTerm | REQUIRED | What `quantity` counts. Core terms: the `unit` terms of § 5.6.5, and `unit_periods` (one unit for one period, such as a board for a 4-week cycle). A receiver that doesn't know a term can't compare the figure, and still reads the line item |
+| `quantity` | Number | REQUIRED | How many. It can be fractional where the unit is, such as `rating_points` per `day` |
+| `computed_at` | Instant | REQUIRED | When the seller computed it |
+| `window` | Interval | REQUIRED | The dates `quantity` covers. On a read (§ 3.3) or a decline (§ 5.6.1), the flight the buyer sent |
+| `granularity` | CalendarUnit | OPTIONAL | The bucket `quantity` counts per, within `window`. Absent: `quantity` is the total over `window` |
+| `certainty` | Enum | REQUIRED | `forecast` \| `reservable`. `forecast`: the seller's estimate of the quantity. `reservable`: the quantity the seller says it can reserve for `window`. MUST be `forecast` when the line item's `delivery_type` (§ 5.9) is `non_guaranteed` |
+
+An `Availability` compares with a commitment only when it has no `granularity`, its
+`unit` equals the term in the § 5.6.5 `unit` column for the committed entry's
+`cost_method`, and its `window` equals `commitment.flight`.
+
 #### 5.6.1 commitment
 
 Absent on a shared proposal (§ 4.3). The buyer writes it on its composed record
-(§ 4.1.1), and a `commit` carries it to the seller. The buyer writes its `settable` keys
-itself, and they have no `default` (§ 3.2). A
+(§ 4.1.1), and a `commit` carries it to the seller. The buyer writes
+its `settable` keys itself, and they have no `default` (§ 3.2). A
 `commitment` resolves under § 3 when the buyer is eligible (§ 5.8), every `selected[]`
-and `value` on the line item is within what the seller declared (§ 3.1, § 3.2), and
-the commitment fits `commitment_bounds` and `min_spend`, is not stale (§ 4.1.3),
-and meets `requires` (§ 5.6.3). A resolved `commitment` is an offer to buy. It
+and `value` on the line item is within what the seller declared (§ 3.1,
+§ 3.2), and the commitment fits `commitment_bounds.spend` and the committed entry's `unit_bounds`, is not
+stale (§ 4.1.3), and meets `requires` (§ 5.6.3). A resolved `commitment` is an offer to buy. It
 binds only when the seller accepts it;
 `assent[]` (§ 4.1.2) records that acceptance for the binding `version`. A seller
 MAY decline a resolved `commitment` with a `decline` entry; the buyer MAY recompose.
@@ -1653,19 +1694,27 @@ is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `basis` | Enum | REQUIRED | `spend` \| `units` |
-| `amount` | Number | REQUIRED | The figure committed |
+| `amount` | Number | REQUIRED | The figure committed: an `Amount` when `basis` is `spend`, otherwise a whole number of the entry's units (§ 5.6.5) |
 
 **`Commitment`** holds the keys of `CommitmentAmount`, each `settable`, and these:
 
 | Key | Type | Required | Meaning | Mutability |
 | :--- | :--- | :--- | :--- | :--- |
-| `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 | settable |
+| `pricing_id` | String | REQUIRED when `pricing[]` has more than one entry | The entry the buyer commits under | settable |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** | settable |
 | `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for | settable |
-| `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding | derived |
+| `derived_units` | Integer | OPTIONAL | The committed units, as § 5.6.5 derives them, whether or not this key is written. A written value is a copy, outside the record (§ 4.1.1); where it differs, the § 5.6.5 result applies | derived |
 
 The buyer's `assent[]` entry (§ 4.1.2) pins the `version` of a `commit` and carries its
 `idempotency_key`, so `commitment` repeats neither.
+
+**`CommitmentBounds`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `spend` | Range[Amount] | OPTIONAL | Bounds on the seller total (§ 5.6.5) |
+| `earliest_start` | Instant | OPTIONAL | Informative: the earliest `commitment.flight.start` the seller expects |
+| `latest_end` | Instant | OPTIONAL | Informative: the latest `commitment.flight.end` the seller expects |
 
 **`Commit`** keys:
 
@@ -1679,7 +1728,7 @@ The buyer's `assent[]` entry (§ 4.1.2) pins the `version` of a `commit` and car
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `entries[]` | Array[AssentEntry] | REQUIRED | The buyer's `commitment` entry, then each matching `acceptance`, `decline`, or `withdrawal` entry written after it in `assent[]` |
-| `availability` | Map[String, Object] | REQUIRED when `entries[]` holds a `decline` for lack of availability | The figures that `decline` states, keyed by `line_item_id`, each in the form of the line item's `availability` (§ 5.6). They are not part of the entry |
+| `availability` | Map[String, Availability] | REQUIRED when `entries[]` holds a `decline` for lack of availability | The figures that `decline` states, keyed by `line_item_id`. They are not part of the entry |
 
 The seller recomputes `record_digest` over the line items the entry names as they
 stand, plus the `writes` of the `Commit` (§ 4.1.1). A value equal to the entry's means
@@ -1777,14 +1826,24 @@ append to `negotiation_history[]` (§ 4.1).
 | :--- | :--- | :--- | :--- |
 | `all_of[]` | Array[String] | OPTIONAL | Line items that MUST all be in the same `commit` |
 | `any_of[]` | Array[String] | OPTIONAL | Line items of which at least one MUST be in the same `commit` |
-| `min_commitments[]` | Array[MinCommitment] | OPTIONAL | Purchase-level thresholds: `{ line_item_id, basis, amount, currency }` |
+| `min_commitments[]` | Array[MinCommitment] | OPTIONAL | Purchase-level thresholds |
 
 ```yaml
 requires:
   all_of:  ["business-daily-display", "weather-app-ctv"]
   min_commitments:
-    - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00, currency: USD }
+    - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00 }
 ```
+
+**`MinCommitment`** holds the keys of `CommitmentAmount` and this one. Whatever
+`basis` the commitment on `line_item_id` uses, a `spend` threshold reads against its
+seller total (§ 5.6.5), in the currency of the entry committed (§ 5.6), and a `units`
+threshold reads against the units that entry commits, as `pricing[].unit_bounds` counts
+them.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `line_item_id` | String | REQUIRED | The line item the threshold applies to |
 
 A bonus line item is a line item with `requires` and its own pricing, such as
 a discounted `list_rate` or `cost_method: FLAT` at 0. A conditional discount
@@ -1801,6 +1860,148 @@ self-contained.
   before a `commit`, and the line items left can't meet `requires`, the dependent
   line item becomes non-committable. After `agreed`, cancellation of a referenced
   line item is governed by the dependent line item's `cancellation_policy`.
+
+#### 5.6.5 Cost methods
+
+`cost_method` is a `VocabularyTerm` (§ 2.2). Its core terms are `CPM` \| `CPMV` \| `CPC` \|
+`CPCV` \| `CPV` \| `CPP` \| `CPA` \| `PLAY` \| `TIME` \| `FLAT`. Terms are upper case, like
+[OpenDirect 2.1 `Line.ratetype`](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_line).
+§ 1.1 maps them to that list.
+
+| `cost_method` | `unit` | One unit | Rate per | `cost_parameters` |
+| :--- | :--- | :--- | :--- | :--- |
+| `CPM` | `impressions` | Impression | 1,000 | |
+| `CPMV` | `viewable_impressions` | Viewable impression | 1,000 | `viewability_standard` |
+| `CPC` | `clicks` | Click | 1 | |
+| `CPCV` | `completed_views` | Completed view: 100% of the creative played | 1 | |
+| `CPV` | `views` | View | 1 | `view_s` or `view_fraction` |
+| `CPP` | `rating_points` | Rating point | 1 | `demographic`, `rating_source` |
+| `CPA` | `actions` | Action | 1 | `action_type`, `attribution_window`, `action_source` |
+| `PLAY` | `plays` | DOOH play on one screen or one sync group | 1,000 | |
+| `TIME` | `hours` \| `days` \| `weeks`, by `rate_unit` | One `rate_unit` | 1 | `rate_unit` |
+| `FLAT` | | The line item | | |
+
+An entry's unit is the term in the `unit` column for its `cost_method`. `unit` is a
+column here, not a key on the entry. The `unit` terms are `impressions` \|
+`viewable_impressions` \| `clicks` \| `completed_views` \| `views` \| `rating_points` \|
+`actions` \| `plays` \| `hours` \| `days` \| `weeks`.
+An extension term has no row: its `unit_label`, a free label, names its unit.
+
+**`CostParameters`** lists the `cost_parameters` keys a core term uses. The object is
+open: the term sets its keys.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `viewability_standard` | VocabularyTerm | REQUIRED when `cost_method` is `CPMV` | The viewability standard that counts a unit |
+| `view_s` | Integer | REQUIRED when `cost_method` is `CPV` and `view_fraction` is absent | Seconds played that make a view. Absent when `view_fraction` is present |
+| `view_fraction` | Fraction | REQUIRED when `cost_method` is `CPV` and `view_s` is absent | The fraction of the creative played that makes a view. Absent when `view_s` is present |
+| `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. This version lists no core terms |
+| `rating_source` | Measurer | REQUIRED when `cost_method` is `CPP` | Who supplies the ratings |
+| `action_type` | VocabularyTerm | REQUIRED when `cost_method` is `CPA` | The kind of action counted, such as `shop.example:purchase`. This version lists no core terms |
+| `attribution_window` | Duration | REQUIRED when `cost_method` is `CPA` | How long after exposure an action counts |
+| `action_source` | Measurer | REQUIRED when `cost_method` is `CPA` | Who reports the action |
+| `rate_unit` | Enum | REQUIRED when `cost_method` is `TIME` | `hour` \| `day` \| `week`. The unit the rate buys, counted in elapsed units |
+
+A seller's own extension terms MUST use its `seller.domain` as the `<domain>`. The host
+of `cost_definition.url` MUST be the term's `<domain>` or a subdomain of it.
+
+When `commitment.basis` is `spend`, `amount` is the seller total, on the same
+terms as `agreed_rate`, including `delta_flat` charges in effect (§ 3.1), which
+MUST NOT exceed it. `derived_units` = (`amount` − those charges) ÷ `agreed_rate` × rate
+per, rounded down to a whole unit, where rate per comes from the table for a core term
+and from `rate_per` for an extension term. At an `agreed_rate` of 0 or below, this
+formula gives no figure, and `derived_units` is absent.
+
+When `commitment.basis` is `units`, `derived_units` is `amount`, and the seller
+total is `amount` ÷ rate per × `agreed_rate` plus those charges.
+
+`FLAT` and `TIME` set these figures from the rate and the flight instead, and a rule
+that reads `commitment.amount` on such an entry reads them: the seller total when
+`commitment.basis` is `spend`, `derived_units` when it is `units`.
+
+**`FLAT`.** `agreed_rate` is the price of the line item, so the seller total is
+`agreed_rate` plus those charges. `commitment.basis` MUST be `spend`, and
+`derived_units` is absent.
+
+**`TIME`.** `derived_units` is the whole `rate_unit`s elapsed from
+`commitment.flight.start` through `commitment.flight.end`, inclusive, and the seller
+total is `derived_units` × `agreed_rate` plus those charges.
+
+**Delivery** is counted in the entry's unit, and each unit is worth `agreed_rate` ÷ rate
+per, with rate per as above. A `FLAT` entry has no unit, so its
+delivery is the days of `commitment.flight` delivered, counted in elapsed days from
+`commitment.flight.start`. Each day is worth `agreed_rate` ÷ the flight's length in
+days, and a last part day is worth its fraction of that.
+
+A seller fee is never a `pricing[]` entry. A receiver MUST treat an extension entry
+that breaks these rules as unavailable, not the line item as invalid.
+
+#### 5.6.6 Cancellation option
+
+**`CancellationOption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
+| `notice_duration` | Duration | REQUIRED | Time from notice received to the earliest effective date: `P14D` is 14 days, `P0D` immediate |
+| `max_share` | Fraction | REQUIRED | Cancellable share of the remaining commitment. `0`: non-cancellable |
+| `fees[]` | Array[Fee] | REQUIRED | The fee, by how long before the reference date notice arrives. MUST be non-empty |
+| `notice_reference` | VocabularyTerm | OPTIONAL | The date `before_reference` counts to. Core terms: `flight` (default) \| `install_date`. `flight`: `commitment.flight.start`. `install_date`: the posting or install date. No key in the record holds that date, so a fee that counts to it can't be computed from the record |
+| `dated_shares[]` | Array[DatedShare] | OPTIONAL | Dates with their own `max_share`. Outside every entry's `window`, the top-level `max_share` applies |
+
+**`Fee`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `before_reference` | Duration | OPTIONAL | Default `P0D`. Measured from notice received to the `notice_reference` date, or to the `window.start` of the `dated_shares[]` entry that applies. The entry with the longest `before_reference` the notice meets applies; notice that meets none takes the shortest |
+| `calculation` | Enum | REQUIRED | `none` \| `cancelled` \| `commitment` \| `fixed`. `none`: no fee. `cancelled`: `share` of the cancelled amount. `commitment`: `share` of `commitment.amount` without `delta_flat` charges, whatever has been delivered. `fixed`: `amount` |
+| `share` | Fraction | REQUIRED when `calculation` is `cancelled` or `commitment` | The fee as a share |
+| `amount` | Amount | REQUIRED when `calculation` is `fixed` | The fee as money |
+
+**`DatedShare`** keys. An entry applies when the effective date falls in its `window`.
+Notice then counts to `window.start`.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `window` | Interval | REQUIRED | The dates it covers. An option's windows don't overlap |
+| `max_share` | Fraction | REQUIRED | Cancellable share of the remaining commitment when this entry applies |
+
+The effective date is the later of the date the buyer asks for and notice received
+plus `notice_duration`. The remaining commitment is `commitment.amount`, without
+`delta_flat` charges, less delivery (§ 5.6.5) through the effective date; the
+cancelled amount is the part of it the buyer cancels, up to the `max_share` that
+applies. These, and the base of a `commitment` fee, are money (§ 5.6): units and days
+are valued as § 5.6.5 values delivery. The buyer owes that
+delivery, `production` (§ 5.4) work completed by then, and the fee.
+
+Exercise happens downstream (§ 1.1), against the option in effect. An entry's
+`cancellation` (§ 4.4) records the notice. It changes no term, and the line item's
+`status` stays `agreed`.
+
+**`CancellationNotice`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `option_id` | String | REQUIRED | The `id` of the option in effect that the notice exercises |
+| `notice_received_at` | Instant | REQUIRED | When the seller received notice |
+| `requested_effective_at` | Instant | REQUIRED | The effective date the buyer asks for |
+| `cancelled_share` | Fraction | REQUIRED | The share of the remaining commitment cancelled, up to the `max_share` that applies |
+
+#### 5.6.7 Exclusivity option
+
+**`ExclusivityOption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
+| `scope` | Enum | REQUIRED | `category` \| `sole`. `category`: no other advertiser in `categories`. `sole`: no other advertiser |
+| `categories` | TaxonomyCodes | REQUIRED when `scope` is `category` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers its descendants |
+| `competitors[]` | Array[RegistrableDomain] | OPTIONAL | Advertiser domains also excluded |
+| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) |
+| `window` | Interval | OPTIONAL | The dates the term holds, only where they fall inside `commitment.flight`. Default: the whole flight. With no overlap, the term holds on no date and the option's deltas still count (§ 5.6) |
+
+A seller MUST decline a `commitment` whose term in effect conflicts with an
+accepted term on the same inventory and dates.
 
 ### 5.7 Guarantees
 
@@ -2011,19 +2212,22 @@ shown in their own files, §§ 6.2 to 6.5.
 
 ### 6.2 Display line item — fully worked
 
-Shows `selectable` audiences with per-option pricing, `settable` bounds, and a
-`delivery_type` per mechanism. See
+Shows `selectable` audiences with per-option pricing, `pricing[]` alternatives in
+two currencies, cancellation options, `settable` bounds, and a `delivery_type` per
+mechanism. See
 [`examples/line-item-display.yaml`](../examples/line-item-display.yaml).
 
 ### 6.3 CTV line item
 
-See [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
+Shows priced cancellation options at three `notice_duration` values. See
+[`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
 
 Inspecting this line item's VAST creative is subject to § 5.4.1.
 
 ### 6.4 Audio line item
 
-Shows a line item priced by market. See
+Shows a line item priced by market, a cancellation fee that steps with notice before
+the start, and priced exclusivity terms. See
 [`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
 
 ### 6.5 Bonus line item
@@ -2050,11 +2254,12 @@ one for each line item, the second a deal with no Order (§ 4.4). See
 ### 6.12 Issued proposal, partly agreed
 
 A proposal issued to one buyer from the shared proposal of § 6.1 (§ 4.3). One line
-item is agreed at version 1, with a commitment. Its buyer writes `selected[]` and
-`value`, and `agreed_rate` follows from the options in effect (§ 5.6). The other stays
-`published` at version 2, with a hold, so the proposal stays `published` (§ 4.3.3). The
-`assent[]` entries name version 1, and the digest is over that line item alone
-(§ 4.1.2). See
+item is agreed at version 1, with a commitment under one of two `pricing[]`
+entries. Its buyer writes `selected[]` and `value`, and `agreed_rate` follows from
+the options in effect (§ 5.6). The other stays `published` at version 2, with a hold,
+so the proposal stays `published` (§ 4.3.3). The `assent[]` entries name version 1, and
+the digest is over that line item alone (§ 4.1.2). A `change_requests[]` entry records a notice to
+cancel part of the agreed line item (§ 5.6.6). See
 [`examples/proposal-issued.yaml`](../examples/proposal-issued.yaml).
 
 ---
@@ -2130,8 +2335,14 @@ see [docs/open-questions.md](../docs/open-questions.md).
    names the release a document follows, and § 2.5 makes a key the receiver's
    release does not list invalid. Nothing says whether a receiver rejects a release
    it does not know, or keeps and ignores keys it does not list.
+9. **What basis is a money value on?** Every `Amount` on a line item is on one basis
+   (§ 5.6). This draft doesn't say whether that basis is gross or net of agency
+   commission, or whether it includes tax. A `commitment.amount` of 80,000.00 at an
+   `agreed_rate` of 24.00 `CPM` buys 3,333,333 impressions if 24.00 is what the seller
+   invoices. If 24.00 is gross of a 15% commission, the seller invoices 20.40, and
+   80,000.00 stated net buys 3,921,568.
 
-<!-- Questions 9 and 10 are added by later changes. -->
+<!-- Question 10 is added by a later change. -->
 
 11. **Must a manifest response carry both `ETag` and `Last-Modified`, or is either
     enough?** § 2.3 requires at least one, so a buyer's client handles whichever the
@@ -2200,21 +2411,27 @@ body is normative.**
 | `exclusions_accepted` | 5.5 Targeting envelope | Object | OPTIONAL | seller-set |
 | `exclusions` | 5.5 Targeting envelope | Object | OPTIONAL | supplied |
 | `pricing[]` | 5.6 Commercial terms | Array[PricingEntry] | REQUIRED | mixed |
+| `pricing[].pricing_id` | 5.6 Commercial terms | String | REQUIRED | immutable |
 | `pricing[].cost_method` | 5.6 Commercial terms | VocabularyTerm | REQUIRED | seller-set |
-| `pricing[].list_rate` | 5.6 Commercial terms | Number | REQUIRED | requestable |
-| `pricing[].agreed_rate` | 5.6 Commercial terms | Number | REQUIRED when this is the committed entry | derived |
+| `pricing[].rate_per` | 5.6 Commercial terms | Integer | REQUIRED when `cost_method` is an extension term | seller-set |
+| `pricing[].unit_label` | 5.6 Commercial terms | String | REQUIRED when `cost_method` is an extension term | seller-set |
+| `pricing[].cost_definition` | 5.6 Commercial terms | DocumentRef | REQUIRED when `cost_method` is an extension term | seller-set |
+| `pricing[].cost_parameters` | 5.6 Commercial terms | CostParameters | REQUIRED when the term requires keys | seller-set |
+| `pricing[].transaction_mechanisms[]` | 5.6 Commercial terms | Array[TransactionMechanism] | OPTIONAL | seller-set |
+| `pricing[].list_rate` | 5.6 Commercial terms | Amount | REQUIRED | requestable |
+| `pricing[].agreed_rate` | 5.6 Commercial terms | Amount | REQUIRED when this is the committed entry | derived |
 | `pricing[].price_valid_until` | 5.6 Commercial terms | Instant | OPTIONAL | seller-set |
-| `pricing[].currency` | 5.6 Commercial terms | String | REQUIRED | seller-set |
+| `pricing[].currency` | 5.6 Commercial terms | CurrencyCode | REQUIRED | seller-set |
 | `pricing[].price_type` | 5.6 Commercial terms | Integer | REQUIRED when the entry prices a deal mechanism | seller-set |
-| `pricing[].min_rate` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
-| `availability` | 5.6 Commercial terms | Object | OPTIONAL | asserted |
-| `commitment_bounds` | 5.6 Commercial terms | Object | OPTIONAL | requestable |
+| `pricing[].min_rate` | 5.6 Commercial terms | Amount | OPTIONAL | seller-set |
+| `pricing[].unit_bounds` | 5.6 Commercial terms | Range[Integer] | OPTIONAL | requestable |
+| `availability` | 5.6 Commercial terms | Availability | OPTIONAL | asserted |
+| `commitment_bounds` | 5.6 Commercial terms | CommitmentBounds | OPTIONAL | requestable |
 | `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | mixed |
 | `hold_terms` | 5.6 Commercial terms | HoldTerms | OPTIONAL | seller-set |
 | `hold` | 5.6 Commercial terms | Hold | OPTIONAL | lifecycle |
-| `min_spend` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
-| `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityTerm] | OPTIONAL | selectable |
+| `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityOption] | OPTIONAL | selectable |
 | `creative_policy` | 5.6 Commercial terms | Object | OPTIONAL | seller-set |
 | `requires` | 5.6 Commercial terms | Requires | OPTIONAL | seller-set |
 | `committed_metrics[]` | 5.7 Guarantees | Array[CommittedMetric] | OPTIONAL | requestable |
@@ -2243,12 +2460,12 @@ body is normative.**
 
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
-| immutable | 9 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 39 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
+| seller-set | 43 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
-| requestable | 4 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `commitment_bounds`, `committed_metrics[]` |
+| requestable | 5 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `pricing[].unit_bounds`, `commitment_bounds`, `committed_metrics[]` |
 | derived | 3 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `pricing[].agreed_rate` |
 | lifecycle | 2 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item), `hold` |
 | recorded | 4 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `change_requests[]`, `external_references[]` |
@@ -2257,13 +2474,13 @@ body is normative.**
 
 ### What the distribution says
 
-Of 86 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
-`supplied` and 4 `requestable`. The remaining 64 are `seller-set`, `immutable`,
+Of 92 fields, **23 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 69 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
-those: its own entries in `assent[]` and `change_requests[]`, and its keys of `commitment`, `assets[]`,
-`buyer_supplied`, and `buyer_requirements`.
+those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
+`commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.
 
-Only the 4 `requestable` fields require a round trip to resolve (§ 5.6.1).
+Only the 5 `requestable` fields require a round trip to resolve (§ 5.6.1).
 Everything else the buyer touches — 18 fields — resolves against bounds the seller
 declared up front. That ratio is the design claim: composition is constraint
 satisfaction, and negotiation is the exception.

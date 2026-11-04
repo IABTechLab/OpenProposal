@@ -20,12 +20,12 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:d14bc746b6060e6810c681aa8862492bee3ae1e659ab3ab9d1fb37ce08c69516",
+      record_digest: "sha256:19a1e3e7079032e144928008906f944c64d6efe364dcb18c00270ff624a4cde4",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:14:03Z",
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:d14bc746b6060e6810c681aa8862492bee3ae1e659ab3ab9d1fb37ce08c69516",
+      record_digest: "sha256:19a1e3e7079032e144928008906f944c64d6efe364dcb18c00270ff624a4cde4",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:31:47Z" }
 
@@ -35,6 +35,18 @@ negotiation_history:
   - { version: 2, actor: seller, action: published,
       paths: [{ line_item_id: "weather-app-ctv", pointer: "/materials_due" }],
       at: "2026-10-06T16:20:00Z" }
+
+# Outside record_digest; the terms stay as agreed. The buyer gives notice under the
+# option in effect, so the effective date is the later of 2026-11-30 and 2026-10-22.
+change_requests:
+  - { id: "agency-a-cancel-0001",
+      baseline: { proposal_id: "examplepub-agencya-q4-2026-omni", version: 1,
+                  line_item_id: "business-daily-display" },
+      actor: buyer, at: "2026-10-15T15:20:00Z",
+      accountid: "23873345", orderid: "345301", lineid: "778412", requesterid: "7987654",
+      cancellation: { option_id: "notice-7d", notice_received_at: "2026-10-15T15:20:00Z",
+                      requested_effective_at: "2026-11-30T23:59:59Z", cancelled_share: 0.5 },
+      comments: "Cancel half of what remains from the end of November." }
 
 line_items:
   - line_item_id:   "business-daily-display"
@@ -67,20 +79,25 @@ line_items:
     time_zone:      "America/New_York"
     pricing:
       # agreed_rate: (24.00 + 3.00) x (1 + 0.02) = 27.54 (§ 5.6)
-      - { cost_method: CPM, list_rate: 24.00, agreed_rate: 27.54,
+      - { pricing_id: "bd-cpm-usd", cost_method: CPM, list_rate: 24.00, agreed_rate: 27.54,
           price_valid_until: "2026-11-15T23:59:59Z", currency: USD, price_type: 3 }
-    commitment_bounds: { min_budget: 10000.00, max_budget: 500000.00 }
+      - { pricing_id: "bd-cpm-eur", cost_method: CPM, list_rate: 22.00,
+          price_valid_until: "2026-11-15T23:59:59Z", currency: EUR, price_type: 3 }
+    commitment_bounds: { spend: { min: 10000.00, max: 500000.00 },
+                         earliest_start: "2026-10-05T00:00:00Z", latest_end: "2026-12-31T23:59:59Z" }
     cancellation_policy:
-      available:    [{ id: "notice-14d" }, { id: "notice-7d" }]
+      available:
+        - { id: "notice-14d", notice_duration: "P14D", max_share: 1, fees: [{ calculation: none }] }
+        - { id: "notice-7d", notice_duration: "P7D", max_share: 1, fees: [{ calculation: none }] }
       included:     ["notice-14d"]
       deltas:       { "notice-7d": { delta_fraction: 0.02 } }
       max_select:   1
       selected:     ["notice-7d"]                            # the buyer's write
     commitment:
+      pricing_id:      "bd-cpm-usd"
       basis:           spend
       amount:          80000.00
-      currency:        USD
-      flight:          { start: "2026-10-12T00:00:00Z", end: "2026-12-21T23:59:59Z" }
+      flight: { start: "2026-10-12T00:00:00Z", end: "2026-12-21T23:59:59Z" }
       advertisers:     [{ domain: "brand-a.example" }]
       derived_units:   2904865             # derived: 80000.00 / 27.54 × 1000
     hold_terms:     { available: true, duration: "P7D" }
@@ -111,10 +128,10 @@ line_items:
     creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
     materials_due:  { at: "2026-10-20T23:59:59Z" }   # version 1 had "2026-10-13T23:59:59Z"
     pricing:
-      - { cost_method: CPM, list_rate: 45.00,
+      - { pricing_id: "ctv-pg-cpm-usd", cost_method: CPM, list_rate: 45.00,
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD,
           price_type: 3 }                  # Fixed Price
-    commitment_bounds: { min_budget: 25000.00 }
+    commitment_bounds: { spend: { min: 25000.00 } }
     hold_terms:     { available: true, duration: "P14D" }
     hold:                                # granted on version 1, re-offered at version 2
       status:       held
@@ -123,11 +140,11 @@ line_items:
         commitment:
           basis:    spend
           amount:   160000.00
-          currency: USD
           flight:   { start: "2026-11-02T00:00:00Z", end: "2026-12-21T23:59:59Z" }
         properties: { selected: ["weather-app"] }
-      held_availability: { unit: impressions, as_of: "2026-10-06T16:20:00Z",
-                           type: reservable, quantity: 3555555 }
+      held_availability: { unit: impressions, computed_at: "2026-10-06T16:20:00Z",
+                           window: { start: "2026-11-02T00:00:00Z", end: "2026-12-21T23:59:59Z" },
+                           certainty: reservable, quantity: 3555555 }
       position:     1
       valid_until:  "2026-10-20T00:00:00Z"
     transaction_mechanism:

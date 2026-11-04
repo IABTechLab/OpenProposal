@@ -1,5 +1,6 @@
 # OpenProposal 3.0 — Example: Display line item, fully worked (spec § 6.2)
-# Shows selectable audiences with per-option pricing and settable bounds.
+# Shows selectable audiences with per-option pricing, pricing alternatives in two
+# currencies, cancellation options, and settable bounds.
 line_item_id:   "business-daily-display"
 status:         published
 channel:        display
@@ -61,14 +62,30 @@ exclusions_accepted:                   # what this seller can enforce (§ 5.5)
   enforcement:  { domain: pre_serve, iab_content_category: pre_serve, keyword: best_effort }
 
 pricing:
-  - cost_method:       CPM
+  - pricing_id:        "bd-cpm-usd"
+    cost_method:       CPM
     list_rate:         24.00
     min_rate:          21.00
     price_valid_until: "2026-11-15T23:59:59Z"
     currency:          USD
     price_type:        3              # Fixed Price
+  - pricing_id:        "bd-cpm-eur"
+    cost_method:       CPM
+    list_rate:         22.00
+    price_valid_until: "2026-11-15T23:59:59Z"
+    currency:          EUR
+    price_type:        3              # Fixed Price
 
-commitment_bounds: { min_budget: 10000.00, max_budget: 500000.00 }
+cancellation_policy:
+  available:
+    - { id: "notice-14d", notice_duration: "P14D", max_share: 1, fees: [{ calculation: none }] }
+    - { id: "notice-7d", notice_duration: "P7D", max_share: 1, fees: [{ calculation: none }] }
+  included:     ["notice-14d"]
+  deltas:       { "notice-7d": { delta_fraction: 0.02 } }
+  max_select:   1
+
+commitment_bounds: { spend: { min: 10000.00, max: 500000.00 },
+                     earliest_start: "2026-10-05T00:00:00Z", latest_end: "2026-12-31T23:59:59Z" }
 
 hold_terms:     { available: true, duration: "P7D" }
 

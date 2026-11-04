@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Executable discussion profile for #30, #94 and #115, not a wire validator."""
+"""Pricing arithmetic vectors for #30, #94 and #115.
+
+These test this adapter's arithmetic against fixed expected values. They read neither
+the specification nor the examples; scripts/check_examples.py does that.
+"""
 
 import argparse
 import json
+import math
 import re
 from fractions import Fraction
 from pathlib import Path
@@ -32,18 +37,27 @@ def shape(obj, required, optional=()):
     require(obj.keys() <= set(required) | set(optional), "unsupported_field")
 
 
+def check_range(bounds, actual, outside):
+    """Apply a Range (section 2.2) of decimal strings to one value."""
+    shape(bounds, (), ("min", "max"))
+    require(bounds, "empty_bounds")
+    values = {key: number(value) for key, value in bounds.items()}
+    require(all(value >= 0 for value in values.values()), "negative_bound")
+    require(len(values) < 2 or values["min"] <= values["max"], "inverted_bounds")
+    require(actual >= values.get("min", actual) and actual <= values.get("max", actual), outside)
+
+
 def resolve(case):
     """Resolve already selected adjustments using exact rational arithmetic.
 
-    Input names are fixture adapter keys, not proposed OpenProposal fields.
-    Only a caller that has established acceptance may supply accepted_counter.
+    Keys take their names from sections 3.1, 5.6 and 5.6.1. basis, amount and
+    pricing_id are the commitment's, and adjustments holds the deltas in effect.
     """
-    shape(case, ("pricing", "basis", "amount", "currency", "adjustments"),
-          ("pricing_id", "accepted_counter", "selection_key", "bounds"))
+    shape(case, ("pricing", "basis", "amount", "adjustments"), ("pricing_id", "commitment_bounds"))
     rows = case["pricing"]
     require(isinstance(rows, list) and rows, "missing_pricing")
     for row in rows:
-        shape(row, ("pricing_id", "cost_method", "gross_rate", "currency"), ("floor",))
+        shape(row, ("pricing_id", "cost_method", "list_rate", "currency"), ("min_rate", "unit_bounds"))
         require(isinstance(row["pricing_id"], str) and row["pricing_id"], "invalid_pricing_id")
     ids = [row["pricing_id"] for row in rows]
     require(len(ids) == len(set(ids)), "duplicate_pricing_id")
@@ -53,84 +67,70 @@ def resolve(case):
     row = rows[ids.index(chosen)]
     method = row["cost_method"]
     require(isinstance(method, str), "invalid_shape")
-    method = method.upper()
     require(method in ("CPM", "CPMV", "CPC"), "unsupported_cost_method")
     require(isinstance(row["currency"], str) and re.fullmatch(r"[A-Z]{3}", row["currency"]),
             "invalid_currency")
-    require(case["currency"] == row["currency"], "currency_mismatch")
     require(case["basis"] in ("spend", "units"), "unsupported_basis")
     amount = number(case["amount"])
     require(amount > 0, "nonpositive_amount")
-    rate = number(row["gross_rate"])
+    rate = number(row["list_rate"])
     require(rate >= 0, "nonpositive_rate")
     cpm_delta, flat, factors = Fraction(0), Fraction(0), []
     adjustments = case["adjustments"]
     require(isinstance(adjustments, list), "invalid_shape")
     adjustment_ids = set()
     for adjustment in adjustments:
-        shape(adjustment, ("id",), ("delta_cpm", "delta_pct", "delta_flat"))
+        shape(adjustment, ("id",), ("delta_cpm", "delta_fraction", "delta_flat"))
         key = adjustment["id"]
         require(isinstance(key, str) and key, "invalid_adjustment_id")
         require(key not in adjustment_ids, "duplicate_adjustment")
         adjustment_ids.add(key)
         require(len(adjustment) > 1, "empty_adjustment")
         if "delta_cpm" in adjustment:
-            require(method in ("CPM", "CPMV"), "incompatible_delta_cpm")
-            cpm_delta += number(adjustment["delta_cpm"])
+            # Section 3.1: it enters only a CPM or CPMV rate, and an option priced
+            # only by it doesn't resolve against any other entry.
+            delta = number(adjustment["delta_cpm"])
+            if method in ("CPM", "CPMV"):
+                cpm_delta += delta
+            else:
+                require(len(adjustment) > 2, "incompatible_delta_cpm")
         if "delta_flat" in adjustment:
             fee = number(adjustment["delta_flat"])
             require(fee >= 0, "unsupported_flat_credit")
             flat += fee
-        if "delta_pct" in adjustment:
-            factor = 1 + number(adjustment["delta_pct"])
-            require(factor > 0, "nonpositive_percentage_factor")
+        if "delta_fraction" in adjustment:
+            factor = 1 + number(adjustment["delta_fraction"])
+            require(factor > 0, "invalid_delta_fraction")
             factors.append(factor)
     rate += cpm_delta
     for factor in factors:
         rate *= factor
-    if "accepted_counter" in case:
-        counter = case["accepted_counter"]
-        shape(counter, ("rate", "selection_key"))
-        require(isinstance(case.get("selection_key"), str) and case["selection_key"],
-                "counter_binding_required")
-        require(counter["selection_key"] == case["selection_key"], "stale_counter")
-        # The accepted counter is the final composed rate, not a new base rate.
-        rate = number(counter["rate"])
+    # Section 5.6: exact decimal, rounded once, half up, to 6 places.
+    rate = Fraction(math.floor(rate * 10**6 + Fraction(1, 2)), 10**6)
     require(rate > 0 if case["basis"] == "spend" else rate >= 0, "nonpositive_rate")
-    floor = number(row.get("floor", "0"))
-    require(floor >= 0, "negative_floor")
-    # A posted automatic-resolution floor cannot veto explicit acceptance.
-    # This arithmetic adapter does not choose or evaluate floor semantics.
+    # min_rate is a hint (section 5.6), so it never changes the result.
+    require(number(row.get("min_rate", "0")) >= 0, "negative_min_rate")
     rate_per = 1000 if method in ("CPM", "CPMV") else 1
     if case["basis"] == "spend":
         total = amount
         require(total >= flat, "fees_exceed_spend")
         media = total - flat
-        units = media / rate * rate_per
+        # Section 5.6.5: rounded down to a whole unit.
+        units = Fraction(math.floor(media / rate * rate_per))
     else:
         units = amount
         media = units / rate_per * rate
         total = media + flat
-    bounds = case.get("bounds", {})
-    shape(bounds, (), ("min_budget", "max_budget", "min_spend", "min_impressions", "max_impressions"))
-    values = {key: number(value) for key, value in bounds.items()}
-    require(all(value >= 0 for value in values.values()), "negative_bound")
-    for low, high in (("min_budget", "max_budget"), ("min_impressions", "max_impressions")):
-        require(low not in values or high not in values or values[low] <= values[high],
-                "inverted_bounds")
-    require("min_spend" not in values or "max_budget" not in values or
-            values["min_spend"] <= values["max_budget"], "inverted_bounds")
-    for name, value in values.items():
-        actual = total
-        if name.endswith("impressions"):
-            require(method == "CPM", "unsupported_impression_bound")
-            actual = units
-        require(actual >= value if name.startswith("min_") else actual <= value,
-                "outside_" + name)
-    return {"pricing_id": chosen, "currency": row["currency"], "floor_check": "not_checked",
+    commitment_bounds = case.get("commitment_bounds", {})
+    shape(commitment_bounds, (), ("spend",))
+    if "spend" in commitment_bounds:
+        check_range(commitment_bounds["spend"], total, "outside_spend_bounds")
+    if "unit_bounds" in row:
+        check_range(row["unit_bounds"], units, "outside_unit_bounds")
+    return {"pricing_id": chosen, "currency": row["currency"], "min_rate_check": "not_checked",
             **{key: str(value) for key, value in {
                 "agreed_rate": rate, "flat_charges": flat, "media_spend": media,
-                "seller_total": total, "units": units}.items()}}
+                "seller_total": total, "derived_units": units}.items()}}
 
 
 def evaluate(case):
@@ -159,7 +159,8 @@ def main():
             print(("PASS " if result["passed"] else "FAIL ") + result["id"])
             if not result["passed"]:
                 print(json.dumps(result, indent=2))
-        print(f"{passed}/{len(results)} pricing discussion vectors pass")
+        print(f"{passed}/{len(results)} pricing arithmetic vectors pass; "
+              "this reads neither the specification nor the examples")
     return int(passed != len(results))
 
 

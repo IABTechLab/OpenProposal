@@ -24,11 +24,36 @@ frequency_cap:  { count: { min: 1, max: 6, default: 3 }, period: day, per: liste
 time_zone:      viewer_local
 
 pricing:
-  - { cost_method: CPM, list_rate: 18.00, min_rate: 15.84,
+  - { pricing_id: "audio-cpm-usd", cost_method: CPM, list_rate: 18.00, min_rate: 15.84,
       price_valid_until: "2026-12-15T23:59:59Z", currency: USD,
       price_type: 3 }                  # Fixed Price
 
-commitment_bounds: { min_budget: 5000.00 }
+commitment_bounds: { spend: { min: 5000.00 } }
+
+cancellation_policy:
+  available:
+    - id: "stepped-fee"
+      notice_duration: "P0D"
+      max_share: 1
+      fees:
+        - { before_reference: "P60D", calculation: none }
+        - { before_reference: "P30D", calculation: cancelled, share: 0.25 }
+        - { before_reference: "P7D",  calculation: cancelled, share: 0.50 }
+        - { before_reference: "P0D",  calculation: cancelled, share: 1.00 }
+  included:     ["stepped-fee"]
+  max_select:   1
+
+exclusivity:
+  available:
+    - id: "auto-pod"
+      scope: category
+      categories: { taxonomy: 8, ids: ["1551"] }   # Ad Product Taxonomy 2.0: Vehicles
+      competitors: ["competitor-auto.example"]
+      separation: pod
+    - { id: "sole-stream", scope: sole, separation: inventory }
+  included:     []                                 # no exclusivity in the base rate
+  deltas:       { "auto-pod": { delta_cpm: 4.00 }, "sole-stream": { delta_flat: 25000.00 } }
+  max_select:   1
 
 committed_metrics: [{ metric: completion_rate, value: 0.92, basis: seller_reported }]
 visibility:        public

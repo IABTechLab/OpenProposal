@@ -19,12 +19,12 @@ description: >
 
 assent:
   - { role: commitment, version: 2,
-      record_digest: "sha256:82dd08b5e87324f96db8468a62374f3dac2f858980b9e4eae4cb81100fc4580b",
+      record_digest: "sha256:6bf83082243277d3dd81c7495c7013fc0d0a46148972183dc0dbb7983097c95f",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:14:03Z",
       idempotency_key: "agency-a-camp1-q4-2026-5d10e2c7" }
   - { role: acceptance, version: 2,
-      record_digest: "sha256:82dd08b5e87324f96db8468a62374f3dac2f858980b9e4eae4cb81100fc4580b",
+      record_digest: "sha256:6bf83082243277d3dd81c7495c7013fc0d0a46148972183dc0dbb7983097c95f",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:31:47Z" }
 
@@ -69,14 +69,14 @@ line_items:
     creative_delivery: { method: buyer_hosted, protocol: javascript_tag, secure_required: true }
     materials_due:  { at: "2026-09-28T23:59:59Z" }   # version 1 had "2026-09-24T23:59:59Z"
     pricing:
-      - { cost_method: CPM, list_rate: 24.00, agreed_rate: 24.00, min_rate: 21.00,
-          price_valid_until: "2026-11-15T23:59:59Z", currency: USD,
+      - { pricing_id: "bd-cpm-usd", cost_method: CPM, list_rate: 24.00, agreed_rate: 24.00,
+          min_rate: 21.00, price_valid_until: "2026-11-15T23:59:59Z", currency: USD,
           price_type: 3 }
-    commitment_bounds: { min_budget: 10000.00, max_budget: 500000.00 }
+    commitment_bounds: { spend: { min: 10000.00, max: 500000.00 },
+                         earliest_start: "2026-10-05T00:00:00Z", latest_end: "2026-12-31T23:59:59Z" }
     commitment:
       basis:           spend
       amount:          80000.00
-      currency:        USD
       flight: { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
       advertisers:     [{ domain: "brand-a.example" }]
       derived_units:   3333333
@@ -109,14 +109,13 @@ line_items:
       included:     ["ctv/instream-15s"]
     creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
     pricing:
-      - { cost_method: CPM, list_rate: 45.00, agreed_rate: 45.00, min_rate: 39.60,
+      - { pricing_id: "ctv-pa-cpm-usd", cost_method: CPM, list_rate: 45.00, agreed_rate: 45.00, min_rate: 39.60,
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD,
           price_type: 1 }                  # First Price
-    commitment_bounds: { min_budget: 25000.00 }
+    commitment_bounds: { spend: { min: 25000.00 } }
     commitment:
       basis:           spend
       amount:          160000.00
-      currency:        USD
       flight: { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
       advertisers:     [{ domain: "brand-a.example" }]
     hold_terms:     { available: false }   # private_auction: no inventory reserved

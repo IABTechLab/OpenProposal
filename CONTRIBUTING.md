@@ -40,10 +40,8 @@ them, but the short version:
 
 - **Cite the section.** `§ 5.6.1 commitment`, not "the commitment bit".
 - **Say what breaks.** A concrete scenario — a seller, a buyer, a field, and the
-  wrong outcome — beats a general objection. "A seller offering the same
-  inventory as both PG and PMP cannot express different floors per mechanism,
-  because `pricing[]` sits above `transaction_mechanism`" is actionable. "The
-  pricing model is too simple" is not.
+  wrong outcome — beats a general objection such as "the pricing model is too
+  simple".
 - **Say what you'd do instead**, even roughly. A rejected alternative is more
   useful to the working group than an unanswered complaint.
 - **Declare your interest.** Tell us whether you are commenting as a buyer,

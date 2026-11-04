@@ -63,9 +63,8 @@ body:
         A specific case where the draft as written produces the wrong outcome or
         cannot express what you need. This is what makes a comment actionable.
       placeholder: >-
-        A seller offering the same inventory as both PG and PMP cannot express a
-        different floor per mechanism, because pricing[] sits above
-        transaction_mechanism.
+        A [seller, buyer, or agent] doing [a specific case] can't express [what it
+        needs], because [the field or rule in the draft].
   - type: dropdown
     id: perspective
     attributes:

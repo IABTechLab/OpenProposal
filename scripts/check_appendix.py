@@ -49,6 +49,7 @@ LAYOUTS = {
     ("`code`", "Returned when"),
     ("`channel`", "Condition"),
     ("`environments`", "Distribution channel", "Device types"),
+    ("`cost_method`", "`unit`", "One unit", "Rate per", "`cost_parameters`"),
     # Other tables state rules as prose does (section 2.6).
     ("OpenDirect 2.1", "From the agreed line item"),
     ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
@@ -71,13 +72,8 @@ BASE_TYPES = {
 PENDING_TYPES = {
     "PropertyOption": "the property option",
     "AudienceOption": "the audience option",
-    "Availability": "the availability figure",
     "BuyerSupplied": "the buyer-supplied audience data",
-    "CancellationOption": "the cancellation option",
-    "ExclusivityTerm": "the exclusivity term",
-    "MinCommitment": "the purchase-level threshold",
     "CommittedMetric": "the committed metric tuple",
-    "CancellationNotice": "the cancellation notice",
 }
 
 # Objects typed Object: open by definition, small and inline, or waiting on the
@@ -89,8 +85,6 @@ PENDING_OBJECTS = {
     "`approval`": "waiting: the review policy",
     "`exclusions_accepted`": "waiting: the accepted exclusion terms",
     "`exclusions`": "waiting: the exclusion lists",
-    "`availability`": "waiting: the availability figure",
-    "`commitment_bounds`": "waiting: the commitment bounds",
     "`creative_policy`": "waiting: the creative policy",
     "`contacts[]`": "imported: OpenDirect 2.1 Contact",
     "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
