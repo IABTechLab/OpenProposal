@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-10-03T15:00:00Z",
+  "spec_version": "3.0",
+  "proposals": [
+    {
+      "proposal_id": "examplepub-us-q4-2026-omni",
+      "version": 1,
+      "seller": {
+        "domain": "examplepub.example",
+        "legal_name": "Example Publisher US"
+      },
+      "description": "Cross-channel Example Publisher US package spanning display, in-stream video and CTV. Business and financial audience skew, weekday-heavy delivery.\n",
+      "offer_window": {
+        "start": "2026-10-01T00:00:00Z",
+        "end": "2026-12-31T23:59:59Z"
+      },
+      "linked_execution": "none",
+      "full_url": "https://examplepub.example/openproposal/examplepub-us-q4-2026-omni",
+      "line_items": [
+        {
+          "line_item_id": "streaming-audio",
+          "channel": "audio",
+          "environments": {
+            "available": [
+              "web_mobile",
+              "app_mobile"
+            ]
+          },
+          "formats": {
+            "included": [
+              "audio/produced-30s"
+            ]
+          },
+          "pricing": [
+            {
+              "cost_method": "CPM",
+              "gross_rate": 18.0,
+              "currency": "USD"
+            }
+          ],
+          "commitment_bounds": {
+            "min_budget": 5000.0
+          },
+          "committed_metrics": [
+            {
+              "metric": "completion_rate",
+              "value": 0.92,
+              "basis": "seller_reported"
+            }
+          ],
+          "transaction_mechanism": {
+            "available": [
+              "preferred_deal"
+            ]
+          },
+          "has_requires": false
+        },
+        {
+          "line_item_id": "weather-app-ctv",
+          "channel": "ctv",
+          "environments": {
+            "available": [
+              "ctv"
+            ]
+          },
+          "properties": {
+            "available": [
+              {
+                "id": "weather-app"
+              }
+            ]
+          },
+          "formats": {
+            "included": [
+              "ctv/instream-15s"
+            ]
+          },
+          "pricing": [
+            {
+              "cost_method": "CPM",
+              "gross_rate": 45.0,
+              "currency": "USD"
+            }
+          ],
+          "commitment_bounds": {
+            "min_budget": 25000.0
+          },
+          "committed_metrics": [
+            {
+              "metric": "completion_rate",
+              "value": 0.95,
+              "basis": "seller_reported"
+            }
+          ],
+          "transaction_mechanism": {
+            "available": [
+              "private_auction"
+            ]
+          },
+          "has_requires": false
+        }
+      ]
+    }
+  ]
+}
