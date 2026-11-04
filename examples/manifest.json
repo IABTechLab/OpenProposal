@@ -53,7 +53,8 @@
             {
               "cost_method": "CPM",
               "list_rate": 18.0,
-              "currency": "USD"
+              "currency": "USD",
+              "price_type": 3
             }
           ],
           "commitment_bounds": {
@@ -68,7 +69,10 @@
           ],
           "transaction_mechanism": {
             "available": [
-              "preferred_deal"
+              {
+                "id": "preferred_deal",
+                "delivery_type": "non_guaranteed"
+              }
             ]
           },
           "has_requires": false
@@ -97,7 +101,8 @@
             {
               "cost_method": "CPM",
               "list_rate": 45.0,
-              "currency": "USD"
+              "currency": "USD",
+              "price_type": 1
             }
           ],
           "commitment_bounds": {
@@ -112,7 +117,10 @@
           ],
           "transaction_mechanism": {
             "available": [
-              "private_auction"
+              {
+                "id": "private_auction",
+                "delivery_type": "non_guaranteed"
+              }
             ]
           },
           "has_requires": false

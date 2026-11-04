@@ -31,7 +31,8 @@ whether resolving inside one is worth the modelling cost.
 The object is fully inline. A seller reuses catalog entries in its own systems, and
 a summary lists what § 2.1 names. A reference a buyer could fetch would buy
 compactness across a large shelf at the cost of a fetch rule, a resolution step
-during discovery, and a versioning regime sellers must operate.
+during discovery, and a versioning regime sellers must operate. A `Line.productid`
+would be one use: an agreed record doesn't say which OpenDirect `Product` it books.
 
 **What would settle it:** how large a real shelf gets, and whether sellers
 already maintain versioned, immutable catalog entries or would have to build
@@ -125,6 +126,18 @@ sends.
 
 **What would settle it:** which validator polling clients use, and what the hosts
 that serve the manifest send by default.
+
+---
+
+### OQ-12 — How does a `change_requests[]` entry state a change other than a cancellation?
+
+**Issue:** [#68](https://github.com/IABTechLab/OpenProposal/issues/68)  ·  **Spec:** § 4.4
+
+`cancellation` states a notice to cancel. The OpenDirect 2.1 ChangeRequest has no
+structured statement of any other change, only free-text `comments`.
+
+**What would settle it:** how sellers and buyers state a change today, and what a
+system that applies one needs to read.
 
 ---
 

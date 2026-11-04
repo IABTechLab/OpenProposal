@@ -43,14 +43,19 @@ LAYOUTS = {
     ("Type", "Form", "Rules"),
     ("Marker", "Meaning"),
     # Value tables (section 2.6): the first header cell names the key that holds the list.
+    ("`transaction_mechanism`", "Downstream standard", "`reference_type` (§ 5.10)", "Change path"),
+    ("`transaction_mechanism`", "Deal mechanism", "`delivery_type`"),
+    ("`method`", "Who hosts the creative", "What reaches the seller"),
     ("`code`", "Returned when"),
     ("`channel`", "Condition"),
     ("`environments`", "Distribution channel", "Device types"),
     # Other tables state rules as prose does (section 2.6).
-    ("OpenProposal concept", "Downstream standard"),
+    ("OpenDirect 2.1", "From the agreed line item"),
     ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
+    ("Deals API 1.0", "OpenRTB 2.6", "From the agreed line item"),
     ("Interaction", "Actor", "Effect; history `action`"),
     ("Instant", "Ends", "Effect when passed"),
+    ("Rule", "Profile choice"),
     # Generated.
     ("Field", "Section", "Type", "Required", "Marker"),
     ("Marker", "Count", "Meaning", "Fields"),
@@ -64,7 +69,6 @@ BASE_TYPES = {
 # Named in a Type cell before the change that gives them a key table. Remove a
 # name when its table lands. This list only shrinks.
 PENDING_TYPES = {
-    "AssentEntry": "the assent entry",
     "PropertyOption": "the property option",
     "AudienceOption": "the audience option",
     "Availability": "the availability figure",
@@ -73,7 +77,7 @@ PENDING_TYPES = {
     "ExclusivityTerm": "the exclusivity term",
     "MinCommitment": "the purchase-level threshold",
     "CommittedMetric": "the committed metric tuple",
-    "ExternalReference": "the external reference entry",
+    "CancellationNotice": "the cancellation notice",
 }
 
 # Objects typed Object: open by definition, small and inline, or waiting on the
@@ -88,7 +92,8 @@ PENDING_OBJECTS = {
     "`availability`": "waiting: the availability figure",
     "`commitment_bounds`": "waiting: the commitment bounds",
     "`creative_policy`": "waiting: the creative policy",
-    "`terms_ref`": "waiting: the binding document reference",
+    "`contacts[]`": "imported: OpenDirect 2.1 Contact",
+    "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
 }
 
 BODY_SECTION = re.compile(r"^#{3,4} ((?:4|5)\.\d+(?:\.\d+)?)\s")

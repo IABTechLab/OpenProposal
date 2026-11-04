@@ -14,7 +14,8 @@ time_zone:      viewer_local
 
 pricing:
   - { cost_method: CPM, list_rate: 45.00, min_rate: 39.60,
-      price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
+      price_valid_until: "2026-12-01T23:59:59Z", currency: USD,
+      price_type: 1 }                  # First Price
 
 commitment_bounds: { min_budget: 25000.00 }
 
@@ -22,9 +23,11 @@ hold_terms:     { available: false }   # private_auction: no inventory reserved
 
 committed_metrics: [{ metric: completion_rate, value: 0.95, basis: seller_reported }]
 visibility:        public
-buying_route:      SSP_PLATFORM
-transaction_mechanism: { available: ["private_auction"], included: ["private_auction"], max_select: 1 }
+transaction_mechanism:
+  available:  [{ id: private_auction, delivery_type: non_guaranteed }]
+  included:   ["private_auction"]
+  max_select: 1
 serving_mode:      ssai
-correlation_id:    "ep-q4-2026-commitment/weather-app-ctv"
+deal_origin:       "ssp-a.example"
 
 # Inspecting this line item's VAST creative is subject to § 5.4.1.

@@ -16,12 +16,21 @@ change to this script. It checks:
   - A settable field holds its form, and each buyer value is within its bounds
     (section 3.2). A line item declares geo or markets, not both (section 5.5).
   - agreed_rate recomputes under section 5.6, on the committed entry only.
+  - Each mechanism option fits its row in section 5.9. deal_origin is on a deal line
+    item only, a deal reference names deal_origin (section 5.10), and availability is
+    forecast under non_guaranteed (section 5.6).
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
   - Each section 4.1.1 removal path resolves to a table row.
-  - Each assent[] entry's record_digest recomputes under section 4.1.1, over the
-    line items its line_item_ids[] names.
+  - record_digest in examples/proposal-agreed.yaml and examples/proposal-issued.yaml
+    recomputes under section 4.1.1, over the line items each entry names, and a
+    buyer_supplied that holds no key after the removals moves no digest.
+  - In those examples a withdrawal or decline matches a commitment entry before it,
+    an acceptance matches a live commitment entry, and a line item is agreed only
+    with a matching pair (section 4.1.2).
+  - A change_requests[] baseline names an agreed line item at the version of its
+    acceptance entry (section 4.4).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -61,6 +70,21 @@ KNOWN = {
 EMPTY_ALLOWED = set()
 # The cost methods delta_cpm applies to (section 3.1).
 IMPRESSION_METHODS = set()
+# The mechanism table of section 5.9.
+MECHANISMS = {}
+
+
+def _options(item):
+    options = (item.get("transaction_mechanism") or {}).get("available", [])
+    return [o for o in options if isinstance(o, dict)]
+
+
+def _mechanisms(item):
+    return {o.get("id") for o in _options(item)}
+
+
+def _is_deal(mechanisms):
+    return any(MECHANISMS.get(m, {}).get("deal") for m in mechanisms)
 
 
 def _committed_entry(item):
@@ -69,6 +93,16 @@ def _committed_entry(item):
     if not item.get("commitment"):
         return None
     return entries[0] if len(entries) == 1 else None
+
+
+def _has_order_reference(entry, proposal):
+    """Whether the line item a change_requests[] entry names has an order id."""
+    named = (entry.get("baseline") or {}).get("line_item_id")
+    for item in (proposal or {}).get("line_items", []):
+        if item.get("line_item_id") == named:
+            refs = item.get("external_references", [])
+            return any(r.get("reference_type") == "order" for r in refs)
+    return False
 
 
 # Each `REQUIRED when <condition>` wording, as (object, line item, proposal) -> bool.
@@ -82,8 +116,13 @@ CONDITIONS = {
         lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
                             for e in (p or {}).get("negotiation_history", [])),
     "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
-    "`terms_acceptance_required` is `true`":
-        lambda o, i, p: i.get("terms_acceptance_required") is True,
+    "`role` is `commitment`": lambda o, i, p: o.get("role") == "commitment",
+    "the line item has an `order` reference (§ 5.10)":
+        lambda o, i, p: _has_order_reference(o, p),
+    # No example holds a CommitResult. A ground of availability is the one sign of it.
+    "`entries[]` holds a `decline` for lack of availability":
+        lambda o, i, p: any(e.get("role") == "decline" and e.get("ground") == "availability"
+                            for e in o.get("entries", [])),
     "`basis` is `spend`": lambda o, i, p: o.get("basis") == "spend",
     "`at` is absent": lambda o, i, p: "at" not in o,
     "`before_start` is absent": lambda o, i, p: "before_start" not in o,
@@ -93,6 +132,11 @@ CONDITIONS = {
     "`daypart` or `frequency_cap` is present":
         lambda o, i, p: "daypart" in o or "frequency_cap" in o,
     "`status` is `held`": lambda o, i, p: o.get("status") == "held",
+    "an option's `delivery_type` is `share_of_voice`":
+        lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
+    "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
+    "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
+    "the entry prices a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
 }
 
 BASE = {"String", "Integer", "Number", "Boolean", "Enum", "Object"}
@@ -128,6 +172,7 @@ SCALARS = {
     "MediaChannel": (lambda v: isinstance(v, str) and TERM.match(v)),
     "String": (lambda v: isinstance(v, str)),
     "Url": (lambda v: isinstance(v, str) and v.startswith(("http://", "https://"))),
+    "HttpsUrl": (lambda v: isinstance(v, str) and v.startswith("https://")),
     "Integer": (lambda v: isinstance(v, int) and not isinstance(v, bool)),
     "IntegerFlag": (lambda v: v in (0, 1) and not isinstance(v, bool)),
     "Number": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
@@ -145,6 +190,8 @@ SCALARS = {
     "HoldStatus": (lambda v: v in ("requested", "held", "declined", "expired", "released",
                                    "converted")),
     "ApprovalStatus": (lambda v: v in ("PENDING", "APPROVED", "REJECTED")),
+    "TransactionMechanism": (lambda v: v in MECHANISMS),
+    "DeliveryType": (lambda v: v in ("guaranteed", "share_of_voice", "non_guaranteed")),
     "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
     "Ext": (lambda v: isinstance(v, dict) and all(
@@ -226,6 +273,20 @@ class Spec:
         self._read_key_tables()
         self._read_lists()
         self._read_option_rules()
+        self._read_mechanisms()
+
+    def _read_mechanisms(self):
+        """The section 5.9 table: deal or not, and the allowed delivery types."""
+        start = self.lines.index(
+            "| `transaction_mechanism` | Deal mechanism | `delivery_type` |")
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            MECHANISMS[clean_key(c[0])] = {
+                "deal": c[1] == "Yes",
+                "delivery": None if c[2] == "Any" else re.findall(r"`([^`]+)`", c[2]),
+            }
 
     def _read_option_rules(self):
         """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
@@ -572,6 +633,25 @@ class Checker:
         if rate != decimal(committed["agreed_rate"]):
             self.err(file, path, "agreed_rate", f"agreed_rate recomputes to {rate}")
 
+    def check_mechanisms(self, file, path, item):
+        """Sections 5.6, 5.9, and 5.10: the mechanism options and what they require."""
+        for option in _options(item):
+            row = MECHANISMS.get(option.get("id"))
+            if row and row["delivery"] is not None and option.get("delivery_type") not in row["delivery"]:
+                self.err(file, path, option["id"],
+                         f"{option['id']} does not allow delivery_type {option.get('delivery_type')!r}")
+        if "deal_origin" in item and not _is_deal(_mechanisms(item)):
+            self.err(file, path, "deal_origin", "deal_origin on a line item with no deal mechanism")
+        for ref in item.get("external_references") or []:
+            if ref.get("reference_type") == "deal" and ref.get("system") != item.get("deal_origin"):
+                self.err(file, path, "deal", "a deal reference has system other than deal_origin")
+        mechanism = item.get("transaction_mechanism") or {}
+        in_effect = mechanism.get("selected", mechanism.get("included", []))
+        delivery = {o.get("delivery_type") for o in _options(item) if o.get("id") in in_effect}
+        figures = item.get("availability")
+        if figures and delivery == {"non_guaranteed"} and figures.get("type") != "forecast":
+            self.err(file, path, "availability", "availability.type is forecast when delivery_type is non_guaranteed")
+
     def check_fields(self, file, path, doc, fields):
         known = {bare(k): r for k, r in fields.items() if "[]." not in k}
         if "line_item_id" in doc:
@@ -598,6 +678,7 @@ class Checker:
                     self.check_value(file, sub, doc[key], row)
         if "line_item_id" in doc:
             self.check_agreed_rate(file, path or "(root)", doc)
+            self.check_mechanisms(file, path or "(root)", doc)
             if "geo" in doc and "markets" in doc:
                 self.err(file, path or "(root)", "markets", "a line item declares geo or markets")
 
@@ -674,7 +755,90 @@ def record_digest(doc, removal, line_item_ids):
     copy["line_items"] = [i for i in copy.get("line_items", []) if i["line_item_id"] in line_item_ids]
     for path in removal:
         remove_path(copy, path[2:].split("."))
+    # Section 4.1.1: the one object the removals don't leave in place when it is empty.
+    for item in copy.get("line_items", []):
+        if item.get("buyer_supplied") == {}:
+            del item["buyer_supplied"]
     return "sha256:" + hashlib.sha256(jcs(copy).encode("utf-8")).hexdigest()
+
+
+def check_digest_ignores_empty_buyer_supplied(checker, doc, removal):
+    """Section 4.1.1: a removed buyer_supplied value moves no digest, and a kept one does."""
+    item = doc["line_items"][0]
+    forms = [
+        None,
+        {},
+        {"match_rate_expected": 0.65},
+        {"segments": [], "suppression_list": {}, "match_rate_expected": 0.65},
+    ]
+    digests = set()
+    for form in forms:
+        copy = json.loads(json.dumps(doc))
+        copy["line_items"][0].pop("buyer_supplied", None)
+        if form is not None:
+            copy["line_items"][0]["buyer_supplied"] = form
+        digests.add(record_digest(copy, removal, [item["line_item_id"]]))
+    if len(digests) != 1:
+        checker.errors.append("record_digest: an absent and an empty buyer_supplied give different digests")
+    copy = json.loads(json.dumps(doc))
+    copy["line_items"][0]["buyer_supplied"] = {"suppression_allowed": True}
+    if record_digest(copy, removal, [item["line_item_id"]]) in digests:
+        checker.errors.append("record_digest: a buyer_supplied that keeps a term moved no digest")
+
+
+def check_assent(checker, file, doc):
+    """Section 4.1.2: only a matching pair makes agreed, and an acceptance matches a live entry."""
+    def key(entry):
+        return entry["version"], entry["record_digest"], frozenset(entry["line_item_ids"])
+
+    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    commitments, live, matched, agreed = [], set(), set(), set()
+    for entry in doc.get("assent", []):
+        role = entry["role"]
+        if "ground" in entry and role != "decline":
+            checker.errors.append(f"{file}: {role} entry carries ground")
+        for named in entry["line_item_ids"]:
+            if named not in items:
+                checker.errors.append(f"{file}: {role} entry names {named}, which is not a line item")
+            elif role == "commitment" and "commitment" not in items[named]:
+                checker.errors.append(f"{file}: commitment entry names {named}, which has no commitment")
+        if role == "commitment":
+            commitments.append(key(entry))
+            live.add(key(entry))
+        elif role == "acceptance":
+            # Section 4.1.2: an acceptance matches only a live commitment entry.
+            if key(entry) not in live:
+                checker.errors.append(f"{file}: acceptance entry matches no live commitment entry")
+            else:
+                matched.add(key(entry))
+                agreed.update(entry["line_item_ids"])
+        elif key(entry) not in commitments:
+            checker.errors.append(f"{file}: {role} entry matches no commitment entry before it")
+        elif key(entry) not in matched:
+            live.discard(key(entry))
+    for name, item in items.items():
+        if (item.get("status") == "agreed") != (name in agreed):
+            checker.errors.append(f"{file}: {name} has status {item.get('status')!r}, "
+                                  f"and assent[] {'has' if name in agreed else 'has no'} matching pair")
+
+
+def check_change_requests(checker, file, doc):
+    """Section 4.4: each entry names an agreed line item at its agreed version."""
+    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    for n, entry in enumerate(doc.get("change_requests", [])):
+        where = f"{file}: change_requests[{n}].baseline"
+        baseline = entry.get("baseline", {})
+        named = baseline.get("line_item_id")
+        if baseline.get("proposal_id") != doc.get("proposal_id"):
+            checker.errors.append(f"{where}: names another proposal")
+        if named is None:
+            checker.errors.append(f"{where}: line_item_id is REQUIRED here")
+        elif items.get(named, {}).get("status") != "agreed":
+            checker.errors.append(f"{where}: {named} is not an agreed line item")
+        versions = {e["version"] for e in doc.get("assent", [])
+                    if e["role"] == "acceptance" and named in e["line_item_ids"]}
+        if baseline.get("version") not in versions:
+            checker.errors.append(f"{where}: no acceptance entry names {named} at that version")
 
 
 # Summary -------------------------------------------------------------------
@@ -784,14 +948,18 @@ def main():
         checker.errors.append(f"manifest.json: {e}")
     checker.check_removal_paths()
 
+    check_digest_ignores_empty_buyer_supplied(checker, load_yaml(EXAMPLES / "proposal-agreed.yaml"), spec.removal)
+
     digests = {}
-    for path in sorted(EXAMPLES.glob("*.yaml")):
-        doc = load_yaml(path)
+    for name in ("proposal-agreed.yaml", "proposal-issued.yaml"):
+        doc = load_yaml(EXAMPLES / name)
+        check_assent(checker, name, doc)
+        check_change_requests(checker, name, doc)
         for entry in doc.get("assent", []):
             digest = record_digest(doc, spec.removal, entry["line_item_ids"])
-            digests[path.name] = digest
+            digests[name] = digest
             if entry["record_digest"] != digest:
-                checker.errors.append(f"{path.name}: record_digest recomputes to {digest}")
+                checker.errors.append(f"{name}: record_digest recomputes to {digest}")
 
     stale = KNOWN - checker.used_known
     for item in sorted(stale):

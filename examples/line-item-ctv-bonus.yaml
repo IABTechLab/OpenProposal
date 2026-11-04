@@ -25,6 +25,9 @@ pricing:
 commitment_bounds: { max_impressions: 500000 }
 
 visibility:   registry_gated     # its requires names the gated display line item
-buying_route:      SSP_PLATFORM
-transaction_mechanism: { available: ["private_auction"], included: ["private_auction"], max_select: 1 }
+
+transaction_mechanism:
+  available:  [{ id: direct_io, delivery_type: non_guaranteed }]
+  included:   ["direct_io"]
+  max_select: 1
 serving_mode:      ssai

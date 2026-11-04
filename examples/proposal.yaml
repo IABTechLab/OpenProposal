@@ -16,8 +16,7 @@ negotiation_history:
   - { version: 1, actor: seller, action: published, paths: [],
       at: "2026-09-22T09:00:00Z" }
   - { version: 2, actor: seller, action: published,
-      paths: [{ line_item_id: "business-daily-display", pointer: "/creative_delivery" },
-              { pointer: "/seasonality_notes" }],
+      paths: [{ line_item_id: "business-daily-display", pointer: "/creative_delivery" }],
       at: "2026-10-03T14:12:40Z" }
 
 description: >
