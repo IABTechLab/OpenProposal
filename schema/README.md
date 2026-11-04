@@ -1,7 +1,7 @@
 # Machine-readable schema
 
 **Coming.** Schemas are not published with this first draft; they will follow
-the first revision after the comment period closes on 2026-10-22.
+the first revision after the comment period closes.
 
 The draft in [`../spec/openproposal-3.0.md`](../spec/openproposal-3.0.md) is
 prose and tables. A JSON Schema is deliberately not published alongside this
@@ -10,10 +10,8 @@ period exists to make — in particular:
 
 - whether per-field mutability belongs in the object at all (OQ-1), which
   determines whether a `selectable` field is an object with `available[]` /
-  `included[]` / `pricing` or simply a value;
-- whether `catalog_ref` stays (OQ-2), which determines whether every field is a
-  `oneOf` between an inline value and a reference;
-- whether the `environments[]` enum survives contact with real inventory (OQ-7).
+  `included[]` / `deltas` or a bare value;
+- whether the `environments.available[]` list survives contact with real inventory (OQ-7).
 
 A schema will follow the first revision. Until then, the parseable examples in
 [`../examples/`](../examples/) are the best available reference for shape, and

@@ -67,3 +67,24 @@ jobs:
           python-version: "3.12"
       - name: Check every field in the body appears in Appendix A
         run: python3 scripts/check_appendix.py
+
+  examples-match-spec:
+    name: Examples match the tables
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - run: python3 scripts/check_examples.py
+
+  pricing-fixtures:
+    name: Pricing arithmetic vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 scripts/check_pricing_fixtures.py
