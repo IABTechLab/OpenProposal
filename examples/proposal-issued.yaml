@@ -20,11 +20,11 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:3a91ba82c784a4c2f6800f0be97522cfaf755281729fbad43daab8d8bfe1dd2a",
+      record_digest: "sha256:cdcd75ebd66938fcd872cfc1bf66d10a3244758d7810125639beabe0dcf53430",
       line_item_ids: ["business-daily-display"],
       signed_at: "2026-10-05T10:14:03Z" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:3a91ba82c784a4c2f6800f0be97522cfaf755281729fbad43daab8d8bfe1dd2a",
+      record_digest: "sha256:cdcd75ebd66938fcd872cfc1bf66d10a3244758d7810125639beabe0dcf53430",
       line_item_ids: ["business-daily-display"],
       signed_at: "2026-10-05T10:31:47Z" }
 
@@ -46,8 +46,10 @@ line_items:
       suppression_allowed: true
       suppression_list:    { source: "advertiser_crm", size: 340000, match_method: "ramp_id" }
     formats:
-      available:    ["display/300x250"]
+      available:    ["display/300x250", "display/970x250"]
       included:     ["display/300x250"]
+      deltas:       { "display/970x250": { delta_cpm: 3.00 } }
+      selected:     ["display/300x250", "display/970x250"]   # the buyer's write
     exclusions_accepted:
       types:        [domain, keyword]
       max_entries:  { domain: 5000, keyword: 500 }
@@ -55,10 +57,23 @@ line_items:
     exclusions:                        # supplied by the buyer
       domain:       ["example-gambling.example"]
       keyword:      ["crypto"]
+    geo:
+      allowed:      ["US"]
+      default:      { include: ["US"] }
+      value:        { include: ["US"], exclude: ["US-TX"] }  # the buyer's write
+    frequency_cap:  { count: { min: 1, max: 5, default: 3, value: 4 }, period: day, per: device }
+    time_zone:      "America/New_York"
     pricing:
-      - { cost_method: CPM, gross_rate: 24.00, agreed_rate: 24.00,
+      # agreed_rate: (24.00 + 3.00) x (1 + 0.02) = 27.54 (§ 5.6)
+      - { cost_method: CPM, list_rate: 24.00, agreed_rate: 27.54,
           price_valid_until: "2026-11-15T23:59:59Z", currency: USD }
     commitment_bounds: { min_budget: 10000.00, max_budget: 500000.00 }
+    cancellation_policy:
+      available:    [{ id: "notice-14d" }, { id: "notice-7d" }]
+      included:     ["notice-14d"]
+      deltas:       { "notice-7d": { delta_fraction: 0.02 } }
+      max_select:   1
+      selected:     ["notice-7d"]                            # the buyer's write
     commitment:
       proposal_id:     "examplepub-agencya-q4-2026-omni"
       version:         1
@@ -67,14 +82,14 @@ line_items:
       currency:        USD
       flight:          { start: "2026-10-12T00:00:00Z", end: "2026-12-21T23:59:59Z" }
       advertisers:     [{ domain: "brand-a.example" }]
-      derived_units:   3333333             # derived: 80000.00 / 24.00 × 1000
+      derived_units:   2904865             # derived: 80000.00 / 27.54 × 1000
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9"
     hold_status:    { hold_available: true, hold_duration: "P7D",
                       hold_scope: line_item, state: none }
     visibility:     named
     eligible_buyers: ["agency-a.example"]
     transaction_mechanism: { available: ["programmatic_guaranteed"],
-                             included: ["programmatic_guaranteed"] }
+                             included: ["programmatic_guaranteed"], max_select: 1 }
 
   - line_item_id:   "weather-app-ctv"
     status:         published
@@ -85,7 +100,7 @@ line_items:
       included:     ["ctv/instream-15s"]
     materials_due:  { at: "2026-10-20T23:59:59Z" }   # version 1 had "2026-10-13T23:59:59Z"
     pricing:
-      - { cost_method: CPM, gross_rate: 45.00,
+      - { cost_method: CPM, list_rate: 45.00,
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
     commitment_bounds: { min_budget: 25000.00 }
     hold_status:    { hold_available: true, hold_duration: "P14D",   # re-offered at version 2
@@ -94,4 +109,4 @@ line_items:
     visibility:     named
     eligible_buyers: ["agency-a.example"]
     transaction_mechanism: { available: ["programmatic_guaranteed"],
-                             included: ["programmatic_guaranteed"] }
+                             included: ["programmatic_guaranteed"], max_select: 1 }

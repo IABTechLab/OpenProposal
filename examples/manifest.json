@@ -30,10 +30,29 @@
               "audio/produced-30s"
             ]
           },
+          "markets": {
+            "available": [
+              "US",
+              "CA",
+              "GB"
+            ],
+            "included": [
+              "US"
+            ],
+            "deltas": {
+              "CA": {
+                "delta_cpm": 1.5
+              },
+              "GB": {
+                "delta_cpm": 3.0
+              }
+            },
+            "max_select": 3
+          },
           "pricing": [
             {
               "cost_method": "CPM",
-              "gross_rate": 18.0,
+              "list_rate": 18.0,
               "currency": "USD"
             }
           ],
@@ -77,7 +96,7 @@
           "pricing": [
             {
               "cost_method": "CPM",
-              "gross_rate": 45.0,
+              "list_rate": 45.0,
               "currency": "USD"
             }
           ],

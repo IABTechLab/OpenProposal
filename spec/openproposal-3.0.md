@@ -50,6 +50,11 @@ lands in the one its `transaction_mechanism` maps to:
 | PMP deal | Deals API + OpenRTB 2.6 · Deal |
 | Open market | OpenRTB 2.6 · open auction, no deal |
 
+A `GeoCode` (§ 5.5) converts for the
+[OpenRTB 2.6 `Geo` object](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/2.6.md#objectgeo):
+`country` takes the ISO 3166-1 alpha-3 code of the country, and `region` takes the
+part of an ISO 3166-2 code after the hyphen.
+
 ### 1.2 Relationship to other AAMP artifacts
 
 **Identity.** Three questions about a party stay separate, for the buyer and the
@@ -116,8 +121,9 @@ audiences.available[].id
 audiences.available[].name
 formats.included[]
 geo
+markets
 pricing[].cost_method
-pricing[].gross_rate
+pricing[].list_rate
 pricing[].currency
 min_spend
 commitment_bounds
@@ -177,7 +183,7 @@ shared type or changes its form.
 | `IntegerFlag` | Integer: `0` (no) \| `1` (yes) | A yes or no that another standard writes as an integer. Each field says what `1` affirms |
 | `Amount` | Number | Money. It carries no currency: the field that holds it states which one it reads in |
 | `Fraction` | Number from 0 to 1 | A proportion |
-| `FractionDelta` | Number greater than -1 | Used only by a price delta expressed as a proportion |
+| `FractionDelta` | Number greater than -1 | Used only by `delta_fraction` (§ 3.1) |
 | `Instant` | String: an RFC 3339 `date-time` in whole seconds, ending in `Z` | A point in time. One written form, so one instant has one digest input |
 | `Duration` | String: the ISO 8601 grammar of RFC 3339 Appendix A without its week form (`P14D`, not `P2W`) | A length of time. A comparison names its anchor. A length within the playback of an ad or a placement, such as a play, view, read, loop, slot, or refresh, is instead an Integer whose key ends `_s` or `_ms`, except a key imported from another standard, which keeps its spelling (§ 2.6) |
 | `IanaZone` | String: a name in the [IANA time zone database](https://www.iana.org/time-zones), such as `America/New_York` or `UTC` | A time zone |
@@ -397,12 +403,12 @@ table's keys instead, with `holds exactly one key` or `At least one <noun> is pr
 
 **Types.** A Type cell holds `String`, `Integer`, `Number`, `Boolean`, `Enum`,
 `Object`, a shared type (§ 2.2), a type its section names, or a named key table.
-`Array[T]`, `Map[K, V]`, `Range[T]`, `Selectable[T]` (§ 3.1), and `Settable[T]`
-(§ 3.2) take other types. `T`, `K`, and `V` stand for a type's arguments, and a Type
-cell inside that type's table may name them. `Enum` is a closed list of strings,
-written in the row that uses it, and a generic never takes it: a list a generic takes
-has a name. A closed list of integers written in a row has Type `Integer`. `Object`
-holds keys that another definition sets. A lead-in that reads "`X` holds the keys of
+`Array[T]`, `Map[K, V]`, `Range[T]`, `Selectable[T]` (§ 3.1), `Settable[T]`,
+`Narrowing[T]`, and `SettableRange[T]` (§ 3.2) take other types. `T`, `K`, and `V`
+stand for a type's arguments, and a Type cell inside that type's table may name them.
+`Enum` is a closed list of strings, written in the row that uses it, and a generic
+never takes it: a list a generic takes has a name. A closed list of integers written in a row has Type `Integer`.
+`Object` holds keys that another definition sets. A lead-in that reads "`X` holds the keys of
 `Y`" gives `X` every key of `Y`, with the rules `Y` states on them, and the rows of its
 own table. The keys sit flat in `X`, and `X` doesn't repeat them. `Y` may take a type,
 such as `Range[T]`. A lead-in that adds "each `<marker>`" gives the composed keys that
@@ -423,8 +429,8 @@ another standard and says so; that object keeps the standard's spelling and cite
 it. A key name repeats only where it means the same thing, and each row's Type cell
 states its form there. An array named by a noun is plural, except the mass nouns
 `pricing[]` and `negotiation_history[]`, and a name another standard spells. A name
-that isn't a noun keeps its form, such as `available[]`, `best_for[]`, and `all_of[]`.
-The suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
+that isn't a noun keeps its form, such as `available[]`, `include[]`, `best_for[]`, and
+`all_of[]`. The suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
 `_allowed` or `_required`, and a list never does.
 
 **Values.** Every term compares byte for byte. A list this specification owns is
@@ -484,7 +490,7 @@ Every field carries exactly one marker.
 | `selectable` | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. |
 | `settable` | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. |
 | `supplied` | The buyer provides data or an artifact. The seller does not pre-populate it. |
-| `requestable` | The buyer MAY ask for a value outside the declared space. Requires explicit seller assent. |
+| `requestable` | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. |
 | `derived` | Computed by a rule this specification states. Neither party sets it directly. |
 | `lifecycle` | Live state of the object. The party its section names moves it between the stated values. Not a term. |
 | `recorded` | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. |
@@ -493,8 +499,7 @@ Every field carries exactly one marker.
 
 **Whose `status`.** The proposal's (§ 4.1) for a field defined in § 4; the line
 item's (§ 5.1) for a field defined in § 5, including `seller-set` sub-fields of
-a `mixed` field (`pricing[]`, `buyer_requirements`) and a field treated as
-`seller-set` under § 3.1 or § 3.2.
+a `mixed` field.
 
 § 4.3, not the `seller-set` revision rule, governs the seller's answer to a `requestable` ask.
 
@@ -506,9 +511,11 @@ counterparty to respond.
 Resolution is validation and pricing, not acceptance. A resolved `commitment` is
 an offer to buy (§ 5.6.1).
 
-A field is never silently reverted. An unset `selectable` or `settable` field
-takes its declared `included[]` or default, and that default MUST be explicit in
-the proposal.
+A field is never silently reverted. With no buyer write, what § 3.1 and § 3.2 put in
+effect applies, and the seller declares it in the proposal.
+
+`selected[]` and `value` are keys of the field and carry no marker of their own. The
+buyer MUST NOT alter the keys the seller declares beside them.
 
 ### 3.1 Selectable structure
 
@@ -519,29 +526,109 @@ Every field marked `selectable` is a `Selectable[T]`, where `T` is the option ty
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `available[]` | Array[T] | REQUIRED | The options the seller offers |
-| `included[]` | Array[String] | REQUIRED | Which options are in the base rate. MAY be empty |
-| `deltas` | Map[String, Delta] | OPTIONAL | Delta per option beyond those included, keyed by option: one of `delta_cpm`, `delta_flat`, or `delta_pct` |
-| `max_select` | Integer | OPTIONAL | Cap on how many options the buyer may choose |
+| `included[]` | Array[String] | REQUIRED | The options in the base rate, by option id |
+| `selected[]` | Array[String] | OPTIONAL | The buyer's choice, by option id |
+| `deltas` | Map[String, Delta] | OPTIONAL | The price of an option outside `included[]`, keyed by option id. An option with no entry has no delta |
+| `max_select` | Integer | OPTIONAL | The most options that may be in effect |
 
-A field marked `selectable` that carries a bare value and no `available[]` MUST
-be treated as `seller-set`.
+**Option ids.** A string option's id is its value. An object option's id is its
+REQUIRED `id`, unique in the field.
+
+**In effect.** `selected[]` is the complete set in effect and replaces `included[]`.
+With no `selected[]`, `included[]` is in effect. `max_select` counts the whole set. An
+empty set is valid only where the field gives it a meaning. Dropping an option in
+`included[]` doesn't lower the rate.
+
+Options of different fields combine freely, apart from a rule this specification
+states between them. A seller whose options don't combine publishes separate line
+items.
+
+**`Delta`** keys. At least one key is present. § 5.6 states how they enter `agreed_rate`.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `delta_cpm` | Number | OPTIONAL | Added to the rate of a `CPM` entry, and to no other |
+| `delta_fraction` | FractionDelta | OPTIONAL | Multiplies the rate of any entry by 1 plus this value. `0.20` is 20 percent more |
+| `delta_flat` | Number | OPTIONAL | A charge on any entry, outside the rate |
+
+An option priced only by `delta_cpm` MUST NOT resolve against any other entry.
 
 ### 3.2 Settable bounds
 
-Every field marked `settable` is a `Settable[T]` and MUST declare its bounds:
-either `allowed[]` (an enumerated set) or `min` / `max` (a numeric or date range).
-`frequency_cap` declares its bounds in `count`, and `commitment` within
-`commitment_bounds` (§ 5.6).
+A field marked `settable` declares its bounds in one of two forms, and the buyer
+writes one key, `value`. `frequency_cap` holds its form in `count`. The keys of
+`commitment` are the one exception: `commitment_bounds` holds their bounds (§ 5.6,
+§ 5.6.1).
 
-A field marked `settable` that carries a bare value and no bounds MUST be
-treated as `seller-set`.
+**`Settable`** is the envelope form. `value` only narrows `allowed[]`.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `allowed[]` | Array[T] | REQUIRED | The entries the buyer narrows within |
+| `default` | Narrowing[T] | REQUIRED | In effect when `value` is absent |
+| `value` | Narrowing[T] | OPTIONAL | The buyer's value |
+
+**`Narrowing`** keys. Exclusion wins.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `include[]` | Array[T] | REQUIRED | Each entry MUST be covered by an `allowed[]` entry |
+| `exclude[]` | Array[T] | OPTIONAL | Each entry MUST be covered by an `include[]` entry |
+
+An entry covers itself and what the field says it contains. Nothing else is assumed.
+
+**`SettableRange`** holds the keys of `Range[T]` (§ 2.2) and these. It is the range
+form.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `default` | T | REQUIRED | In effect when `value` is absent, between the bounds |
+| `value` | T | OPTIONAL | The buyer's value, between the bounds inclusive |
 
 ### 3.3 Re-computation
 
-Because audiences, properties, formats and, where it is selectable, `geo` are
-`selectable`, and buyer `exclusions` (§ 5.5) narrow delivery, `addressable_scale` and `availability`
-MUST be recomputed against the buyer's actual selection and exclusions. A
-single declared figure is correct only for the default composition.
+Because audiences, properties, formats, and `markets` are `selectable`, and a
+`settable` targeting `value` and buyer `exclusions` (§ 5.5) narrow delivery,
+`addressable_scale` and `availability` MUST be recomputed against the buyer's
+actual selection, values, and exclusions. A single declared figure is correct only
+for the default composition.
+
+A buyer reads these figures by sending the seller an `AvailabilityRead`. The read changes
+no `status`, writes no history, reserves nothing, and doesn't limit a later decline
+(§ 5.6.1).
+
+**`AvailabilityRead`** holds the keys of `BuyerWrites` (§ 3.4) and these:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `offer` | VersionRef | REQUIRED | The line item and the `version` whose options the figures are computed against. `line_item_id` is REQUIRED here |
+| `flight` | Interval | REQUIRED | The flight, as `commitment.flight` (§ 5.6.1) |
+
+### 3.4 Buyer writes
+
+**`BuyerWrites`** holds what a buyer writes on one line item. It is a strict path
+subset of the line item: a listed path has the type it has there, and no other path
+appears. Every path is OPTIONAL. A buyer artifact delivered after agreement
+(§ 4.1.1), such as `assets[]`, is not a write.
+
+`BuyerWrites` lists these paths, where `<selectable>` is a field marked `selectable`,
+and `<settable>` is a field marked `settable` other than `frequency_cap`:
+
+```text
+<selectable>.selected[]
+<settable>.value
+frequency_cap.count.value
+exclusions
+buyer_requirements.seats
+buyer_requirements.seat_owner
+```
+
+**`LineItemWrites`** holds the keys of `BuyerWrites` and this one. It is the buyer's writes
+on one line item.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `commitment` | Commitment | REQUIRED | The line item's `commitment` (§ 5.6.1) |
 
 ---
 
@@ -593,10 +680,12 @@ items.
 | `requested_value` | RequestedValue | REQUIRED when the entry's `action` is `requested` | On a `requested` entry, the value the buyer asked for. On a `declined` entry, or a buyer's `withdrawn` entry, the value of the `request` it ended. Absent on every other entry |
 
 **`RequestedValue`** holds exactly one key: the `requestable` field `pointer` names, in the
-form its row states.
+form its row states. `pointer` says which `pricing[]` entry.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
+| `list_rate` | Number | OPTIONAL | A `pricing[].list_rate` |
+| `commitment_bounds` | Object | OPTIONAL | The line item's `commitment_bounds` |
 | `materials_due` | MaterialsDue | OPTIONAL | The line item's `materials_due` |
 | `committed_metrics[]` | Array[CommittedMetric] | OPTIONAL | The line item's `committed_metrics[]` |
 
@@ -638,7 +727,7 @@ $.line_items[*].addressable_scale
 $.line_items[*].assets
 $.line_items[*].buyer_supplied.match_rate_expected
 $.line_items[*].pricing[*].seller_rate
-$.line_items[*].pricing[*].floor
+$.line_items[*].pricing[*].min_rate
 $.line_items[*].hold_status.*, except hold_available, hold_duration and hold_scope
 $.line_items[*].commitment.version
 $.line_items[*].commitment.idempotency_key
@@ -655,17 +744,18 @@ informative figure, or an identifier minted downstream of agreement
 (`availability`, `addressable_scale`, `match_rate_expected`, `derived_units`,
 `deal_id_issuance`, `external_references[]`, `correlation_id`); or a value that
 is not a term of the agreement: the seller's own figures (`seller_rate`,
-`floor`; the transacted rate is `agreed_rate`) and buyer artifacts delivered
+`min_rate`; the transacted rate is `agreed_rate`) and buyer artifacts delivered
 after agreement (`assets[]`). The requirement on creative (`formats`, `specs`,
 `creative_policy`, `materials_due`) is a term.
 
 Every other value is inside the record: `seller`, `buyer`, and `issued_from`; every
 `seller-set` field, including prose (`description`, `specifications`, `content_detail`,
-`creative_policy`, `specs`); every option space (`available[]`, `included[]`, `deltas`,
-`max_select`, `allowed[]`, `min` / `max`); every value the buyer writes under
-§ 3 (selections, `settable` values, `commitment`, data under `supplied` fields
-other than `assets[]`, any resolved `requestable` ask); `pricing[].agreed_rate`;
-and `hold_available`, `hold_duration`, `hold_scope`.
+`creative_policy`, `specs`); the seller's value of a `requestable` field, such as
+`pricing[].list_rate`, including one a `grant` or `counter` put in force; every option
+space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`, `min` / `max`,
+`default`); every value the buyer writes under § 3 (`selected[]`, `value`,
+`commitment`, data under `supplied` fields other than `assets[]`);
+`pricing[].agreed_rate`; and `hold_available`, `hold_duration`, `hold_scope`.
 
 **Digest input.** The record is computed over the composed record as the parties
 exchange it: the Full Representation of `version` as the seller published it to
@@ -776,21 +866,20 @@ is a convenience, not evidence.
 #### 4.1.3 Offered terms and versions
 
 **Offered terms.** The offered terms of a version are every value the seller
-writes: `immutable` and `seller-set` fields; the seller-declared structure of
-`selectable`, `settable` and `requestable` fields (`available[]`, `included[]`,
-`deltas`, `max_select`, `allowed[]`, `min`, `max`, declared defaults and
-ceilings); and the set of `line_item_id`s the version carries. The following
-are not offered terms and MAY change without a new version: `status` (proposal
+writes: `immutable` and `seller-set` fields; the seller's value of a `requestable`
+field, such as `pricing[].list_rate`; the seller-declared structure of `selectable`
+and `settable` fields (`available[]`, `included[]`, `deltas`, `max_select`,
+`allowed[]`, `min`, `max`, `default`); and the set of `line_item_id`s the version
+carries. The following are not offered terms and MAY change without a new version: `status` (proposal
 and line item), `assent[]`, `negotiation_history[]`, `availability`,
 `addressable_scale`, the hold's status (every `hold_status` key except
 `hold_available`, `hold_duration` and `hold_scope`, which offer the hold),
 `deal_id_issuance`, `external_references[]`, `correlation_id`,
 `assets[].approval_status`; `pricing[].seller_rate`, which is what the publisher
-receives and not a term offered to the buyer; every value the buyer writes
-(`supplied` fields, `commitment`, selections and values on `selectable` and
-`settable` fields, and a `requestable` ask); and every `derived` value computed
-from a buyer's writes (`pricing[].agreed_rate`, `commitment.derived_units`). A
-buyer composes against a named `version` and never increments it.
+receives and not a term offered to the buyer; every value the buyer writes (a
+`BuyerWrites` value, `commitment`, any other `supplied` field, and a `requestable`
+ask); and every `derived` value computed from a buyer's writes (`pricing[].agreed_rate`,
+`commitment.derived_units`). A buyer composes against a named `version` and never increments it.
 
 **Freezing.** A seller MAY edit a proposal in place only while its current
 version is not yet frozen (§ 4.1). Two representations of the same
@@ -876,6 +965,7 @@ it ends is a new ask. Holds change neither `status` nor `negotiation_history[]`.
 | Interaction | Actor | Effect; history `action` |
 | :--- | :--- | :--- |
 | `publish` | seller | version 1 of a new or `draft` proposal, or the next `version` for a change to offered terms (§ 4.1.3); `published`. Moving a `draft` line item in a frozen version: neither (§ 4.3.2) |
+| availability read | buyer | an `AvailabilityRead` (§ 3.3), answered with the figures § 3.3 names, with no change of state; no entry |
 | `request` | buyer | asks a `requestable` value on one line item against a named `version`, stated as a `HistoryPath` (§ 4.1) with `requested_value`; `requested` |
 | `grant` | seller | of a `request`: new `version` with the requested value in force as an offered term; `granted` |
 | `counter` | seller | of a `request`: new `version` with another value; `countered` |
@@ -918,8 +1008,9 @@ exhaustive, so a status with none leading out of it is terminal.
 A *firm entry* is a `pricing[]` entry with a `price_valid_until`. It holds until
 that date or `offer_window.end`, whichever comes first. While it holds, a seller
 revision MUST NOT change that entry, and MUST NOT end it sooner by moving
-`offer_window.end`. A revision that narrows who may commit (§ 5.8) does not apply,
-while the entry holds, to a buyer that was eligible when the entry was first offered.
+`offer_window.end`. A `grant` or `counter` of a `request` on that entry MAY lower its
+`list_rate`. A revision that narrows who may commit (§ 5.8) does not apply, while the
+entry holds, to a buyer that was eligible when the entry was first offered.
 The seller of an issued proposal MUST answer a resolved `commit` under it that arrives
 while the entry holds, on or after `offer_window.start`, and passes the checks of
 § 5.6.1 and any authority check the seller applies (§ 5.8): accept it, or decline it
@@ -996,7 +1087,7 @@ served.
 | :--- | :--- |
 | `dooh` | Distribution channel `Dooh` |
 | `audio` | Audio ad (`AudioPlacement`) |
-| `ctv` | Device type Connected TV (3), Connected Device (6) or Set Top Box (7) |
+| `ctv` | A TV device type |
 | `native` | Native ad (`DisplayPlacement.nativefmt`), including native ads with video assets |
 | `video` | Video ad (`VideoPlacement`) |
 | `display` | Any other display ad (`DisplayPlacement`) |
@@ -1006,7 +1097,9 @@ table. An impression a row matches has that row's channel, so an extension term
 covers only impressions no row matches.
 
 Device types are values of AdCOM 1.0 List: Device Types, each written as its
-name followed by its code.
+name followed by its code. The *TV device types* are Connected TV (3), Connected
+Device (6), and Set Top Box (7). The *mobile device types* are Mobile/Tablet -
+General (1), Phone (4), and Tablet (5).
 
 - The seller MUST serve a line item only on impressions of its `channel`.
   Placement type, such as interstitial or rewarded
@@ -1019,7 +1112,7 @@ name followed by its code.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | Options of `{ id, name, domains[], supported_formats[] }` |
+| `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | Options of `{ id, name, domains[] }` |
 | `content_detail` | Object | OPTIONAL | seller-set | Shows, series, sections, network verticals |
 | `environments` | Selectable[Environment] | OPTIONAL | selectable | The distribution channels and device types the line item runs on. See 5.2.1. Absent: the seller promises no environment |
 
@@ -1033,9 +1126,9 @@ row. Device types are as in 5.1.1.
 | `environments` | Distribution channel | Device types |
 | :--- | :--- | :--- |
 | `web_desktop` | `Site` | Personal Computer (2) |
-| `web_mobile` | `Site` | Mobile/Tablet - General (1), Phone (4), Tablet (5) |
-| `app_mobile` | `App` | Mobile/Tablet - General (1), Phone (4), Tablet (5) |
-| `ctv` | `Site` or `App` | Connected TV (3), Connected Device (6), Set Top Box (7) |
+| `web_mobile` | `Site` | The mobile device types |
+| `app_mobile` | `App` | The mobile device types |
+| `ctv` | `Site` or `App` | The TV device types |
 | `dooh` | `Dooh` | Any |
 
 Each `environments.available[]` value MUST match at least one impression to
@@ -1094,7 +1187,7 @@ which 5.1.1 gives the line item's `channel`.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `id` | String | REQUIRED | Option id |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
 | `custom_unit` | String | OPTIONAL | The custom unit built |
 | `build_owner` | Side | OPTIONAL | Which side builds it |
 | `lead_time` | Duration | OPTIONAL | Time the build needs |
@@ -1141,18 +1234,18 @@ of the applicable execution standard.
 
 ### 5.5 Targeting envelope
 
-Each field except `time_zone`, `exclusions_accepted` and `exclusions` declares
-bounds, not a value (§ 3.2). A bare value means the field is `seller-set`. For
-`exclusions_accepted` and `exclusions`, the seller declares what it can
-enforce, and the buyer supplies its lists. `geo` MAY instead declare the
-selectable structure of § 3.1, so a line item can be priced by market.
+`geo`, `device`, `daypart`, and `frequency_cap` declare bounds, not a value (§ 3.2), and
+one that is absent declares none. `markets` declares options (§ 3.1). For
+`exclusions_accepted` and `exclusions`, the seller declares what it can enforce, and the
+buyer supplies its lists.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `geo` | Settable[String] | OPTIONAL | settable | `allowed[]` of geo codes the buyer may select within. A `geo` MAY instead declare `available[]` with `included[]`, `deltas` and `max_select` (§ 3.1), for a line item priced by market. See below |
-| `device` | Settable[String] | OPTIONAL | settable | `allowed[]` of device categories |
-| `daypart` | Settable[Object] | OPTIONAL | settable | `allowed[]` of `{ days[], start, end }`: `days[]` from `monday` \| `tuesday` \| `wednesday` \| `thursday` \| `friday` \| `saturday` \| `sunday`, HH:MM civil time, `end` exclusive, up to `24:00` |
-| `time_zone` | String | REQUIRED when `daypart` or `frequency_cap` is present | seller-set | IANA time zone name, or `viewer_local` (where the ad renders). The clock for `daypart` and `frequency_cap.period` |
+| `geo` | Settable[GeoCode] | OPTIONAL | settable | Where the line item runs. `allowed[]` of `GeoCode` (below). A line item MUST NOT declare both `geo` and `markets` |
+| `markets` | Selectable[GeoCode] | OPTIONAL | selectable | For a line item priced by market. See `GeoCode` below |
+| `device` | Settable[Integer] | OPTIONAL | settable | `allowed[]` of [AdCOM 1.0 List: Device Types](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_devicetypes) codes, the values of OpenRTB 2.6 `device.devicetype`. It narrows `environments` (§ 5.2.1). Mobile/Tablet - General (1) covers Phone (4) and Tablet (5) |
+| `daypart` | Settable[ClockWindow] | OPTIONAL | settable | `allowed[]` of `ClockWindow` (below). A window covers any window inside it |
+| `time_zone` | ZoneName | REQUIRED when `daypart` or `frequency_cap` is present | seller-set | The clock for `daypart` and a calendar `frequency_cap.period` |
 | `frequency_cap` | FrequencyCap | OPTIONAL | settable | See below |
 | `exclusions_accepted` | Object | OPTIONAL | seller-set | What the seller can enforce: `{ types[], max_entries, enforcement, verification[] }`. See below |
 | `exclusions` | Object | OPTIONAL | supplied | The buyer's block lists: `{ domain[], app_bundle[], iab_content_category[], keyword[], list_ref }`. See below |
@@ -1190,50 +1283,71 @@ exclusions:
 - `list_ref` MUST be hash-pinned, and resolved into the stored record at
   `agreed`.
 
-**`FrequencyCap`** keys:
-
-| Key | Type | Required | Meaning |
-| :--- | :--- | :--- | :--- |
-| `count` | Range[Integer] | REQUIRED | The bounds on the cap |
-| `period` | TimeUnit | REQUIRED | The bucket the count runs over |
-| `per` | Enum | REQUIRED | `device` \| `household` \| `listener`. Who is capped. It matters: CTV typically caps at household, audio at listener |
-
-**Market-priced lines.** A seller whose rate differs by market MAY declare `geo`
-with the selectable structure of § 3.1:
+**`GeoCode`** is a String: an ISO 3166-1 alpha-2 country code, an ISO 3166-2
+subdivision code, or an extension `VocabularyTerm` for any other area, such as a
+metro list. The country of an ISO 3166-2 code is the part before the hyphen, and a
+country covers every subdivision code it prefixes. An extension term covers only
+itself. § 1.1 states the conversion to OpenRTB 2.6.
 
 ```yaml
 geo:
-  available:  ["SGP", "THA", "IDN", "MYS"]
-  included:   ["SGP", "THA"]
-  deltas:     { "IDN": { delta_cpm: 18.00 }, "MYS": { delta_cpm: 21.00 } }
-  max_select: 4
+  allowed: ["US"]
+  default: { include: ["US"] }
+  value:   { include: ["US"], exclude: ["US-TX"] }   # the buyer's write
 ```
 
-- A `geo` that declares `allowed[]` and no `available[]` MUST be treated as
-  `settable` (§ 3.2). A `geo` MUST NOT declare both.
-- `deltas` add to `agreed_rate` as for any selectable field (§ 3.1).
+**Market-priced line items.** A seller whose rate differs by market declares `markets`:
 
-**Window shape.** A `daypart` window is `{ days[], start, end }`, with `days[]`
-from Monday to Sunday, `start` and `end` as HH:MM, and `end` exclusive,
-later than `start`, and allowed to be `24:00`. A window that crosses midnight
-is two windows:
+```yaml
+markets:
+  available:  ["SG", "TH", "ID", "MY"]
+  included:   ["SG", "TH"]
+  deltas:     { "ID": { delta_cpm: 18.00 }, "MY": { delta_cpm: 21.00 } }
+  max_select: 4
+  selected:   ["SG", "ID"]   # the buyer's write: runs in these two, and pays the ID delta
+```
+
+**`ClockWindow`** is a repeating window of civil time, deliberately not an `Interval`.
+A window that crosses midnight is two windows.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `days[]` | Array[DayOfWeek] | REQUIRED | The days the window repeats on |
+| `start` | ClockTime | REQUIRED | The first minute. Not `24:00` |
+| `before` | ClockTime | REQUIRED | The first minute after the window, later than `start` |
+
+**`ClockTime`** is a String: `HH:MM` on a 24-hour clock, two digits each, from `00:00`
+to `23:59`, or `24:00`, the end of the day.
+
+**`DayOfWeek`** is `monday` \| `tuesday` \| `wednesday` \| `thursday` \| `friday` \|
+`saturday` \| `sunday`.
 
 ```yaml
 # Late fringe, 23:00 to 01:00, Monday night into Tuesday
 daypart:
   allowed:
-    - { days: [monday],  start: "23:00", end: "24:00" }
-    - { days: [tuesday], start: "00:00", end: "01:00" }
+    - { days: [monday],  start: "23:00", before: "24:00" }
+    - { days: [tuesday], start: "00:00", before: "01:00" }
+  default:
+    include:
+      - { days: [monday],  start: "23:00", before: "24:00" }
+      - { days: [tuesday], start: "00:00", before: "01:00" }
 time_zone: "America/New_York"
 ```
 
-**Clock.** `time_zone` names a zone in the
-[IANA time zone database](https://www.iana.org/time-zones), such as
-America/New_York or UTC. Windows follow daylight-saving rules: a skipped
+**Clock.** Windows follow daylight-saving rules: a skipped
 hour matches no instant; a repeated hour matches both. Like the calendar Day of
 [OpenDirect 2.1 `Line.frequencyinterval`](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_line),
-`frequency_cap.period` is a calendar period in `time_zone`; weeks start on
+a `frequency_cap.period` other than `flight` is a calendar period in `time_zone`; weeks start on
 Monday.
+
+**`FrequencyCap`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `count` | SettableRange[Integer] | REQUIRED | The cap. The buyer's `value` is the count, and `period` and `per` stay the seller's |
+| `period` | TimeUnit | REQUIRED | The bucket the count runs over |
+| `per` | Enum | REQUIRED | `device` \| `household` \| `listener`. Who is capped. It matters: CTV typically caps at household, audio at listener |
 
 ### 5.6 Commercial terms
 
@@ -1241,15 +1355,15 @@ Monday.
 | :--- | :--- | :--- | :--- | :--- |
 | `pricing[]` | Array[PricingEntry] | REQUIRED | mixed | See below |
 | `pricing[].cost_method` | VocabularyTerm | REQUIRED | seller-set | The billable unit. Core terms: `CPM` \| `CPC` \| `FLAT` |
-| `pricing[].gross_rate` | Number | REQUIRED | seller-set | The list rate the buyer pays |
-| `pricing[].agreed_rate` | Number | OPTIONAL | derived | The transacted rate after selections and any agreed request |
+| `pricing[].list_rate` | Number | REQUIRED | requestable | The rate before options. A buyer MAY request another value, and a granted value is the `list_rate` of the next `version` |
+| `pricing[].agreed_rate` | Number | REQUIRED when this is the committed entry | derived | The transacted rate (below). Absent on every other entry |
 | `pricing[].seller_rate` | Number | OPTIONAL | seller-set | What the publisher receives |
 | `pricing[].price_valid_until` | Instant | OPTIONAL | seller-set | How long the entry holds (§ 4.3.2). Distinct from the proposal's `offer_window.end` |
 | `pricing[].currency` | String | REQUIRED | seller-set | ISO-4217 |
-| `pricing[].min_rate` | Number | OPTIONAL | seller-set | A hint: the lowest rate the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
+| `pricing[].min_rate` | Number | OPTIONAL | seller-set | A hint: the lowest `list_rate` the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
 | `availability` | Object | OPTIONAL | asserted | `{ unit, basis, as_of, granularity, type: forecast \| reservable, quantity }`, with `as_of` an `Instant` and `granularity` a `CalendarUnit`. Recomputed against the buyer's selection |
-| `commitment_bounds` | Object | OPTIONAL | seller-set | The envelope inside which a buyer may commit: `{ min_impressions, max_impressions, min_budget, max_budget }` |
-| `commitment` | Commitment | OPTIONAL | settable | **The buyer's actual commitment.** See 5.6.1 |
+| `commitment_bounds` | Object | OPTIONAL | requestable | The envelope inside which a buyer may commit, and a buyer MAY request another: `{ min_impressions, max_impressions, min_budget, max_budget }` |
+| `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
 | `hold_status` | HoldStatus | OPTIONAL | mixed | See 5.6.2 |
 | `min_spend` | Number | OPTIONAL | seller-set | Minimum spend for this line item |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | The cancellation rights the seller offers |
@@ -1257,11 +1371,28 @@ Monday.
 | `creative_policy` | Object | OPTIONAL | seller-set | Content and category restrictions on creative |
 | `requires` | Requires | OPTIONAL | seller-set | Conditions that must hold in the same `commit` for this line item to be committable. See 5.6.3 |
 
+The *committed entry* is the `pricing[]` entry the commitment is priced against.
+
+**`agreed_rate`** is computed on the committed entry from the options in effect
+(§ 3.1), in exact decimal, and rounded once, half up, to 6 decimal places:
+
+```text
+agreed_rate = (list_rate + sum of delta_cpm) × product of (1 + delta_fraction)
+```
+
+A delta counts when its option is in effect and not in `included[]`, on any field of the
+line item marked `selectable`. A `delta_cpm` enters only a `CPM` entry (§ 3.1), and
+the option's other deltas still count. So `list_rate` 24.00 with one `delta_cpm` of
+3.00 and one `delta_fraction` of 0.02 is 27.54. `delta_flat` stays outside it.
+
 #### 5.6.1 commitment
 
-Absent on a shared proposal (§ 4.3). Populated during composition. A
-`commitment` resolves under § 3 when the buyer is eligible (§ 5.8), and the
-commitment fits `commitment_bounds` and `min_spend`, is not stale (§ 4.1.3),
+Absent on a shared proposal (§ 4.3). The buyer writes it on its composed record
+(§ 4.1.1), and a `commit` carries it to the seller. The buyer writes its `settable` keys
+itself, and they have no `default` (§ 3.2). A
+`commitment` resolves under § 3 when the buyer is eligible (§ 5.8), every `selected[]`
+and `value` on the line item is within what the seller declared (§ 3.1, § 3.2), and
+the commitment fits `commitment_bounds` and `min_spend`, is not stale (§ 4.1.3),
 and meets `requires` (§ 5.6.3). A resolved `commitment` is an offer to buy. It
 binds only when the seller accepts it;
 `assent[]` (§ 4.1) records that acceptance for the binding `version`. A seller
@@ -1281,17 +1412,17 @@ is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 | `basis` | Enum | REQUIRED | `spend` \| `units` |
 | `amount` | Number | REQUIRED | The figure committed |
 
-**`Commitment`** holds the keys of `CommitmentAmount` and these:
+**`Commitment`** holds the keys of `CommitmentAmount`, each `settable`, and these:
 
-| Key | Type | Required | Meaning |
-| :--- | :--- | :--- | :--- |
-| `proposal_id` | String | REQUIRED | The proposal the commitment is made against |
-| `version` | Integer | REQUIRED | The proposal `version` the commitment was priced against |
-| `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 |
-| `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** |
-| `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for |
-| `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding |
-| `idempotency_key` | String | REQUIRED | Buyer-generated, unique per commitment attempt |
+| Key | Type | Required | Meaning | Mutability |
+| :--- | :--- | :--- | :--- | :--- |
+| `proposal_id` | String | REQUIRED | The proposal the commitment is made against | settable |
+| `version` | Integer | REQUIRED | The proposal `version` the commitment was priced against | settable |
+| `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 | settable |
+| `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** | settable |
+| `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for | settable |
+| `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding | derived |
+| `idempotency_key` | String | REQUIRED | Buyer-generated, unique per commitment attempt | settable |
 
 An `idempotency_key` is opaque and scoped to one buyer and seller pair. The
 seller MUST NOT interpret it.
@@ -1350,7 +1481,7 @@ requires:
 ```
 
 A bonus line item is a line item with `requires` and its own pricing, such as
-a discounted `gross_rate` or `cost_method: FLAT` at 0. A conditional discount
+a discounted `list_rate` or `cost_method: FLAT` at 0. A conditional discount
 is modelled as a separate line item that `requires` unlocks, not as a price
 that changes according to the other line items selected. Every price remains
 self-contained.
@@ -1370,14 +1501,15 @@ self-contained.
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `committed_metrics[]` | Array[CommittedMetric] | OPTIONAL | requestable | `{ metric, value, basis }` tuples — `viewable_rate` for display, `completion_rate` for video/audio/CTV, an audience-modelled metric for DOOH. Seller declares a ceiling; a buyer MAY request above it |
-| `measurement_source` | Selectable[MeasurementOption] | OPTIONAL | selectable | See `MeasurementOption` below. Lets a buyer transact in its own currency |
+| `measurement_source` | Selectable[MeasurementOption] | OPTIONAL | selectable | See `MeasurementOption` below. Lets a buyer transact in its own currency. Nothing in effect: no provider |
 | `shortfall_remedy` | Selectable[VocabularyTerm] | OPTIONAL | selectable | Core terms: `makegood` \| `credit` \| `none`, plus `remedy_terms` |
-| `reporting` | Selectable[ReportingOption] | OPTIONAL | selectable | See `ReportingOption` below |
+| `reporting` | Selectable[ReportingOption] | OPTIONAL | selectable | See `ReportingOption` below. Nothing in effect: no report is promised |
 
 **`MeasurementOption`** keys:
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
 | `vendor` | String | REQUIRED | The measurement provider |
 | `attribution_window` | Duration | OPTIONAL | How long after exposure the provider attributes an event |
 | `qualifier` | String | OPTIONAL | A product or method of the provider |
@@ -1386,6 +1518,7 @@ self-contained.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
 | `feed_type` | Enum | REQUIRED | `log_level` \| `aggregate` |
 | `cadence` | TimeUnit | OPTIONAL | How often a report arrives |
 | `delivery_mechanism` | VocabularyTerm | OPTIONAL | How a report arrives. Core terms: `api` \| `s3` |
@@ -1465,7 +1598,7 @@ and signing profile (provisional name). They are not expressed through
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `buying_route` | Enum | OPTIONAL | seller-set | `DIRECT_PUBLISHER` \| `PUBLISHER_AD_SERVER` \| `SSP_PLATFORM` \| `DSP` \| `SEARCH_SOCIAL` |
-| `transaction_mechanism` | Selectable[TransactionMechanism] | REQUIRED | selectable | See `TransactionMechanism` below. A seller MAY offer the same inventory through more than one |
+| `transaction_mechanism` | Selectable[TransactionMechanism] | REQUIRED | selectable | See `TransactionMechanism` below. A seller MAY offer the same inventory through more than one. `max_select: 1` |
 | `serving_mode` | VocabularyTerm | OPTIONAL | seller-set | Core terms: `client_side` \| `ssai` \| `dai` |
 | `deal_id_issuance` | String | OPTIONAL | derived | When and how the deal id is minted. Issued on acceptance of the commitment (§ 5.6.1) |
 | `buyer_requirements` | BuyerRequirements | OPTIONAL | mixed | See below |
@@ -1545,7 +1678,8 @@ Inspecting this line item's VAST creative is subject to § 5.4.1.
 
 ### 6.4 Audio line item
 
-See [`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
+Shows a line item priced by market. See
+[`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
 
 ### 6.5 Bonus line item
 
@@ -1562,9 +1696,11 @@ display line item is `registry_gated`, so it is not listed. See
 ### 6.12 Issued proposal, partly agreed
 
 A proposal issued to one buyer from the shared proposal of § 6.1 (§ 4.3). One line
-item is agreed at version 1, with a commitment. The other stays `published` at
-version 2, with a hold, so the proposal stays `published` (§ 4.3.3). The `assent[]`
-entries name version 1, and the digest is over that line item alone (§ 4.1.2). See
+item is agreed at version 1, with a commitment. Its buyer writes `selected[]` and
+`value`, and `agreed_rate` follows from the options in effect (§ 5.6). The other stays
+`published` at version 2, with a hold, so the proposal stays `published` (§ 4.3.3). The
+`assent[]` entries name version 1, and the digest is over that line item alone
+(§ 4.1.2). See
 [`examples/proposal-issued.yaml`](../examples/proposal-issued.yaml).
 
 ---
@@ -1694,23 +1830,25 @@ body is normative.**
 | `materials_due` | 5.4 Creative requirements | MaterialsDue | OPTIONAL | requestable |
 | `approval` | 5.4 Creative requirements | Object | OPTIONAL | seller-set |
 | `production` | 5.4 Creative requirements | Selectable[ProductionOption] | OPTIONAL | selectable |
-| `geo` | 5.5 Targeting envelope | Settable[String] | OPTIONAL | settable |
-| `device` | 5.5 Targeting envelope | Settable[String] | OPTIONAL | settable |
-| `daypart` | 5.5 Targeting envelope | Settable[Object] | OPTIONAL | settable |
+| `geo` | 5.5 Targeting envelope | Settable[GeoCode] | OPTIONAL | settable |
+| `markets` | 5.5 Targeting envelope | Selectable[GeoCode] | OPTIONAL | selectable |
+| `device` | 5.5 Targeting envelope | Settable[Integer] | OPTIONAL | settable |
+| `daypart` | 5.5 Targeting envelope | Settable[ClockWindow] | OPTIONAL | settable |
+| `time_zone` | 5.5 Targeting envelope | ZoneName | REQUIRED when `daypart` or `frequency_cap` is present | seller-set |
 | `frequency_cap` | 5.5 Targeting envelope | FrequencyCap | OPTIONAL | settable |
 | `exclusions_accepted` | 5.5 Targeting envelope | Object | OPTIONAL | seller-set |
 | `exclusions` | 5.5 Targeting envelope | Object | OPTIONAL | supplied |
 | `pricing[]` | 5.6 Commercial terms | Array[PricingEntry] | REQUIRED | mixed |
 | `pricing[].cost_method` | 5.6 Commercial terms | VocabularyTerm | REQUIRED | seller-set |
-| `pricing[].gross_rate` | 5.6 Commercial terms | Number | REQUIRED | seller-set |
-| `pricing[].agreed_rate` | 5.6 Commercial terms | Number | OPTIONAL | derived |
+| `pricing[].list_rate` | 5.6 Commercial terms | Number | REQUIRED | requestable |
+| `pricing[].agreed_rate` | 5.6 Commercial terms | Number | REQUIRED when this is the committed entry | derived |
 | `pricing[].seller_rate` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `pricing[].price_valid_until` | 5.6 Commercial terms | Instant | OPTIONAL | seller-set |
 | `pricing[].currency` | 5.6 Commercial terms | String | REQUIRED | seller-set |
-| `pricing[].floor` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
+| `pricing[].min_rate` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `availability` | 5.6 Commercial terms | Object | OPTIONAL | asserted |
-| `commitment_bounds` | 5.6 Commercial terms | Object | OPTIONAL | seller-set |
-| `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | settable |
+| `commitment_bounds` | 5.6 Commercial terms | Object | OPTIONAL | requestable |
+| `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | mixed |
 | `hold_status` | 5.6 Commercial terms | HoldStatus | OPTIONAL | mixed |
 | `min_spend` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
@@ -1746,24 +1884,26 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 9 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 39 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].gross_rate`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].floor`, `commitment_bounds`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
-| selectable | 12 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
-| settable | 5 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap`, `commitment` |
+| seller-set | 38 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].min_rate`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
+| selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
+| settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
-| requestable | 2 | The buyer MAY ask for a value outside the declared space. Requires explicit seller assent. | `materials_due`, `committed_metrics[]` |
+| requestable | 4 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `commitment_bounds`, `committed_metrics[]` |
 | derived | 6 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `record_digest`, `pricing[].agreed_rate`, `deal_id_issuance`, `correlation_id` |
 | lifecycle | 1 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item) |
 | recorded | 3 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `external_references[]` |
 | asserted | 2 | The seller states it from data the buyer can't recompute. Not a term, and it changes without a new version. | `addressable_scale`, `availability` |
-| mixed | 5 | The keys of the object carry different markers: in the Mutability column of its key table, in its lead-in for composed keys, or on its rows for `pricing[]`. | `buyer_supplied`, `assets[]`, `pricing[]`, `hold_status`, `buyer_requirements` |
+| mixed | 6 | The keys of the object carry different markers: in the Mutability column of its key table, in its lead-in for composed keys, or on its rows for `pricing[]`. | `buyer_supplied`, `assets[]`, `pricing[]`, `commitment`, `hold_status`, `buyer_requirements` |
 
 ### What the distribution says
 
-Of 85 fields, **20 are touched by the buyer** — 12 `selectable`, 5 `settable`, 1
-`supplied` and 2 `requestable`. The remaining 65 are `seller-set`, `immutable`,
-`derived`, `lifecycle`, `recorded`, `asserted` or `mixed`.
+Of 87 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+`supplied` and 4 `requestable`. The remaining 65 are `seller-set`, `immutable`,
+`derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
+those: its own entries in `assent[]`, and its keys of `commitment`, `assets[]`,
+`buyer_supplied`, and `buyer_requirements`.
 
-Only the 2 `requestable` fields require a round trip to resolve (§ 5.6.1).
+Only the 4 `requestable` fields require a round trip to resolve (§ 5.6.1).
 Everything else the buyer touches — 18 fields — resolves against bounds the seller
 declared up front. That ratio is the design claim: composition is constraint
 satisfaction, and negotiation is the exception.

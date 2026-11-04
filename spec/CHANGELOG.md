@@ -5,6 +5,30 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
+  § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
+  § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
+  `selected[]` is the complete set of options in effect and replaces `included[]`; `value`
+  is the buyer's key on a `settable` field, beside a required `default`. An envelope's
+  `value` is `{ include[], exclude[] }` and only narrows `allowed[]`. `frequency_cap.count`
+  is the range form. The bare-value fallbacks are gone. An object option has a required
+  `id`, unique in the field. Options combine freely, and `measurement_source` and
+  `reporting` say what nothing in effect means. `agreed_rate` has one formula, sits only on
+  the committed entry, and rounds once. `gross_rate` becomes `list_rate`, and `floor`
+  becomes `min_rate`, a hint that grants nothing
+  ([#133](https://github.com/IABTechLab/OpenProposal/issues/133)). `delta_pct` becomes
+  `delta_fraction`, a fraction, so 2 percent is `0.02`. `list_rate` and `commitment_bounds`
+  are `requestable`, and a granted rate is the `list_rate` of the next version. `commitment`
+  is `mixed`. `transaction_mechanism` declares `max_select: 1`. § 3.3 states the
+  availability read, and § 3.4 names `BuyerWrites` and `LineItemWrites`. `geo` holds
+  `GeoCode` entries as a `settable` field, and the selectable form becomes `markets`.
+  `device` holds AdCOM codes, a `daypart` window is a `ClockWindow` that ends `before` a
+  minute, and `supported_formats` is removed. Breaking
+  ([#22](https://github.com/IABTechLab/OpenProposal/issues/22),
+  [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
+  [#58](https://github.com/IABTechLab/OpenProposal/issues/58),
+  [#14](https://github.com/IABTechLab/OpenProposal/issues/14),
+  [#111](https://github.com/IABTechLab/OpenProposal/issues/111)).
 - § 1.2, § 2.2, § 2.3, § 2.4, § 3, § 4.1, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 5.1, § 5.4,
   § 5.6, § 5.6.1, § 5.6.3, § 5.8, § 5.9, § 6, § 7, appendices, examples, checkers — who
   moves each status, and when an offer goes stale. The `seller-set` gate reads the `status`

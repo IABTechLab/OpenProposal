@@ -14,17 +14,17 @@ production:
   included:     ["buyer_supplied"]
   deltas:       { seller_built: { delta_flat: 12000.00 } }
 
-geo:                                   # priced by market (§ 5.5)
-  available:    ["USA", "CAN", "GBR"]
-  included:     ["USA"]
-  deltas:       { "CAN": { delta_cpm: 1.50 }, "GBR": { delta_cpm: 3.00 } }
+markets:                               # priced by market (§ 5.5)
+  available:    ["US", "CA", "GB"]
+  included:     ["US"]
+  deltas:       { "CA": { delta_cpm: 1.50 }, "GB": { delta_cpm: 3.00 } }
   max_select:   3
 
-frequency_cap:  { count: { min: 1, max: 6 }, period: day, per: listener }
+frequency_cap:  { count: { min: 1, max: 6, default: 3 }, period: day, per: listener }
 time_zone:      viewer_local
 
 pricing:
-  - { cost_method: CPM, gross_rate: 18.00, floor: 15.84,
+  - { cost_method: CPM, list_rate: 18.00, min_rate: 15.84,
       price_valid_until: "2026-12-15T23:59:59Z", currency: USD }
 
 commitment_bounds: { min_budget: 5000.00 }
@@ -32,6 +32,6 @@ commitment_bounds: { min_budget: 5000.00 }
 committed_metrics: [{ metric: completion_rate, value: 0.92, basis: seller_reported }]
 visibility:        public
 buying_route:      SSP_PLATFORM
-transaction_mechanism: { available: ["preferred_deal"], included: ["preferred_deal"] }
+transaction_mechanism: { available: ["preferred_deal"], included: ["preferred_deal"], max_select: 1 }
 serving_mode:      dai
 correlation_id:    "ep-q4-2026-commitment/streaming-audio"

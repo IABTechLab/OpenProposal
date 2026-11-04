@@ -10,7 +10,8 @@ environments:   { available: ["ctv"], included: ["ctv"] }
 formats:        { available: ["ctv/instream-15s"], included: ["ctv/instream-15s"] }
 creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
 
-frequency_cap:  { count: { min: 1, max: 2 }, period: day, per: household }
+frequency_cap:  { count: { min: 1, max: 2, default: 1 }, period: day, per: household }
+time_zone:      viewer_local
 
 requires:
   all_of:  ["business-daily-display", "weather-app-ctv"]
@@ -18,12 +19,12 @@ requires:
     - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00, currency: USD }
 
 pricing:
-  - { cost_method: FLAT, gross_rate: 0.00,
+  - { cost_method: FLAT, list_rate: 0.00,
       price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
 
 commitment_bounds: { max_impressions: 500000 }
 
 visibility:   registry_gated     # its requires names the gated display line item
 buying_route:      SSP_PLATFORM
-transaction_mechanism: { available: ["private_auction"], included: ["private_auction"] }
+transaction_mechanism: { available: ["private_auction"], included: ["private_auction"], max_select: 1 }
 serving_mode:      ssai

@@ -10,7 +10,12 @@ change to this script. It checks:
   - Each key at a typed position is a key its table lists, and each value has its
     Type: Instant, Duration, Digest, Domain, VocabularyTerm, the other shared types,
     and the base types. An Enum value is on the list its row opens with.
-  - An option name in included[] or deltas names an option in available[].
+  - Option names are unique, and included[], selected[], and deltas name options.
+  - selected[] or included[] fits max_select, and an empty set has a stated meaning
+    (section 3.1).
+  - A settable field holds its form, and each buyer value is within its bounds
+    (section 3.2). A line item declares geo or markets, not both (section 5.5).
+  - agreed_rate recomputes under section 5.6, on the committed entry only.
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
@@ -28,6 +33,7 @@ import hashlib
 import json
 import re
 import sys
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 import yaml
@@ -43,14 +49,24 @@ COMPOSES = {"Commitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSumma
 
 # (file, path, finding): removed by the change named in the comment.
 KNOWN = {
-    # Option ids: these options are named by a key value until option ids are defined.
-    ("line-item-display.yaml", "measurement_source.included", "IAS"),
-    ("line-item-display.yaml", "reporting.included", "aggregate"),
-    ("line-item-display.yaml", "reporting.deltas", "log_level"),
     # Line items: proposal.yaml shows them in their own files (section 6.1), until the
     # change that lists the published line items inline in proposal.yaml.
     ("proposal.yaml", "(root)", "line_items"),
 }
+
+
+# Selectable fields whose row gives an empty set a meaning (section 3.1).
+EMPTY_ALLOWED = set()
+# The cost methods delta_cpm applies to (section 3.1).
+IMPRESSION_METHODS = set()
+
+
+def _committed_entry(item):
+    """The pricing[] entry the line item's commitment is priced against, if any."""
+    entries = item.get("pricing") or []
+    if not item.get("commitment"):
+        return None
+    return entries[0] if len(entries) == 1 else None
 
 
 # Each `REQUIRED when <condition>` wording, as (object, line item, proposal) -> bool.
@@ -71,6 +87,9 @@ CONDITIONS = {
     "`before_start` is absent": lambda o, i, p: "before_start" not in o,
     "`url` is absent": lambda o, i, p: "url" not in o,
     "`markup` is absent": lambda o, i, p: "markup" not in o,
+    "this is the committed entry": lambda o, i, p: _committed_entry(i) is o,
+    "`daypart` or `frequency_cap` is present":
+        lambda o, i, p: "daypart" in o or "frequency_cap" in o,
 }
 
 BASE = {"String", "Integer", "Number", "Boolean", "Enum", "Object"}
@@ -85,6 +104,9 @@ DOMAIN = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+\Z")
 TERM_PART = r"[A-Za-z0-9_-]+"
 TERM_DOMAIN = r"[a-z0-9-]+(?:\.[a-z0-9-]+)+:"
 TERM = re.compile(rf"(?:{TERM_DOMAIN})?{TERM_PART}\Z")
+# A GeoCode (section 5.5): ISO 3166-1 alpha-2, ISO 3166-2, or an extension term.
+GEO_CODE = re.compile(rf"(?:[A-Z]{{2}}(?:-[A-Z0-9]{{1,3}})?|{TERM_DOMAIN}{TERM_PART})\Z")
+CLOCK_TIME = re.compile(r"(?:[01]\d|2[0-3]):[0-5]\d\Z|24:00\Z")
 SIDE = ("buyer", "seller")
 PROPOSAL_STATUS = ("draft", "published", "under_review", "agreed", "withdrawn", "expired")
 CALENDAR_UNIT = ("hour", "day", "week", "month")
@@ -96,6 +118,10 @@ SCALARS = {
     "RegistrableDomain": (lambda v: isinstance(v, str) and DOMAIN.match(v)),
     "Measurer": (lambda v: v in SIDE or (isinstance(v, str) and DOMAIN.match(v))),
     "VocabularyTerm": (lambda v: isinstance(v, str) and TERM.match(v)),
+    "GeoCode": (lambda v: isinstance(v, str) and GEO_CODE.match(v)),
+    "ClockTime": (lambda v: isinstance(v, str) and CLOCK_TIME.match(v)),
+    "DayOfWeek": (lambda v: v in ("monday", "tuesday", "wednesday", "thursday", "friday",
+                                  "saturday", "sunday")),
     "MediaChannel": (lambda v: isinstance(v, str) and TERM.match(v)),
     "String": (lambda v: isinstance(v, str)),
     "Url": (lambda v: isinstance(v, str) and v.startswith(("http://", "https://"))),
@@ -193,6 +219,16 @@ class Spec:
         self._read_fields()
         self._read_key_tables()
         self._read_lists()
+        self._read_option_rules()
+
+    def _read_option_rules(self):
+        """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
+        for key, row in self.line_item.items():
+            if not row["type"].startswith("Selectable["):
+                continue
+            if re.search(r"[Nn]othing in effect", row["description"]):
+                EMPTY_ALLOWED.add(key)
+        IMPRESSION_METHODS.update(re.findall(r"`([A-Z]+)`", self.tables["Delta"]["delta_cpm"]["meaning"]))
 
     def _read_fields(self):
         target, in_table = None, False
@@ -212,7 +248,7 @@ class Spec:
             elif in_table and target is not None and len(c) == 5 and c[0].startswith("`"):
                 target[clean_key(c[0])] = {
                     "type": c[1], "required": c[2], "marker": c[3],
-                    "values": enum_values(c[1], c[4]),
+                    "values": enum_values(c[1], c[4]), "description": c[4],
                 }
 
     def _read_key_tables(self):
@@ -234,6 +270,7 @@ class Spec:
                         r = cells(self.lines[j])
                         rows[clean_key(r[0])] = {
                             "type": r[1], "required": r[2], "values": enum_values(r[1], r[3]),
+                            "meaning": r[3],
                         }
                         j += 1
                 current = None
@@ -326,6 +363,9 @@ class Checker:
         if base == "Settable":
             self.check_settable(file, path, value, args[0])
             return
+        if base == "SettableRange":
+            self.check_settable_range(file, path, value, args[0])
+            return
         if base == "Range":
             if not isinstance(value, dict) or not value or not value.keys() <= {"min", "max"}:
                 self.err(file, path, "range", "a Range holds min, max, or both")
@@ -375,18 +415,6 @@ class Checker:
             if key in value:
                 self.check_value(file, f"{path}.{key}", value[key], row)
 
-    def check_settable(self, file, path, value, entry_type):
-        """Section 3.2: an enumerated set in allowed[], or a range in min and max."""
-        if not isinstance(value, dict) or not value:
-            self.err(file, path, "settable", "expected a Settable")
-            return
-        if "allowed" in value:
-            if value.keys() != {"allowed"}:
-                self.err(file, path, "settable", "a Settable declares allowed[] or min and max")
-            self.check_type(file, f"{path}.allowed", value["allowed"], f"Array[{entry_type}]")
-        elif not value.keys() <= {"min", "max"}:
-            self.err(file, path, "settable", "a Settable declares allowed[] or min and max")
-
     def check_selectable(self, file, path, value, option_type):
         if not isinstance(value, dict):
             self.err(file, path, "selectable", "expected a Selectable")
@@ -401,22 +429,127 @@ class Checker:
         names = []
         for i, option in enumerate(value["available"]):
             if isinstance(option, dict):
+                if "id" not in option:
+                    self.err(file, f"{path}.available[{i}]", "id", "an object option has an id")
                 names.append(option.get("id"))
                 if option_type in self.spec.tables:
                     self.check_object(file, f"{path}.available[{i}]", option, option_type)
             else:
-                names.append(str(option))
                 self.check_type(file, f"{path}.available[{i}]", option, option_type)
+                names.append(str(option))
+        if len(names) != len(set(names)):
+            self.err(file, path, "names", "option names are not unique in the field")
         if "included" not in value:
             self.err(file, path, "included", "REQUIRED key 'included' is missing")
         for name in value.get("included", []):
             if name not in names:
                 self.err(file, f"{path}.included", name, f"{name!r} names no option")
-        for name in (value.get("deltas") or {}):
+        for name in value.get("selected", []):
+            if name not in names:
+                self.err(file, f"{path}.selected", name, f"{name!r} names no option")
+        for name, delta in (value.get("deltas") or {}).items():
             if name not in names:
                 self.err(file, f"{path}.deltas", name, f"{name!r} names no option")
+            self.check_object(file, f"{path}.deltas.{name}", delta, "Delta")
+            if not delta:
+                self.err(file, f"{path}.deltas.{name}", "delta", "a Delta holds at least one key")
         if "max_select" in value:
             self.check_type(file, f"{path}.max_select", value["max_select"], "Integer")
+        field = path.rsplit(".", 1)[-1]
+        in_effect = value.get("selected", value.get("included", []))
+        if "max_select" in value and len(in_effect) > value["max_select"]:
+            self.err(file, path, "max_select", "more options in effect than max_select")
+        if not in_effect and field not in EMPTY_ALLOWED:
+            self.err(file, path, "empty", f"{field} gives an empty set no meaning")
+
+    def covers(self, field, outer, inner):
+        """Whether an entry of a settable field covers another (sections 3.2, 5.5)."""
+        if outer == inner:
+            return True
+        if field == "geo":
+            return str(inner).startswith(f"{outer}-")
+        if field == "device":
+            return outer == 1 and inner in (4, 5)
+        if field == "daypart":
+            return (set(inner.get("days", [])) <= set(outer.get("days", []))
+                    and outer.get("start", "") <= inner.get("start", "")
+                    and inner.get("before", "") <= outer.get("before", ""))
+        return False
+
+    def check_narrowing(self, file, path, value, item_type, allowed):
+        if not isinstance(value, dict) or not value.keys() <= {"include", "exclude"}:
+            self.err(file, path, "narrowing", "a Narrowing holds include[] and exclude[]")
+            return
+        if "include" not in value:
+            self.err(file, path, "include", "REQUIRED key 'include' is missing")
+        field = path.split(".")[-2]
+        include, exclude = value.get("include", []), value.get("exclude", [])
+        for key, within, entries in (("allowed", allowed, include), ("include", include, exclude)):
+            for entry in entries:
+                self.check_type(file, path, entry, item_type)
+                if not any(self.covers(field, outer, entry) for outer in within):
+                    self.err(file, path, "covered", f"{entry!r} is not covered by {key}")
+
+    def check_settable(self, file, path, value, item_type):
+        """Section 3.2: the envelope form, allowed[] with a default and the buyer's value."""
+        if not isinstance(value, dict) or not value.keys() <= {"allowed", "default", "value"}:
+            self.err(file, path, "settable", "a Settable holds allowed[], default, and value")
+            return
+        for key in ("allowed", "default"):
+            if key not in value:
+                self.err(file, path, key, f"REQUIRED key {key!r} is missing")
+        allowed = value.get("allowed", [])
+        for i, entry in enumerate(allowed):
+            self.check_type(file, f"{path}.allowed[{i}]", entry, item_type)
+        for key in ("default", "value"):
+            if key in value:
+                self.check_narrowing(file, f"{path}.{key}", value[key], item_type, allowed)
+
+    def check_settable_range(self, file, path, value, item_type):
+        """Section 3.2: the range form, the keys of Range with a default and the buyer's value."""
+        if not isinstance(value, dict) or not value.keys() <= {"min", "max", "default", "value"}:
+            self.err(file, path, "settable", "a SettableRange holds min, max, default, and value")
+            return
+        if "min" not in value and "max" not in value:
+            self.err(file, path, "bound", "a SettableRange holds at least one bound")
+        if "default" not in value:
+            self.err(file, path, "default", "REQUIRED key 'default' is missing")
+        for key in ("min", "max", "default", "value"):
+            if key in value:
+                self.check_type(file, f"{path}.{key}", value[key], item_type)
+        if "min" in value and "max" in value and value["min"] > value["max"]:
+            self.err(file, path, "bound", "min is greater than max")
+        for key in ("default", "value"):
+            if key in value and ((("min" in value) and value[key] < value["min"])
+                                 or (("max" in value) and value[key] > value["max"])):
+                self.err(file, f"{path}.{key}", "bounds", f"{key} is outside the bounds")
+
+    def check_agreed_rate(self, file, path, item):
+        """Recompute agreed_rate on the committed entry (section 5.6)."""
+        committed = _committed_entry(item)
+        for entry in item.get("pricing") or []:
+            if entry is not committed and "agreed_rate" in entry:
+                self.err(file, path, "agreed_rate", "agreed_rate on an uncommitted entry")
+        if committed is None or "agreed_rate" not in committed:
+            return
+        decimal = lambda n: Decimal(str(n))
+        cpm, factor = Decimal(0), Decimal(1)
+        for value in item.values():
+            if not isinstance(value, dict) or "available" not in value:
+                continue
+            included = value.get("included", [])
+            names = [n for n in value.get("selected", included) if n not in included]
+            for name in names:
+                delta = (value.get("deltas") or {}).get(name, {})
+                if committed.get("cost_method") in IMPRESSION_METHODS:
+                    cpm += decimal(delta.get("delta_cpm", 0))
+                elif set(delta) == {"delta_cpm"}:
+                    self.err(file, path, name, "an option priced only by delta_cpm on this entry")
+                factor *= 1 + decimal(delta.get("delta_fraction", 0))
+        rate = (decimal(committed["list_rate"]) + cpm) * factor
+        rate = rate.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
+        if rate != decimal(committed["agreed_rate"]):
+            self.err(file, path, "agreed_rate", f"agreed_rate recomputes to {rate}")
 
     def check_fields(self, file, path, doc, fields):
         known = {bare(k): r for k, r in fields.items() if "[]." not in k}
@@ -442,6 +575,10 @@ class Checker:
                     continue
                 else:
                     self.check_value(file, sub, doc[key], row)
+        if "line_item_id" in doc:
+            self.check_agreed_rate(file, path or "(root)", doc)
+            if "geo" in doc and "markets" in doc:
+                self.err(file, path or "(root)", "markets", "a line item declares geo or markets")
 
     def check_pricing(self, file, path, entries, fields):
         rows = {bare(k[len("pricing[]."):]): r for k, r in fields.items() if k.startswith("pricing[].")}
