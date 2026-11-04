@@ -110,8 +110,6 @@ line_items:
       advertisers:     [{ domain: "brand-a.example" }]
       derived_units:   2904865             # derived: 80000.00 / 27.54 × 1000
     hold_terms:     { available: true, duration: "P7D" }
-    visibility:     named
-    eligible_buyers: ["agency-a.example"]
     transaction_mechanism:
       available:  [{ id: programmatic_guaranteed, delivery_type: guaranteed }]
       included:   ["programmatic_guaranteed"]
@@ -122,6 +120,8 @@ line_items:
       allowed_dsps:  ["dsp-a.example", "dsp-b.example"]
       seats:         { dsp: "dsp-a.example", ids: ["seat-99812", "seat-99813"] }   # the buyer's write
       seat_owner:    { domain: "agency-a.example", legal_name: "Agency A LLC" }      # the buyer's write
+    visibility:    named
+    eligible_buyers: ["agency-a.example"]
     external_references:
       - { system: "orders.examplepub.example", id: "345301", reference_type: order }
       - { system: "orders.examplepub.example", id: "778412", reference_type: line }
@@ -173,5 +173,5 @@ line_items:
       included:   ["programmatic_guaranteed"]
       max_select: 1
     deal_origin:   "ssp-a.example"
-    visibility:     named
+    visibility:    named
     eligible_buyers: ["agency-a.example"]

@@ -148,7 +148,7 @@ formats:
   deltas:       { "display/970x250": { delta_cpm: 3.00 } }
 
 creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
-materials_due:     { at: "2026-09-24T23:59:59Z" }
+materials_due:     { before_start: "P1D" }
 
 geo:
   allowed:      ["US-NY", "US-CA", "US-IL", "US-TX"]
@@ -231,9 +231,7 @@ transaction_mechanism:
   max_select: 1
 deal_origin:            "adserver.example"
 buyer_requirements:     { seats_expected: true,
-                          allowed_dsps: ["dsp-a.example", "dsp-b.example"],
-                          seats: { dsp: "dsp-a.example", ids: ["seat-99812"] },   # the buyer's write
-                          seat_owner: { domain: "agency-a.example", legal_name: "Agency A LLC" } }
+                          allowed_dsps: ["dsp-a.example", "dsp-b.example"] }
 billing:                { invoicing_party: { domain: "examplepub-billing.example",
                                              legal_name: "Example Publisher Billing LLC" },
                           payment_terms: "net 30", invoice_period: month,

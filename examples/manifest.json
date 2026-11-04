@@ -9,7 +9,7 @@
         "domain": "examplepub.example",
         "legal_name": "Example Publisher US"
       },
-      "description": "Cross-channel Example Publisher US package spanning display, in-stream video and CTV. Business and financial audience skew, weekday-heavy delivery.\n",
+      "description": "Cross-channel Example Publisher US package spanning display, video, audio, and CTV. Business and financial audience skew, weekday-heavy delivery.\n",
       "offer_window": {
         "start": "2026-10-01T00:00:00Z",
         "end": "2026-12-31T23:59:59Z"

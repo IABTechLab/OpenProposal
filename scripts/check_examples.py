@@ -32,6 +32,10 @@ change to this script. It checks:
   - Each section 4.1.1 removal path resolves to a table row, and each lifecycle,
     recorded, or asserted field is on the removal list (section 3).
   - seller and buyer on a proposal hold legal_name.
+  - proposal.yaml is a shared proposal: it carries no buyer, assent, ask, hold,
+    commitment, or buyer write (section 4.3).
+  - Each line-item-*.yaml with no commitment equals the entry of that line_item_id in
+    proposal.yaml, and proposal.yaml holds no other entry (section 6.1).
   - A value table's first column equals the list it restates (section 2.6).
   - A proposal's status follows its line items (section 4.3.3), and its history has
     one seller entry for each version and pointers that resolve (section 4.1.3).
@@ -59,8 +63,7 @@ change to this script. It checks:
   - Each yaml block in the body of the specification holds keys and types its tables
     list.
 
-KNOWN holds findings that a later change removes. It only shrinks. Run with
---regen-manifest to rewrite examples/manifest.json from the full examples.
+Run with --regen-manifest to rewrite examples/manifest.json from the full examples.
 
 Run: python3 scripts/check_examples.py
 """
@@ -97,12 +100,6 @@ EXACTLY_ONE = set()
 CLOSED = {}
 # Fields absent when embedded.
 EMBEDDED_ABSENT = []
-# (file, path, finding): removed by the change named in the comment.
-KNOWN = {
-    # Line items: proposal.yaml shows them in their own files (section 6.1), until the
-    # change that lists the published line items inline in proposal.yaml.
-    ("proposal.yaml", "(root)", "REQUIRED field 'line_items' is missing"),
-}
 # The mechanism table of section 5.9.
 MECHANISMS = {}
 # The cost table of section 5.6.5, as cost_method -> rate per, and -> unit terms.
@@ -697,13 +694,9 @@ class Checker:
     def __init__(self, spec):
         self.spec = spec
         self.errors = []
-        self.used_known = set()
         self.item, self.proposal = {}, None
 
     def err(self, file, path, msg):
-        if (file, path, msg) in KNOWN:
-            self.used_known.add((file, path, msg))
-            return
         self.errors.append(f"{file}: {path}: {msg}")
 
     def required(self, file, path, cell, obj):
@@ -1508,6 +1501,18 @@ def full_examples():
     return items
 
 
+def check_extracts(checker):
+    """Section 6.1: the line item files with no commitment are extracts of proposal.yaml."""
+    held = {i["line_item_id"]: i for i in load_yaml(EXAMPLES / "proposal.yaml").get("line_items", [])}
+    # A line item example that carries a commitment is one issued to a buyer (section 4.3).
+    extracts = {k: i for k, i in full_examples().items() if "commitment" not in i}
+    for name in held.keys() ^ extracts.keys():
+        checker.errors.append(f"proposal.yaml: line item {name} isn't in both proposal.yaml and a line item file")
+    for name in held.keys() & extracts.keys():
+        if held[name] != extracts[name]:
+            checker.errors.append(f"proposal.yaml: line item {name} differs from its line item file")
+
+
 def line_item_summary(item, spec):
     out = project(item, spec.summary_paths)
     out["has_requires"] = "requires" in item
@@ -1524,7 +1529,7 @@ def build_manifest(spec):
     entry = proposal_summary(proposal, spec)
     entry["full_url"] = f"https://{proposal['seller']['domain']}/openproposal/{proposal['proposal_id']}"
     entry["line_items"] = [
-        line_item_summary(item, spec) for item in full_examples().values()
+        line_item_summary(item, spec) for item in proposal["line_items"]
         if item.get("visibility") == "public" and item.get("status") == "published"
     ]
     return {
@@ -1644,6 +1649,41 @@ def check_requires(checker, file, doc):
                                       "which is not a line item of this proposal")
 
 
+def check_shared(checker, file, doc):
+    """Section 4.3: a shared proposal carries no buyer state."""
+    for key in ("buyer", "assent", "change_requests"):
+        if key in doc:
+            checker.errors.append(f"{file}: a shared proposal carries no {key}")
+    for item in doc["line_items"]:
+        name = item["line_item_id"]
+        if item.get("status") in ("under_review", "agreed"):
+            checker.errors.append(f"{file}: {name}: a shared proposal has no line item {item['status']}")
+        for key in ("commitment", "hold"):
+            if key in item:
+                checker.errors.append(f"{file}: {name}: a shared proposal carries no {key}")
+        for entry in item.get("pricing", []):
+            if "agreed_rate" in entry:
+                checker.errors.append(f"{file}: {name}: a shared proposal carries no agreed_rate")
+        for key, value in item.items():
+            row = checker.spec.line_item.get(key) or checker.spec.line_item.get(f"{key}[]") or {}
+            if row.get("marker") == "supplied":
+                checker.errors.append(f"{file}: {name}: {key} is what a buyer supplies")
+            elif row.get("marker") == "mixed":
+                supplied = {k.removesuffix("[]") for k, r in checker.spec.mixed_keys(row["type"]).items()
+                            if r["marker"] == "supplied"}
+                for entry in value if isinstance(value, list) else [value]:
+                    if isinstance(entry, dict):
+                        for inner in entry.keys() & supplied:
+                            checker.errors.append(f"{file}: {name}: {key}.{inner} is what a buyer supplies")
+            elif not isinstance(value, dict):
+                continue
+            elif row.get("marker") in ("selectable", "settable"):
+                for inner in value.keys() & {"selected", "excluded", "value"}:
+                    checker.errors.append(f"{file}: {name}: {key}.{inner} is a buyer's write")
+            if key == "frequency_cap" and "value" in value.get("count", {}):
+                checker.errors.append(f"{file}: {name}: frequency_cap.count.value is a buyer's write")
+
+
 def applicable_max_share(terms, notice):
     """Section 5.6.6: the range holding the effective date, or the top-level max_share."""
     parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
@@ -1738,8 +1778,8 @@ def main():
         checker.check_fields(path.name, "", doc, spec.proposal)
         for i, item in enumerate(doc.get("line_items", [])):
             checker.check_fields(path.name, f"line_items[{i}]", item, spec.line_item)
-        if "line_items" not in doc:
-            continue  # proposal.yaml shows its line items in their own files (section 6.1)
+        if path.name == "proposal.yaml":
+            check_shared(checker, path.name, doc)
         check_status(checker, path.name, doc)
         check_history(checker, path.name, doc)
         check_requires(checker, path.name, doc)
@@ -1747,6 +1787,7 @@ def main():
         check_manifest(checker, spec)
     except (ValueError, KeyError) as e:
         checker.errors.append(f"manifest.json: {e}")
+    check_extracts(checker)
     checker.check_value_tables()
     checker.check_table_cells()
     checker.check_summary_paths()
@@ -1765,10 +1806,6 @@ def main():
             digests[name] = digest
             if entry["record_digest"] != digest:
                 checker.errors.append(f"{name}: record_digest recomputes to {digest}")
-
-    stale = KNOWN - checker.used_known
-    for item in sorted(stale):
-        checker.errors.append(f"KNOWN no longer needed, remove it: {item}")
 
     if checker.errors:
         print("Examples disagree with the specification:\n")

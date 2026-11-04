@@ -2753,8 +2753,11 @@ Runnable copies of every example below live in [`examples/`](../examples/).
 ### 6.1 Proposal
 
 Shows version 2 after one seller revision (§ 4.1.3). See
-[`examples/proposal.yaml`](../examples/proposal.yaml). Its line items are
-shown in their own files, §§ 6.2 to 6.5.
+[`examples/proposal.yaml`](../examples/proposal.yaml).
+
+Its `line_items[]` holds the line items of §§ 6.2 to 6.5, 6.7, and 6.11, which are
+extracts of it. §§ 6.9 and 6.10 show a buyer's composed record (§ 4.1.1) of a line item
+issued to it (§ 4.3), before its `commit`.
 
 ### 6.2 Display line item — fully worked
 

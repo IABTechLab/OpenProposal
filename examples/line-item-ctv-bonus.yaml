@@ -37,7 +37,6 @@ cancellation_policy:
   available:
     - { id: "notice-14d", notice_duration: "P14D", max_share: 1, fees: [{ calculation: none }] }
   included:     ["notice-14d"]
-
 visibility:   registry_gated     # its requires names the gated display line item
 
 transaction_mechanism:
