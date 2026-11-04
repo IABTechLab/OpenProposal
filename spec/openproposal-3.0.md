@@ -549,15 +549,15 @@ table's keys instead, with `holds exactly one key` or `At least one <noun> is pr
 stand for a type's arguments, and a Type cell inside that type's table may name them.
 `Enum` is a closed list of strings, written in the row that uses it, and a generic
 never takes it: a list a generic takes has a name. A closed list of integers written in a row has Type `Integer`.
-`Object` holds keys that another definition sets. A lead-in that reads "`X` holds the keys of
-`Y`" gives `X` every key of `Y`, with the rules `Y` states on them, and the rows of its
-own table. The keys sit flat in `X`, and `X` doesn't repeat them. `Y` may take a type,
-such as `Range[T]`. A lead-in that adds "each `<marker>`" gives the composed keys that
-marker. A lead-in that reads "`X` lists these paths" is followed by a `text` block with
-one path per line. The first segment of a path is a key of `X`, and later segments nest
-as they do in the object `X` is a subset of. A segment written `<name>` stands for what
-the lead-in says. A key table led in by "`X` adds this key" or "`X` adds these keys"
-follows that block and gives `X` those keys beside the listed paths.
+`Object` holds keys that another definition sets. A lead-in that reads "`X` holds the
+keys of `Y`" gives `X` every key of `Y`, with the rules `Y` states on them, and the rows
+of its own table. The keys sit flat in `X`, and `X` doesn't repeat them. `Y` may take a
+type, such as `Range[T]`. A lead-in that adds "each `<marker>`" gives the composed keys that marker. A lead-in that reads
+"`X` lists these paths" is followed by a `text` block with one path per line. The first
+segment of a path is a key of `X`, and later segments nest as they do in the object `X`
+is a subset of. A segment written `<name>` stands for what the lead-in says. A key
+table led in by "`X` adds this key" or "`X` adds these keys" follows that block and
+gives `X` those keys beside the listed paths.
 
 **Value lists.** A list is written once, as `` `a` \| `b` ``, or `` `a` `` alone when it
 has one value, or as the first column of a value table the text names as the list.
@@ -569,16 +569,17 @@ every other list is closed, and in a row it opens the Meaning cell.
 another standard and says so; that object keeps the standard's spelling and cites
 it. A key name repeats only where it means the same thing, and each row's Type cell
 states its form there. An array named by a noun is plural, except the mass nouns
-`pricing[]`, `evidence[]`, `verification[]`, and `negotiation_history[]`, and a name another standard
-spells, such as `playmethod[]`. A name that isn't a noun keeps its form, such as `available[]`, `include[]`,
-`best_for[]`, and `all_of[]`. The suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
+`assent[]`, `pricing[]`, `evidence[]`, `verification[]`, and `negotiation_history[]`,
+and a name another standard spells, such as `playmethod[]`. A name that isn't a noun
+keeps its form, such as `available[]`, `include[]`, `best_for[]`, and `all_of[]`. The
+suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
 `_allowed` or `_required`, and a list never does.
 
 **Values.** Every term compares byte for byte. A list this specification owns is
 lower snake case. A list taken from another standard keeps that standard's spelling
-and names it. A list built on another standard's list follows its case and names it:
-`cost_method` is upper case, like OpenDirect 2.1 `Line.ratetype`, and § 1.1 maps it to
-that list.
+and names it, such as `ApprovalStatus`. A list built on another standard's list follows
+its case and names it: `cost_method` is upper case, like OpenDirect 2.1 `Line.ratetype`,
+and § 1.1 maps it to that list.
 
 **Yes or no.** A key from another standard keeps that standard's values, as
 `IntegerFlag` does. Every other flag is a Boolean.
@@ -1593,6 +1594,7 @@ screens.
 
 With a `loop`, a screen delivers `slots_per_loop` × 3,600 ÷ `length_s` plays per
 operating hour.
+
 #### 5.2.9 programs
 
 **`ProgramOption`** keys:
@@ -2593,8 +2595,8 @@ such as a line item's `requires` (§ 4.1.1) or a `negotiation_history[]` path.
 A buyer that fails these rules, or an authority check the seller applies (whether the
 sender may make this request for `buyer`, or `buyer` for an advertiser it names, § 1.2),
 gets `not_eligible` (§ 2.4), or `not_found` when the requester may not read what the request
-names. That is a rejection, not a decline, so the limits on a decline (§ 4.3.2,
-§ 5.6.1) do not apply. A mandate is not a field of this object.
+names. That is a rejection, not a decline, so the limits on a
+decline (§ 4.3.2, § 5.6.1) do not apply. A mandate is not a field of this object.
 
 **`RequiredCredential`** keys:
 
@@ -2787,7 +2789,7 @@ priced on its own. See
 ### 6.6 Publication manifest
 
 A manifest (§ 2.3) listing the public line items of the example proposal. The
-display line item is `registry_gated`, so it is not listed. See
+display and bonus line items are `registry_gated`, so they are not listed. See
 [`examples/manifest.json`](../examples/manifest.json).
 
 ### 6.7 Rewarded video line item
@@ -2895,8 +2897,8 @@ see [docs/open-questions.md](../docs/open-questions.md).
    which OpenDirect `Product` it books.
 3. **Cross-channel guarantee comparability is unsolved.** Once one line item
    guarantees `viewable_rate` and another `completion_rate`, there is no
-   normalised way for a buying agent to compare or optimise across them. Likely
-   WS4, but worth stating rather than pretending 3.0 covers it.
+   normalised way for a buying agent to compare or optimise across them. 3.0
+   doesn't cover it.
 4. **The format registry has no entries for `audio/*`, `ctv/*` or `dooh/*`.**
    `specs` delegates to a registry that cannot currently answer for half the
    declared channels.

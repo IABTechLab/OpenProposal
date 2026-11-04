@@ -4,51 +4,60 @@
 Every rule here reads the spec, so a table change reaches the examples without a
 change to this script. It checks:
 
-  - Each file parses strictly: no duplicate keys, no implicit dates.
+  - Each file parses strictly: no duplicate keys, no implicit dates, YAML 1.2 core
+    schema scalars, and Numbers that RFC 8785 reproduces (section 4.1.1).
   - Each REQUIRED field and key is present. A `REQUIRED when <condition>` cell is
     tested by its entry in CONDITIONS, and a wording with no entry is an error.
   - Each key at a typed position is a key its table lists, and each value has its
-    Type: Instant, Duration, Digest, Domain, VocabularyTerm, the other shared types,
-    and the base types. An Enum value is on the list its row opens with.
-  - Option names are unique, and included[], selected[], and deltas name options.
+    Type. A Type cell the script can't test is an error. An Enum value is on its list,
+    and a bare VocabularyTerm is a core term where its row lists them.
+  - Option ids are unique, and included[], selected[], and deltas name options.
   - excluded[] names excludable options outside the set in effect, and combine holds
-    the operators section 5.3 lists, with one in effect and no deltas.
+    the operators section 5.3 lists, with no deltas.
   - An exclusions entry is an array of its type's entries or a DocumentRef, and its
-    type is one accepted_exclusions accepts. A Map key has the Map's key type.
-  - selected[] or included[] fits max_select, and an empty set has a stated meaning
-    (section 3.1).
-  - A settable field holds its form, and each buyer value is within its bounds
-    (section 3.2). A line item declares geo or markets, not both (section 5.5).
+    type is one accepted_exclusions accepts.
+  - selected[] or included[] fits max_select, and an empty set has a stated meaning.
+  - A settable field holds its form, and each buyer value is within its bounds.
   - agreed_rate recomputes under section 5.6, on the committed entry only.
   - A commitment's arithmetic holds under section 5.6.5, on FLAT and TIME as well,
-    and it fits commitment_bounds.spend and the committed entry's unit_bounds.
-  - pricing_id is unique, two entries don't share a cost method, cost parameters, a
-    currency, and a mechanism, and the committed entry covers the mechanism in effect
-    (section 5.6).
-  - A Range's min is not greater than its max, and an Interval's end is later than its
-    start (section 2.2).
-  - Each mechanism option fits its row in section 5.9. deal_origin is on a deal line
-    item only, a deal reference names deal_origin (section 5.10), and availability is
-    forecast under non_guaranteed (section 5.6).
-  - A tentative event is outside included[] and priced only by delta_flat (section
-    5.2.9), and an embedded line item follows section 5.9.
-  - The manifest is a strict path subset of the full objects (section 2.1), and lists
-    each public, published line item (section 2.3).
-  - seller and buyer on a proposal hold legal_name (section 4.1).
-  - Each section 4.1.1 removal path resolves to a table row, below a typed field too.
-  - An array whose row says MUST be non-empty holds an entry.
+    and it fits commitment_bounds.spend and the committed entry's unit_bounds. An amount
+    under basis units is whole.
+  - Each mechanism option fits its row in section 5.9.
+  - An array whose row says MUST be non-empty holds an entry, and an audience option's
+    taxonomy is a value its row allows.
+  - The committed entry covers the mechanism in effect (section 5.6).
+  - Each section 2.1 summary path resolves to a table row with the same spelling.
+  - The manifest fits its key table, is a strict path subset of the full objects
+    (section 2.1), and lists each public, published line item (section 2.3).
+  - Each section 4.1.1 removal path resolves to a table row, and each lifecycle,
+    recorded, or asserted field is on the removal list (section 3).
+  - seller and buyer on a proposal hold legal_name.
+  - A value table's first column equals the list it restates (section 2.6).
+  - A proposal's status follows its line items (section 4.3.3), and its history has
+    one seller entry for each version and pointers that resolve (section 4.1.3).
   - record_digest in examples/proposal-agreed.yaml and examples/proposal-issued.yaml
-    recomputes under section 4.1.1, over the line items each entry names, and a
-    buyer_supplied that holds no key after the removals moves no digest.
+    recomputes under section 4.1.1, over the line items each entry names.
   - In those examples a withdrawal or decline matches a commitment entry before it,
-    an acceptance matches a live commitment entry, and a line item is agreed only
-    with a matching pair (section 4.1.2).
+    an acceptance matches a commitment entry, a line item is agreed only with a
+    matching pair (section 4.1.2), and the buyer is eligible (section 5.8).
   - A change_requests[] baseline names an agreed line item at the version of its
-    acceptance entry (section 4.4). A cancellation names an option in effect, and its
-    cancelled_share is within the max_share of the range holding its effective date, or
-    the top-level one, and an option's dated_shares[] windows don't overlap (section 5.6.6).
+    acceptance entry (section 4.4). A cancellation's cancelled_share is within the max_share of
+    the range holding its effective date, or the top-level one, and an option's
+    dated_shares[] windows don't overlap (section 5.6.6).
+  - An Interval's end is later than its start (section 2.2), and an Integer row that
+    opens with a list holds a value on it (section 2.6).
   - A core metric's level has the kind its row states, and counted_by equals the
-    party sections 5.6.4 and 5.7.1 name, under the Measurer comparison (section 2.2).
+    party sections 5.6.4 and 5.7.1 name, under the Measurer comparison.
+  - pricing_id is unique, and two entries don't share a cost method, cost parameters,
+    a currency, and a mechanism (section 5.6).
+  - A tentative event is outside included[] and priced only by delta_flat (section
+    5.2.9), an embedded line item follows section 5.9, deal_origin is on a deal line
+    item only, a deal reference names deal_origin, and requires names line items of
+    the same proposal.
+  - An availability figure is forecast under non_guaranteed, a hold ends within the
+    section 4.3.4 cap, and a venue_type holds one id.
+  - Each yaml block in the body of the specification holds keys and types its tables
+    list.
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -63,6 +72,7 @@ import sys
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import yaml
 
@@ -70,29 +80,29 @@ ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "spec" / "openproposal-3.0.md"
 EXAMPLES = ROOT / "examples"
 
-# Object types whose extra keys are allowed.
-OPEN_TYPES = {"DocumentRef", "ErrorObject", "CostParameters"}
+# What the specification states, read by Spec.
+# Object types whose extra keys are allowed (section 2.5).
+OPEN_TYPES = set()
 # A named type that holds the keys of another.
-COMPOSES = {"App": ["AppId"], "Commitment": ["CommitmentAmount"],
-            "MinCommitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSummary"]}
-# Named types that hold the keys of BuyerWrites (section 3.4), a path list.
-WRITES_TYPES = {"LineItemWrites"}
-# Named types that hold the keys of a Selectable[T], with their T, and add their own rows.
-SELECTABLE_HOLDERS = {"ShortfallRemedy": "VocabularyTerm", "AudienceSelectable": "AudienceOption"}
-
+COMPOSES = {}
+# Named types that hold the keys of a Selectable[T], with their T (section 2.6).
+SELECTABLE_HOLDERS = {}
+# Types whose lead-in says they hold exactly one key.
+ONE_KEY_TYPES = set()
+# Selectable fields that give an empty set a meaning (section 3.1).
+EMPTY_ALLOWED = set()
+# Selectable fields with exactly one option in effect.
+EXACTLY_ONE = set()
+# The closed lists of section 2.2, and of each type a lead-in or section 5.2.1 names.
+CLOSED = {}
+# Fields absent when embedded.
+EMBEDDED_ABSENT = []
 # (file, path, finding): removed by the change named in the comment.
 KNOWN = {
     # Line items: proposal.yaml shows them in their own files (section 6.1), until the
     # change that lists the published line items inline in proposal.yaml.
-    ("proposal.yaml", "(root)", "line_items"),
+    ("proposal.yaml", "(root)", "REQUIRED field 'line_items' is missing"),
 }
-
-
-# Selectable fields whose row gives an empty set a meaning (section 3.1).
-EMPTY_ALLOWED = set()
-# The cost methods delta_cpm applies to (section 3.1), and the units they count.
-IMPRESSION_METHODS = set()
-IMPRESSION_UNITS = set()
 # The mechanism table of section 5.9.
 MECHANISMS = {}
 # The cost table of section 5.6.5, as cost_method -> rate per, and -> unit terms.
@@ -100,10 +110,11 @@ RATE_PER = {}
 COST_UNIT = {}
 # The core metric table of section 5.7.1, as term -> Rate or Count.
 METRIC_KIND = {}
-# Fields absent when embedded (section 5.9).
-EMBEDDED_ABSENT = []
 # The exclusion type table of section 5.5, as term -> entry type.
 EXCLUSION_ENTRY = {}
+# The methods delta_cpm applies to (section 3.1), and the units they count.
+IMPRESSION_METHODS = set()
+IMPRESSION_UNITS = set()
 RATE_UNIT_SECONDS = {"hour": 3600, "day": 86400, "week": 604800}
 
 
@@ -137,22 +148,6 @@ def _audiences_can_combine(audiences):
     return len(options) > 1 and audiences.get("max_select", len(options)) > 1
 
 
-def _has_sync_groups(item):
-    options = (item.get("properties") or {}).get("available", [])
-    return any("sync_groups" in o for o in options)
-
-
-def _committed_entry(item):
-    """The pricing[] entry the line item's commitment is under, if any."""
-    commitment, entries = item.get("commitment"), item.get("pricing") or []
-    if not commitment:
-        return None
-    named = commitment.get("pricing_id")
-    if named is None:
-        return entries[0] if len(entries) == 1 else None
-    return next((e for e in entries if e.get("pricing_id") == named), None)
-
-
 def _cost_method(parameters, item):
     """The cost_method of the pricing[] entry that holds these cost_parameters."""
     for entry in item.get("pricing", []):
@@ -161,19 +156,9 @@ def _cost_method(parameters, item):
     return None
 
 
-def applicable_max_share(terms, notice):
-    """Section 5.6.6: the range holding the effective date, or the top-level max_share."""
-    parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
-    effective = parse(notice["requested_effective_at"])
-    length = re.fullmatch(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", terms.get("notice_duration", "P0D"))
-    if length:  # a length in months or years has no fixed span; the requested date stands
-        days, hours, minutes, seconds = (int(part or 0) for part in length.groups())
-        earliest = parse(notice["notice_received_at"]) + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-        effective = max(effective, earliest)
-    for span in terms.get("dated_shares", []):
-        if parse(span["window"]["start"]) <= effective <= parse(span["window"]["end"]):
-            return span["max_share"]
-    return terms.get("max_share", 1)
+def _has_sync_groups(item):
+    options = (item.get("properties") or {}).get("available", [])
+    return any("sync_groups" in o for o in options)
 
 
 def _has_order_reference(entry, proposal):
@@ -187,57 +172,71 @@ def _has_order_reference(entry, proposal):
 
 
 # Each `REQUIRED when <condition>` wording, as (object, line item, proposal) -> bool.
+
+
+def _committed_entry(item):
+    """The pricing[] entry the line item's commitment is under, if any."""
+    commitment, entries = item.get("commitment"), item.get("pricing") or []
+    if not commitment:
+        return None
+    named = commitment.get("pricing_id")
+    if named is None:
+        return entries[0] if len(entries) == 1 else None
+    return next((e for e in entries if e.get("pricing_id") == named), None)
+
+
 CONDITIONS = {
-    "`type` is `custom`": lambda o, i, p: o.get("type") == "custom",
-    "`type` is `custom` or `assent[]` is present":
-        lambda o, i, p: o.get("type") == "custom" or "assent" in o,
-    "the current `version` is frozen (§ 4.1.3)": lambda o, i, p: o.get("status") != "draft",
-    "`requested_value` is present": lambda o, i, p: "requested_value" in o,
-    "the entry's `action` is `requested`":
-        lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
-                            for e in (p or {}).get("negotiation_history", [])),
-    "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
-    "`role` is `commitment`": lambda o, i, p: o.get("role") == "commitment",
-    "the line item has an `order` reference (§ 5.10)":
-        lambda o, i, p: _has_order_reference(o, p),
+    # No example holds an ErrorObject, so this one is never asked.
+    "the request names a proposal the requester may read": lambda o, i, p: False,
     # No example holds a CommitResult. A ground of availability is the one sign of it.
     "`entries[]` holds a `decline` for lack of availability":
         lambda o, i, p: any(e.get("role") == "decline" and e.get("ground") == "availability"
                             for e in o.get("entries", [])),
+    "`type` is `custom`": lambda o, i, p: o.get("type") == "custom",
+    "`type` is `custom` or `assent[]` is present":
+        lambda o, i, p: o.get("type") == "custom" or "assent" in o,
+    "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
+    "the current `version` is frozen (§ 4.1.3)": lambda o, i, p: o.get("status") != "draft",
+    "`channel` is `dooh`": lambda o, i, p: i.get("channel") == "dooh",
+    "`channel` is `audio`": lambda o, i, p: i.get("channel") == "audio",
+    "`channel` is `video`": lambda o, i, p: i.get("channel") == "video",
+    "`placement.feed` is Podcast (3) or Catch-up radio (4)":
+        lambda o, i, p: (i.get("placement") or {}).get("feed") in (3, 4),
+    "`daypart` or `frequency_cap` is present":
+        lambda o, i, p: "daypart" in i or "frequency_cap" in i,
+    "`channel` is `video` or `audio`": lambda o, i, p: i.get("channel") in ("video", "audio"),
+    "`serving_mode` is `embedded` or the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
+        lambda o, i, p: i.get("serving_mode") == "embedded"
+        or "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
+        or any("unit_bounds" in e for e in i.get("pricing", [])),
+    "`serving_mode` is `embedded`": lambda o, i, p: i.get("serving_mode") == "embedded",
+    "an option's `delivery_type` is `share_of_voice`":
+        lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
+    "this is the committed entry": lambda o, i, p: _committed_entry(i) is o,
+    "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
+    "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
+    "the entry prices a deal mechanism":
+        lambda o, i, p: _is_deal(o.get("transaction_mechanisms") or _mechanisms(i)),
+    "`role` is `commitment`": lambda o, i, p: o.get("role") == "commitment",
+    "`status` is `held`": lambda o, i, p: o.get("status") == "held",
+    "the line item has an `order` reference (§ 5.10)":
+        lambda o, i, p: _has_order_reference(o, p),
     "`cost_method` is an extension term": lambda o, i, p: ":" in str(o.get("cost_method")),
     "the term requires keys":
         lambda o, i, p: o.get("cost_method") in ("CPMV", "CPV", "CPP", "CPA", "TIME"),
     "`pricing[]` has more than one entry": lambda o, i, p: len(i.get("pricing", [])) > 1,
-    "`cost_method` is `CPMV`": lambda o, i, p: _cost_method(o, i) == "CPMV",
-    "`cost_method` is `CPV` and `view_fraction` is absent":
-        lambda o, i, p: _cost_method(o, i) == "CPV" and "view_fraction" not in o,
-    "`cost_method` is `CPV` and `view_s` is absent":
-        lambda o, i, p: _cost_method(o, i) == "CPV" and "view_s" not in o,
-    "`cost_method` is `CPP`": lambda o, i, p: _cost_method(o, i) == "CPP",
-    "`cost_method` is `CPA`": lambda o, i, p: _cost_method(o, i) == "CPA",
-    "`cost_method` is `TIME`": lambda o, i, p: _cost_method(o, i) == "TIME",
     "`calculation` is `cancelled` or `commitment`":
         lambda o, i, p: o.get("calculation") in ("cancelled", "commitment"),
     "`calculation` is `fixed`": lambda o, i, p: o.get("calculation") == "fixed",
-    "`scope` is `category`": lambda o, i, p: o.get("scope") == "category",
     "`at` is absent": lambda o, i, p: "at" not in o,
+    "`requested_value` is present": lambda o, i, p: "requested_value" in o,
+    "the entry's `action` is `requested`":
+        lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
+                            for e in (p or {}).get("negotiation_history", [])),
     "`before_start` is absent": lambda o, i, p: "before_start" not in o,
     "`url` is absent": lambda o, i, p: "url" not in o,
     "`markup` is absent": lambda o, i, p: "markup" not in o,
-    "this is the committed entry": lambda o, i, p: _committed_entry(i) is o,
-    "`daypart` or `frequency_cap` is present":
-        lambda o, i, p: "daypart" in o or "frequency_cap" in o,
-    "`status` is `held`": lambda o, i, p: o.get("status") == "held",
-    "an option's `delivery_type` is `share_of_voice`":
-        lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
-    "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
-    "`channel` is `dooh`": lambda o, i, p: i.get("channel") == "dooh",
-    "`channel` is `audio`": lambda o, i, p: i.get("channel") == "audio",
-    "`channel` is `video`": lambda o, i, p: i.get("channel") == "video",
-    "`channel` is `video` or `audio`": lambda o, i, p: i.get("channel") in ("video", "audio"),
-    "`placement.feed` is Podcast (3) or Catch-up radio (4)":
-        lambda o, i, p: (i.get("placement") or {}).get("feed") in (3, 4),
-    "`serving_mode` is `embedded`": lambda o, i, p: i.get("serving_mode") == "embedded",
+    "`scope` is `category`": lambda o, i, p: o.get("scope") == "category",
     "the line item counts impressions": lambda o, i, p: _counts_impressions(i),
     "`source_type` is not Publisher Provided (`2`)": lambda o, i, p: o.get("source_type") != 2,
     "a property has `sync_groups[]`": lambda o, i, p: _has_sync_groups(i),
@@ -249,16 +248,23 @@ CONDITIONS = {
     "more than one seller audience can be in effect": lambda o, i, p: _audiences_can_combine(o),
     "`channel` is `dooh` and `allocation` is `all`":
         lambda o, i, p: i.get("channel") == "dooh" and o.get("allocation", "all") == "all",
-    "`serving_mode` is `embedded` or the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
-        lambda o, i, p: i.get("serving_mode") == "embedded"
-        or "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
-        or any("unit_bounds" in e for e in i.get("pricing", [])),
-    "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
-    "the entry prices a deal mechanism":
-        lambda o, i, p: _is_deal(o.get("transaction_mechanisms") or _mechanisms(i)),
+    "`cost_method` is `CPMV`": lambda o, i, p: _cost_method(o, i) == "CPMV",
+    "`cost_method` is `CPV` and `view_fraction` is absent":
+        lambda o, i, p: _cost_method(o, i) == "CPV" and "view_fraction" not in o,
+    "`cost_method` is `CPV` and `view_s` is absent":
+        lambda o, i, p: _cost_method(o, i) == "CPV" and "view_s" not in o,
+    "`cost_method` is `CPP`": lambda o, i, p: _cost_method(o, i) == "CPP",
+    "`cost_method` is `CPA`": lambda o, i, p: _cost_method(o, i) == "CPA",
+    "`cost_method` is `TIME`": lambda o, i, p: _cost_method(o, i) == "TIME",
 }
 
 BASE = {"String", "Integer", "Number", "Boolean", "Enum", "Object"}
+# T is a parameter. ExclusionList has its definition in prose.
+GENERIC = {"Array", "Map", "Range", "Selectable", "Settable", "SettableRange", "T",
+           "ExclusionList"}
+# Types that a path list defines, read from section 2.1 and section 3.4. A key table
+# beside the list adds keys, so it doesn't close the type.
+PATH_LISTS = set()
 INSTANT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 # The RFC 3339 Appendix A grammar without its week form: section 2.2 writes P14D, never P2W.
 _DUR_TIME = r"T(?:\d+H(?:\d+M(?:\d+S)?)?|\d+M(?:\d+S)?|\d+S)"
@@ -270,48 +276,50 @@ DOMAIN = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+\Z")
 TERM_PART = r"[A-Za-z0-9_-]+"
 TERM_DOMAIN = r"[a-z0-9-]+(?:\.[a-z0-9-]+)+:"
 TERM = re.compile(rf"(?:{TERM_DOMAIN})?{TERM_PART}\Z")
-# A GeoCode (section 5.5): ISO 3166-1 alpha-2, ISO 3166-2, or an extension term.
+# ISO 3166-1 alpha-2, ISO 3166-2, or an extension term.
 GEO_CODE = re.compile(rf"(?:[A-Z]{{2}}(?:-[A-Z0-9]{{1,3}})?|{TERM_DOMAIN}{TERM_PART})\Z")
-CLOCK_TIME = re.compile(r"(?:[01]\d|2[0-3]):[0-5]\d\Z|24:00\Z")
-SIDE = ("buyer", "seller")
-PROPOSAL_STATUS = ("draft", "published", "under_review", "agreed", "withdrawn", "expired")
-CALENDAR_UNIT = ("hour", "day", "week", "month")
+
+
+def _is_zone(value):
+    """Whether a value names a zone in the IANA time zone database."""
+    try:
+        ZoneInfo(value)
+    except (KeyError, ValueError, OSError, TypeError):
+        return False
+    return True
+
+
 SCALARS = {
     "Instant": (lambda v: isinstance(v, str) and INSTANT.match(v)),
     "Duration": (lambda v: isinstance(v, str) and DURATION.match(v)),
     "Digest": (lambda v: isinstance(v, str) and DIGEST.match(v)),
     "Domain": (lambda v: isinstance(v, str) and DOMAIN.match(v)),
     "RegistrableDomain": (lambda v: isinstance(v, str) and DOMAIN.match(v)),
-    "Measurer": (lambda v: v in SIDE or (isinstance(v, str) and DOMAIN.match(v))),
+    "Measurer": (lambda v: v in CLOSED["Side"] or (isinstance(v, str) and DOMAIN.match(v))),
     "VocabularyTerm": (lambda v: isinstance(v, str) and TERM.match(v)),
-    "ExclusionType": (lambda v: isinstance(v, str) and TERM.match(v)),
-    "GeoCode": (lambda v: isinstance(v, str) and GEO_CODE.match(v)),
-    "ClockTime": (lambda v: isinstance(v, str) and CLOCK_TIME.match(v)),
-    "DayOfWeek": (lambda v: v in ("monday", "tuesday", "wednesday", "thursday", "friday",
-                                  "saturday", "sunday")),
     "MediaChannel": (lambda v: isinstance(v, str) and TERM.match(v)),
+    "ExclusionType": (lambda v: isinstance(v, str) and TERM.match(v)),
     "String": (lambda v: isinstance(v, str)),
     "Url": (lambda v: isinstance(v, str) and v.startswith(("http://", "https://"))),
     "HttpsUrl": (lambda v: isinstance(v, str) and v.startswith("https://")),
+    "CurrencyCode": (lambda v: isinstance(v, str) and re.fullmatch(r"[A-Z]{3}", v)),
+    "ClockTime": (lambda v: isinstance(v, str) and re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]|24:00", v)),
     "Integer": (lambda v: isinstance(v, int) and not isinstance(v, bool)),
-    "IntegerFlag": (lambda v: v in (0, 1) and not isinstance(v, bool)),
     "Number": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
     "Amount": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
     "Boolean": (lambda v: isinstance(v, bool)),
-    "Fraction": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v <= 1),
-    "FractionDelta": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool) and v > -1),
-    "CalendarUnit": (lambda v: v in CALENDAR_UNIT),
-    "TimeUnit": (lambda v: v in CALENDAR_UNIT + ("flight",)),
-    "ZoneName": (lambda v: isinstance(v, str)),
-    "IanaZone": (lambda v: isinstance(v, str)),
-    "Side": (lambda v: v in SIDE),
-    "ProposalStatus": (lambda v: v in PROPOSAL_STATUS),
-    "LineItemStatus": (lambda v: v in PROPOSAL_STATUS or v == "sold_out"),
-    "HoldStatus": (lambda v: v in ("requested", "held", "declined", "expired", "released",
-                                   "converted")),
-    "ApprovalStatus": (lambda v: v in ("PENDING", "APPROVED", "REJECTED")),
+    "Fraction": (lambda v: isinstance(v, (int, float)) and 0 <= v <= 1),
+    "FractionDelta": (lambda v: isinstance(v, (int, float)) and v > -1),
+    "GeoCode": (lambda v: isinstance(v, str) and GEO_CODE.match(v)),
+    "CalendarUnit": (lambda v: v in CLOSED["CalendarUnit"]),
+    "TimeUnit": (lambda v: v in CLOSED["TimeUnit"]),
+    "ZoneName": (lambda v: v in CLOSED["ZoneName"] or _is_zone(v)),
+    "IanaZone": _is_zone,
+    "Side": (lambda v: v in CLOSED["Side"]),
+    "ProposalStatus": (lambda v: v in CLOSED["ProposalStatus"]),
+    "LineItemStatus": (lambda v: v in CLOSED["LineItemStatus"]),
+    "ApprovalStatus": (lambda v: v in CLOSED["ApprovalStatus"]),
     "TransactionMechanism": (lambda v: v in MECHANISMS),
-    "DeliveryType": (lambda v: v in ("guaranteed", "share_of_voice", "non_guaranteed")),
     "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
     "Ext": (lambda v: isinstance(v, dict) and all(
@@ -322,7 +330,13 @@ SCALARS = {
 
 
 class StrictLoader(yaml.SafeLoader):
-    """Reject duplicate keys, and keep dates as strings to reject them by type."""
+    """Read the YAML 1.2 core schema (section 4.1.1), and reject duplicate keys.
+
+    PyYAML reads YAML 1.1, where `no` is false and `1:30` is a number. Section 4.1.1
+    names the core schema, so those stay strings here, and a date stays a string for
+    its Type to reject. Hexadecimal, octal, and .inf also stay strings: JSON has no
+    number for them, so no Type accepts them.
+    """
 
 
 def _strict_map(loader, node):
@@ -336,10 +350,35 @@ def _strict_map(loader, node):
 
 
 StrictLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _strict_map)
+CORE_SCHEMA = [
+    ("tag:yaml.org,2002:null", re.compile(r"(?:null|Null|NULL|~|)\Z")),
+    ("tag:yaml.org,2002:bool", re.compile(r"(?:true|True|TRUE|false|False|FALSE)\Z")),
+    ("tag:yaml.org,2002:int", re.compile(r"[-+]?[0-9]+\Z")),
+    ("tag:yaml.org,2002:float", re.compile(
+        r"[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?\Z")),
+]
 StrictLoader.yaml_implicit_resolvers = {
-    k: [(tag, rx) for tag, rx in v if tag != "tag:yaml.org,2002:timestamp"]
+    k: [(tag, rx) for tag, rx in v if not tag.endswith((":bool", ":float", ":int", ":null", ":timestamp"))]
     for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()
 }
+for _tag, _rx in CORE_SCHEMA:
+    for _first in "-+0123456789.nNtTfF~":
+        StrictLoader.yaml_implicit_resolvers.setdefault(_first, []).append((_tag, _rx))
+StrictLoader.yaml_implicit_resolvers.setdefault("", []).append(CORE_SCHEMA[0])
+
+
+def _core_number(loader, node):
+    """A Number whose serialization reproduces the value written (section 4.1.1)."""
+    value = float(node.value)
+    if node.tag.endswith(":int") and abs(value) < 2 ** 53:
+        value = int(node.value)
+    if Decimal(node.value) != Decimal(repr(value)):
+        raise yaml.YAMLError(f"{node.value} at line {node.start_mark.line + 1} does not survive RFC 8785")
+    return value
+
+
+StrictLoader.add_constructor("tag:yaml.org,2002:int", _core_number)
+StrictLoader.add_constructor("tag:yaml.org,2002:float", _core_number)
 
 
 def load_yaml(path):
@@ -371,13 +410,32 @@ def clean_key(cell):
 
 
 def enum_values(typ, meaning):
-    """The closed list an Enum row opens its Meaning or Description with (section 2.6)."""
-    if typ != "Enum":
+    """The closed values a row states, written first in its Meaning cell (section 2.6).
+
+    An Integer row is a closed list only when it opens with two values or more, so a
+    Meaning cell that starts with one backticked name stays a plain integer.
+    """
+    if typ not in ("Enum", "Integer"):
         return None
-    m = re.match(r"^((?:`[^`]+`(?: \([^)]*\))?(?: \\\| )?)+)", meaning)
+    m = re.match(r"`[^`]+`(?: \([^)]*\))?(?: \\\| `[^`]+`(?: \([^)]*\))?)*", meaning)
     if not m:
         return None
-    return re.findall(r"`([^`]+)`", m.group(1))
+    values = re.findall(r"`([^`]+)`", re.sub(r"\([^)]*\)", "", m.group(0)))
+    if typ == "Enum":
+        return values
+    return [int(v) for v in values] if len(values) > 1 else None
+
+
+def core_terms(meaning):
+    """The core terms a VocabularyTerm row lists, or None where it lists none here.
+
+    A row can run prose after its list, so this also holds other backticked names. It
+    only ever passes a term it should have refused, and never refuses a core term.
+    """
+    m = re.search(r"[Cc]ore terms?\b:?\s*(.*)$", meaning)
+    if not m or m.group(1).startswith("in §"):
+        return None
+    return set(re.findall(r"`([^`]+)`", m.group(1)))
 
 
 class Spec:
@@ -385,37 +443,147 @@ class Spec:
         self.lines = SPEC.read_text().splitlines()
         self.proposal, self.line_item = {}, {}
         self.tables = {}
-        self.manifest_keys = {}
+        self.composed_markers = {}
         self.summary_paths, self.proposal_paths = [], []
-        self.write_paths = []
         self.removal = []
+        self.write_paths = []
+        self.yaml_blocks = []
         self._read_fields()
         self._read_key_tables()
         self._read_lists()
-        self._read_option_rules()
-        self._read_embedded()
+        self._read_shared_types()
         self._read_mechanisms()
         self._read_cost_methods()
         self._read_metrics()
         self._read_exclusion_types()
-        self._read_closed_types()
+        self._read_channels()
+        self._read_rules()
 
-    def _read_exclusion_types(self):
-        """The section 5.5 table: the entry type of each core exclusion type."""
-        start = self.lines.index("| `exclusions` | Entry | Meaning |")
+    def _read_fields(self):
+        target, in_table = None, False
+        for line in self.lines:
+            if line.startswith("## Appendix"):
+                break
+            m = re.match(r"^#{2,4} (\d+)\.", line)
+            if m:
+                target = {"4": self.proposal, "5": self.line_item}.get(m.group(1))
+                in_table = False
+                continue
+            c = cells(line)
+            if not c:
+                in_table = False
+            elif c[0] == "Field":
+                in_table = True
+            elif in_table and target is not None and len(c) == 5 and c[0].startswith("`"):
+                target[clean_key(c[0])] = {
+                    "type": c[1], "required": c[2], "marker": c[3], "description": c[4],
+                    "values": enum_values(c[1], c[4]), "core": core_terms(c[4]),
+                }
+        # A pricing[] entry's keys are field rows, and a line item has its own table.
+        self.tables["PricingEntry"] = {
+            k[len("pricing[]."):]: r for k, r in self.line_item.items() if k.startswith("pricing[].")
+        }
+        self.tables["LineItem"] = {k: r for k, r in self.line_item.items() if "[]." not in k}
+
+    def selectable_of(self, typ):
+        """The (T, added key rows) of a Selectable[T] or a type that holds its keys, or None."""
+        base, args = split_generic(typ)
+        if base == "Selectable":
+            return args[0], {}
+        if base in SELECTABLE_HOLDERS:
+            return SELECTABLE_HOLDERS[base], self.tables[base]
+        return None
+
+    def mixed_keys(self, typ):
+        """The key rows of a mixed field, each with the marker its table or lead-in states."""
+        base, args = split_generic(typ)
+        name = args[0] if base == "Array" else typ
+        rows = {k: r for k, r in self.tables.get(name, {}).items() if "marker" in r}
+        other, marker = self.composed_markers.get(name, (None, None))
+        rows.update({k: {**r, "marker": marker} for k, r in self.tables.get(other, {}).items()})
+        return rows
+
+    def write_paths_of(self, field):
+        """The BuyerWrites paths under one field, without the field's name."""
+        named = [p for p in self.write_paths if p == field or p.startswith(f"{field}.")]
+        row = self.line_item.get(field) or {}
+        if row.get("marker") == "selectable":
+            named.append("<selectable>.selected[]")
+        elif row.get("marker") == "settable" and not named:
+            named.append("<settable>.value")
+        return {p.partition(".")[2].removesuffix("[]") for p in named}
+
+    def _read_shared_types(self):
+        """The closed lists of the section 2.2 table, and of each type named outside it."""
+        start = self.lines.index("| Type | Form | Rules |")
         for line in self.lines[start + 2:]:
             c = cells(line)
             if not c:
                 break
-            EXCLUSION_ENTRY[clean_key(c[0])] = clean_key(c[1])
+            name, form = clean_key(c[0]), c[1]
+            adds = re.match(r"An? `([^`]+)`, or (.*)", form)
+            if adds:
+                # A Form that adds to a type: A `T`, or `b` (section 2.6). Only literals count.
+                added = re.findall(r"`([^`]+)`", adds.group(2))
+                CLOSED[name] = CLOSED.get(adds.group(1), []) + [v for v in added if not v[0].isupper()]
+            elif "\\|" in form:
+                # A list of integers holds integers, such as IntegerFlag.
+                CLOSED[name] = [int(v) if v.isdigit() else v for v in re.findall(r"`([^`]+)`", form)]
+        text = "\n".join(self.lines)
+        for name, form in re.findall(r"^\*\*`(\w+)`\*\* is ((?:`[^`]+`\s*\\\|\s*)+`[^`]+`)", text, re.M):
+            CLOSED[name] = re.findall(r"`([^`]+)`", form)
+        start = self.lines.index("| `environments` | Distribution channel | Device types |")
+        CLOSED["Environment"] = []
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            CLOSED["Environment"].append(clean_key(c[0]))
+        for name, values in CLOSED.items():
+            SCALARS.setdefault(name, lambda v, values=values: v in values and not isinstance(v, bool))
 
-    def _read_closed_types(self):
-        """Closed lists the body names as a type, such as section 5.3's CombineOperator."""
-        for line in self.lines:
-            m = re.match(r"^\*\*`(\w+)`\*\* is ((?:`[^`]+`(?: \\\| )?)+)\.$", line)
-            if m:
-                values = re.findall(r"`([^`]+)`", m.group(2))
-                SCALARS.setdefault(m.group(1), lambda v, values=values: v in values)
+    def _read_rules(self):
+        """What the prose states about types and fields, read rather than repeated."""
+        text = "\n".join(self.lines)
+        m = re.search(r"open objects (.*?)\)\.", text, re.S)
+        OPEN_TYPES.update(re.findall(r"`([^`]+)`", m.group(1)))
+        for name, other in re.findall(r"^\*\*`(\w+)`\*\* holds the keys of `([^`]+)`", text, re.M):
+            base, args = split_generic(other)
+            if base == "Selectable":
+                SELECTABLE_HOLDERS[name] = args[0]
+            elif base not in GENERIC:
+                COMPOSES[name] = [other]
+        for name, other, marker in re.findall(r"^\*\*`(\w+)`\*\* holds the keys of `([^`]+)`, each `([^`]+)`", text, re.M):
+            self.composed_markers[name] = (other, marker)
+        ONE_KEY_TYPES.update(re.findall(r"^\*\*`(\w+)`\*\* holds exactly one key", text, re.M))
+        m = re.search(r"^- ((?:`\w+`,? (?:and )?)+)MUST be absent", text, re.M)
+        EMBEDDED_ABSENT.extend(re.findall(r"`(\w+)`", m.group(1)))
+        IMPRESSION_METHODS.update(re.findall(r"`([A-Z]+)`", self.tables["Delta"]["delta_cpm"]["description"]))
+        IMPRESSION_UNITS.update(t for method in IMPRESSION_METHODS for t in COST_UNIT[method])
+        rows = list(self.line_item.items()) + [
+            (k, r) for table in self.tables.values() for k, r in table.items()
+        ]
+        for key, row in rows:
+            name = key.removesuffix("[]")
+            if row.get("description") and "MUST name exactly one option" in row["description"]:
+                EXACTLY_ONE.add(name)
+            if self.selectable_of(row["type"]) and re.search(r"[Nn]othing in effect", row.get("description", "")):
+                EMPTY_ALLOWED.add(name)
+        # Section 5.3 states this one in its numbered conditions, not in the row.
+        EMPTY_ALLOWED.add("audiences")
+        body = text.split("\n## 6. Examples")[0]
+        self.yaml_blocks = re.findall(r"^```yaml\n(.*?)^```", body, re.S | re.M)
+
+    def _read_channels(self):
+        """The section 5.1.1 table: the core terms of MediaChannel."""
+        start = self.lines.index("| `channel` | Condition |")
+        terms = set()
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            terms.add(clean_key(c[0]))
+        self.line_item["channel"]["core"] = terms
 
     def _read_mechanisms(self):
         """The section 5.9 table: deal or not, and the allowed delivery types."""
@@ -439,7 +607,10 @@ class Spec:
                 break
             RATE_PER[clean_key(c[0])] = int(c[3].replace(",", "")) if c[3] else None
             COST_UNIT[clean_key(c[0])] = re.findall(r"`([^`]+)`", c[1].split(", by")[0])
-        IMPRESSION_UNITS.update(t for method in IMPRESSION_METHODS for t in COST_UNIT.get(method, []))
+        units = {t for terms in COST_UNIT.values() for t in terms}
+        self.tables["PricingEntry"]["cost_method"]["core"] = set(RATE_PER)
+        self.tables["Availability"]["unit"]["core"] |= units
+        self.tables["AddressableScale"]["unit"]["core"] |= self.tables["FrequencyCap"]["per"]["core"]
 
     def _read_metrics(self):
         """The section 5.7.1 table: whether each core metric is a rate or a count."""
@@ -449,43 +620,19 @@ class Spec:
             if not c:
                 break
             METRIC_KIND[clean_key(c[0])] = c[1]
+        self.tables["CommittedMetric"]["metric"]["core"] = set(METRIC_KIND)
+        units = {t for terms in COST_UNIT.values() for t in terms}
+        rates = {m for m, kind in METRIC_KIND.items() if kind == "Rate"}
+        self.tables["ReportingOption"]["provided_metrics[]"]["core"] = units | rates
 
-    def _read_embedded(self):
-        """Section 5.9: the fields an embedded line item leaves out."""
-        m = re.search(r"^- ((?:`\w+`,? (?:and )?)+)MUST be absent", "\n".join(self.lines), re.M)
-        EMBEDDED_ABSENT.extend(re.findall(r"`(\w+)`", m.group(1)))
-
-    def _read_option_rules(self):
-        """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
-        for key, row in self.line_item.items():
-            if not row["type"].startswith("Selectable[") and row["type"] not in SELECTABLE_HOLDERS:
-                continue
-            if re.search(r"[Nn]othing in effect", row["description"]):
-                EMPTY_ALLOWED.add(key)
-        # Section 5.3 states this one in its numbered conditions, not in the row.
-        EMPTY_ALLOWED.add("audiences")
-        IMPRESSION_METHODS.update(re.findall(r"`([A-Z]+)`", self.tables["Delta"]["delta_cpm"]["meaning"]))
-
-    def _read_fields(self):
-        target, in_table = None, False
-        for line in self.lines:
-            if line.startswith("## Appendix"):
-                break
-            m = re.match(r"^#{2,4} (\d+)\.", line)
-            if m:
-                target = {"4": self.proposal, "5": self.line_item}.get(m.group(1))
-                in_table = False
-                continue
+    def _read_exclusion_types(self):
+        """The section 5.5 table: the entry type of each core exclusion type."""
+        start = self.lines.index("| `exclusions` | Entry | Meaning |")
+        for line in self.lines[start + 2:]:
             c = cells(line)
             if not c:
-                in_table = False
-            elif c[0] == "Field":
-                in_table = True
-            elif in_table and target is not None and len(c) == 5 and c[0].startswith("`"):
-                target[clean_key(c[0])] = {
-                    "type": c[1], "required": c[2], "marker": c[3],
-                    "values": enum_values(c[1], c[4]), "description": c[4],
-                }
+                break
+            EXCLUSION_ENTRY[clean_key(c[0])] = clean_key(c[1])
 
     def _read_key_tables(self):
         current = None
@@ -505,9 +652,11 @@ class Spec:
                     while j < len(self.lines) and self.lines[j].startswith("|"):
                         r = cells(self.lines[j])
                         rows[clean_key(r[0])] = {
-                            "type": r[1], "required": r[2], "values": enum_values(r[1], r[3]),
-                            "meaning": r[3],
+                            "type": r[1], "required": r[2], "description": r[3],
+                            "values": enum_values(r[1], r[3]), "core": core_terms(r[3]),
                         }
+                        if c[-1] == "Mutability":
+                            rows[clean_key(r[0])]["marker"] = r[4]
                         j += 1
                 current = None
 
@@ -515,8 +664,9 @@ class Spec:
         text = "\n".join(self.lines)
         m = re.search(r"`LineItemSummary` lists these paths[^\n]*\n\n```text\n(.*?)```", text, re.S)
         self.summary_paths = m.group(1).split()
-        m = re.search(r"`ProposalSummary` lists these paths[^\n]*\n\n```text\n(.*?)```", text, re.S)
+        m = re.search(r"`ProposalSummary` lists these paths.*?```text\n(.*?)```", text, re.S)
         self.proposal_paths = m.group(1).split()
+        PATH_LISTS.update(re.findall(r"^`(\w+)` lists these paths", text, re.M))
         m = re.search(r"`BuyerWrites` lists these paths.*?```text\n(.*?)```", text, re.S)
         self.write_paths = m.group(1).split()
         m = re.search(r"#### 4\.1\.1.*?```\n(.*?)```", text, re.S)
@@ -543,10 +693,6 @@ def split_generic(typ):
     return m.group(1), args
 
 
-def bare(key):
-    return key[:-2] if key.endswith("[]") else key
-
-
 class Checker:
     def __init__(self, spec):
         self.spec = spec
@@ -554,9 +700,9 @@ class Checker:
         self.used_known = set()
         self.item, self.proposal = {}, None
 
-    def err(self, file, path, what, msg):
-        if (file, path, what) in KNOWN:
-            self.used_known.add((file, path, what))
+    def err(self, file, path, msg):
+        if (file, path, msg) in KNOWN:
+            self.used_known.add((file, path, msg))
             return
         self.errors.append(f"{file}: {path}: {msg}")
 
@@ -572,41 +718,30 @@ class Checker:
             return False
         return CONDITIONS[condition](obj, self.item, self.proposal)
 
-    def check_value(self, file, path, value, row):
-        values = row.get("values")
-        if values is not None and value not in values:
-            self.err(file, path, repr(value), f"{value!r} is not on the list {values}")
-            return
-        if "MUST be non-empty" in row.get("meaning", row.get("description", "")) and value == []:
-            self.err(file, path, "empty", "an array this row says MUST be non-empty is empty")
-        self.check_type(file, path, value, row["type"])
-
     def check_type(self, file, path, value, typ):
         base, args = split_generic(typ)
         if base == "Array":
             if not isinstance(value, list):
-                self.err(file, path, "array", f"expected an array, found {type(value).__name__}")
+                self.err(file, path, f"expected an array, found {type(value).__name__}")
                 return
             for i, item in enumerate(value):
                 self.check_type(file, f"{path}[{i}]", item, args[0])
             return
         if base == "Map":
             if not isinstance(value, dict):
-                self.err(file, path, "map", f"expected a map, found {type(value).__name__}")
+                self.err(file, path, f"expected a map, found {type(value).__name__}")
                 return
             for k, item in value.items():
                 if args[0] in SCALARS and not SCALARS[args[0]](k):
-                    self.err(file, f"{path}.{k}", "key", f"key {k!r} is not a {args[0]}")
+                    self.err(file, f"{path}.{k}", f"key {k!r} is not a {args[0]}")
                 self.check_type(file, f"{path}.{k}", item, args[1])
             return
         if base == "ExclusionList":
             self.check_exclusion_list(file, path, value)
             return
-        if base == "Selectable":
-            self.check_selectable(file, path, value, args[0])
-            return
-        if base in SELECTABLE_HOLDERS:
-            self.check_selectable(file, path, value, SELECTABLE_HOLDERS[base], self.spec.tables.get(base, {}))
+        selectable = self.spec.selectable_of(typ)
+        if selectable:
+            self.check_selectable(file, path, value, *selectable)
             return
         if base == "Settable":
             self.check_settable(file, path, value, args[0])
@@ -615,96 +750,239 @@ class Checker:
             self.check_settable_range(file, path, value, args[0])
             return
         if base == "Range":
-            if not isinstance(value, dict) or not value or not value.keys() <= {"min", "max"}:
-                self.err(file, path, "range", "a Range holds min, max, or both")
+            if not isinstance(value, dict) or not value.keys() <= {"min", "max"} or not value:
+                self.err(file, path, "a Range holds min, max, or both")
                 return
             for k, item in value.items():
                 self.check_type(file, f"{path}.{k}", item, args[0])
             low, high = value.get("min"), value.get("max")
             if isinstance(low, (int, float)) and isinstance(high, (int, float)) and low > high:
-                self.err(file, path, "range", "min is greater than max")
-            return
-        if base == "Enum":
-            if not isinstance(value, str):
-                self.err(file, path, repr(value), f"{value!r} is not an Enum value")
-            return
-        if base == "Object":
-            if not isinstance(value, dict):
-                self.err(file, path, "object", f"expected an object, found {type(value).__name__}")
+                self.err(file, path, "min is greater than max")
             return
         if base in SCALARS:
             if not SCALARS[base](value):
-                self.err(file, path, repr(value), f"{value!r} is not a {base}")
+                self.err(file, path, f"{value!r} is not a {base}")
             return
         if base == "Interval" and isinstance(value, dict):
             starts, ends = value.get("start"), value.get("end")
             if isinstance(starts, str) and isinstance(ends, str) and ends <= starts:
-                self.err(file, path, "interval", "an Interval's end is not later than its start")
+                self.err(file, path, "an Interval's end is not later than its start")
         if base in self.spec.tables:
             self.check_object(file, path, value, base)
 
+    def check_table_cells(self):
+        """Each Type cell names what section 2.6 allows, and each condition has a test."""
+        def names(typ):
+            base, args = split_generic(typ)
+            return [base] + [n for arg in args for n in names(arg)]
+
+        known = BASE | GENERIC | set(SCALARS) | set(self.spec.tables)
+        rows = [("proposal", self.spec.proposal), ("line item", self.spec.line_item), *self.spec.tables.items()]
+        for owner, table in rows:
+            for key, row in table.items():
+                for name in names(row["type"]):
+                    if name not in known:
+                        self.err("spec", owner, f"the Type cell of {key} names {name}, which nothing defines")
+                wording = row["required"].removeprefix("REQUIRED when ")
+                if wording != row["required"] and wording not in CONDITIONS:
+                    self.err("spec", owner, f"{key}: no CONDITIONS entry for: {wording}")
+
+    def check_value_tables(self):
+        """Section 2.6: a value table's first column equals the list it restates."""
+        text = "\n".join(self.spec.lines)
+        written = {
+            "code": re.search(r"Core codes: (.*?)\.\n", text, re.S).group(1),
+            "exclusions": re.search(r"\*\*`ExclusionType`\*\* is a `VocabularyTerm` \(§ 2\.2\)\. Core terms: (.*?)\.\n", text, re.S).group(1),
+            "cost_method": re.search(r"Its core terms are (.*?)\. Terms are", text, re.S).group(1),
+            "metric": re.search(r"its standard\. Core terms: (.*?)\.\n", text, re.S).group(1),
+            "transaction_mechanism": re.search(r"\*\*`TransactionMechanism`\*\* is (.*?)\. A", text, re.S).group(1),
+            "seller_relationship": self.spec.tables["PropertyOption"]["seller_relationship"]["description"].split(",")[0],
+            "method": self.spec.tables["CreativeDelivery"]["method"]["description"].split(",")[0],
+        }
+        # These two tables are the list: their lead-ins say so.
+        own = {"channel", "environments"}
+        for n, line in enumerate(self.spec.lines):
+            c = cells(line)
+            if not c or not c[0].startswith("`") or n + 1 == len(self.spec.lines):
+                continue
+            if not re.match(r"^\|\s*:?-{3}", self.spec.lines[n + 1]):
+                continue
+            name = clean_key(c[0])
+            rows = []
+            for row in self.spec.lines[n + 2:]:
+                r = cells(row)
+                if not r:
+                    break
+                rows.append(clean_key(r[0]))
+            if name in own:
+                continue
+            if name not in written:
+                self.err("spec", f"line {n + 1}", f"value table {name} restates no list this check knows")
+            elif set(rows) != set(re.findall(r"`([^`]+)`", written[name])):
+                self.err("spec", f"line {n + 1}", f"value table {name} differs from the list it restates")
+        unit_terms = re.search(r"The `unit` terms are (.*?)\.\n", text, re.S).group(1)
+        if set(re.findall(r"`([^`]+)`", unit_terms)) != {t for terms in COST_UNIT.values() for t in terms}:
+            self.err("spec", "section 5.6.5", "the unit column differs from the unit terms")
+
+    def check_values(self, file, path, value, row):
+        """A value on its row's closed list, or a bare term on its core list."""
+        base, args = split_generic(row["type"])
+        inner = args[0] if args else base
+        selectable = self.spec.selectable_of(row["type"])
+        if selectable:
+            inner = selectable[0]
+            items = value.get("available", []) if isinstance(value, dict) else []
+        elif base == "Array":
+            items = value if isinstance(value, list) else []
+        else:
+            items = [value]
+        if "MUST be non-empty" in row.get("description", "") and items == []:
+            self.err(file, path, "an array this row says MUST be non-empty is empty")
+        for item in items:
+            if row.get("values") and item not in row["values"]:
+                self.err(file, path, f"{item!r} is not one of {row['values']}")
+            if inner in ("VocabularyTerm", "MediaChannel", "ExclusionType") and row.get("core") is not None:
+                if isinstance(item, str) and ":" not in item and item not in row["core"]:
+                    self.err(file, path, f"{item!r} is neither a core term nor an extension term")
+
     def rows_of(self, name):
         rows = dict(self.spec.tables.get(name, {}))
-        # A path list (section 2.1) gives its type the first segment of each path. The
-        # summary check below compares the values with the full objects.
-        heads = {"LineItemSummary": self.spec.summary_paths,
-                 "ProposalSummary": self.spec.proposal_paths}.get(name, [])
-        for path in heads:
-            rows.setdefault(path.split(".")[0], {"type": "", "required": "OPTIONAL"})
         for extra in COMPOSES.get(name, []):
-            rows.update(self.rows_of(extra))
+            rows.update(self.spec.tables.get(extra, {}))
         return rows
 
     def check_object(self, file, path, value, name):
         if not isinstance(value, dict):
-            self.err(file, path, "object", f"expected a {name}, found {type(value).__name__}")
+            self.err(file, path, f"expected a {name}, found {type(value).__name__}")
             return
-        known = {bare(k): r for k, r in self.rows_of(name).items()}
-        if name not in OPEN_TYPES:
+        rows = self.rows_of(name)
+        known = {k.rstrip("[]") if k.endswith("[]") else k: r for k, r in rows.items()}
+        holds_writes = "BuyerWrites" in COMPOSES.get(name, [])
+        if name not in OPEN_TYPES and not PATH_LISTS & ({name} | set(COMPOSES.get(name, []))):
             for key in value:
-                if key in known:
-                    continue
-                if name in WRITES_TYPES:
-                    if not self.is_write(key):
-                        self.err(file, path, key, f"key {key!r} is not a BuyerWrites path")
-                    continue
-                self.err(file, path, key, f"key {key!r} is not in the {name} table")
+                if key not in known:
+                    self.err(file, path, f"key {key!r} is not in the {name} table")
+        if holds_writes:
+            self.check_buyer_writes(file, path, value, known)
+        if "CommitmentAmount" in COMPOSES.get(name, []) and value.get("basis") == "units":
+            if not SCALARS["Number"](value.get("amount")) or value["amount"] % 1:
+                self.err(file, path, "an amount under basis units is a whole number")
+        if name in ONE_KEY_TYPES and len(value) != 1:
+            self.err(file, path, f"a {name} holds exactly one key")
         for key, row in known.items():
             if key not in value and self.required(file, path, row["required"], value):
-                self.err(file, path, key, f"REQUIRED key {key!r} of {name} is missing")
+                self.err(file, path, f"REQUIRED key {key!r} of {name} is missing")
             if key in value:
-                self.check_value(file, f"{path}.{key}", value[key], row)
+                self.check_type(file, f"{path}.{key}", value[key], row["type"])
+                self.check_values(file, f"{path}.{key}", value[key], row)
 
-    def is_write(self, key):
-        """Section 3.4: whether a key heads a BuyerWrites path."""
-        marker = self.spec.line_item.get(key, {}).get("marker")
-        if marker == "selectable" or (marker == "settable" and key != "frequency_cap"):
-            return True
-        return any(p.split(".")[0].removesuffix("[]") == key for p in self.spec.write_paths
-                   if not p.startswith("<"))
+    def check_buyer_writes(self, file, path, value, known):
+        """Section 3.4: the keys of a BuyerWrites, and the options its choices name."""
+        for key, write in value.items():
+            if key in known:
+                continue
+            allowed = self.spec.write_paths_of(key)
+            if not allowed:
+                self.err(file, path, f"key {key!r} is not a BuyerWrites path")
+            elif allowed != {""}:
+                self.check_write_keys(file, f"{path}.{key}", write, allowed)
+            declared = self.item.get(key) or {}
+            self.check_write_names(file, f"{path}.{key}", write, declared)
 
-    def check_selectable(self, file, path, value, option_type, extra=None):
+    def check_write_keys(self, file, path, write, allowed):
+        """Each key of a write is a listed path, or leads to one."""
+        if not isinstance(write, dict):
+            self.err(file, path, "expected the keys of a BuyerWrites path")
+            return
+        for key, value in write.items():
+            if key in allowed:
+                continue
+            deeper = {a.partition(".")[2] for a in allowed if a.startswith(f"{key}.")}
+            if deeper:
+                self.check_write_keys(file, f"{path}.{key}", value, deeper)
+            else:
+                self.err(file, path, f"key {key!r} is not a BuyerWrites path")
+
+    def check_write_names(self, file, path, write, declared):
+        """A selected[] or excluded[] names options the field declares."""
+        if not isinstance(write, dict) or not isinstance(declared, dict):
+            return
+        names = [o.get("id") if isinstance(o, dict) else o for o in declared.get("available", [])]
+        for name in write.get("selected", []) + write.get("excluded", []):
+            if name not in names:
+                self.err(file, path, f"{name!r} names no option")
+        if "combine" in write:
+            self.check_write_names(file, f"{path}.combine", write["combine"], declared.get("combine"))
+
+    def check_exclusion_list(self, file, path, value):
+        """An array of the type's entries, or a DocumentRef (section 5.5)."""
+        if isinstance(value, dict):
+            self.check_object(file, path, value, "DocumentRef")
+        elif not isinstance(value, list):
+            self.err(file, path, "an ExclusionList is an array or a DocumentRef")
+        else:
+            entry = EXCLUSION_ENTRY.get(path.rsplit(".", 1)[-1])
+            for i, item in enumerate(value):
+                if entry:
+                    self.check_type(file, f"{path}[{i}]", item, entry)
+
+    def check_exclusions(self, file, path, item):
+        """A buyer supplies only the types the seller accepts (section 5.5)."""
+        accepted = (item.get("accepted_exclusions") or {}).get("types", {})
+        for term in accepted:
+            if ":" not in term and term not in EXCLUSION_ENTRY:
+                self.err(file, f"{path}.accepted_exclusions", f"{term!r} is not a core exclusion type")
+        for term, entries in (item.get("exclusions") or {}).items():
+            if term not in accepted:
+                self.err(file, f"{path}.exclusions", f"{term!r} is not an accepted exclusion type")
+            elif isinstance(entries, list) and len(entries) > accepted[term].get("max_entries", len(entries)):
+                self.err(file, f"{path}.exclusions", f"{term!r} holds more than max_entries")
+
+    def check_audiences(self, file, path, value):
+        """The keys AudienceSelectable adds to its Selectable (section 5.3)."""
+        combine = value.get("combine") or {}
+        if combine.get("deltas"):
+            self.err(file, f"{path}.combine", "combine carries no deltas")
+        options = {o.get("id"): o for o in value.get("available", []) if isinstance(o, dict)}
+        in_effect = value.get("selected", value.get("included", []))
+        meaning = self.spec.tables["AudienceOption"]["taxonomy"]["description"]
+        codes = {int(n) for n in re.findall(r"`(\d+)`", meaning)}
+        vendor_from = int(re.search(r"\((\d+) and up\)", meaning).group(1))
+        for name, option in options.items():
+            taxonomy = option.get("taxonomy")
+            if isinstance(taxonomy, int) and taxonomy not in codes and taxonomy < vendor_from:
+                self.err(file, f"{path}.available", f"{name!r} has taxonomy {taxonomy}, which section 5.3 does not allow")
+        for name in value.get("excluded", []):
+            if not options.get(name, {}).get("excludable"):
+                self.err(file, f"{path}.excluded", f"{name!r} is not an excludable option")
+            if name in in_effect:
+                self.err(file, f"{path}.excluded", f"{name!r} is also in effect")
+
+    def check_selectable(self, file, path, value, option_type, rows):
         if not isinstance(value, dict):
-            self.err(file, path, "selectable", "expected a Selectable")
+            self.err(file, path, "expected a Selectable")
             return
         if "available" not in value:
-            self.err(file, path, "available", "a Selectable holds available[]")
+            self.err(file, path, "a Selectable holds available[]")
             return
-        extra = {bare(k): r for k, r in (extra or {}).items()}
-        known = {bare(k) for k in self.spec.tables["Selectable"]} | set(extra)
+        table = set(self.spec.tables["Selectable"])
+        field = path.rsplit(".", 1)[-1]
+        extra = {k.rstrip("[]"): row["type"] for k, row in rows.items()}
+        known = {k.rstrip("[]") for k in table} | set(extra)
+        for key, row in rows.items():
+            if key.rstrip("[]") not in value and self.required(file, path, row["required"], value):
+                self.err(file, path, f"REQUIRED key {key!r} is missing")
         for key in value:
             if key not in known:
-                self.err(file, path, key, f"key {key!r} is not a Selectable key")
-        for key, row in extra.items():
-            if key not in value and self.required(file, path, row["required"], value):
-                self.err(file, path, key, f"REQUIRED key {key!r} is missing")
+                self.err(file, path, f"key {key!r} is not a Selectable key")
+        for key, typ in extra.items():
             if key in value:
-                self.check_value(file, f"{path}.{key}", value[key], row)
+                self.check_type(file, f"{path}.{key}", value[key], typ)
         names = []
         for i, option in enumerate(value["available"]):
             if isinstance(option, dict):
                 if "id" not in option:
-                    self.err(file, f"{path}.available[{i}]", "id", "an object option has an id")
+                    self.err(file, f"{path}.available[{i}]", "an object option has an id")
                 names.append(option.get("id"))
                 if option_type in self.spec.tables:
                     self.check_object(file, f"{path}.available[{i}]", option, option_type)
@@ -712,29 +990,29 @@ class Checker:
                 self.check_type(file, f"{path}.available[{i}]", option, option_type)
                 names.append(str(option))
         if len(names) != len(set(names)):
-            self.err(file, path, "names", "option names are not unique in the field")
+            self.err(file, path, "option ids are not unique in the field")
         if "included" not in value:
-            self.err(file, path, "included", "REQUIRED key 'included' is missing")
+            self.err(file, path, "REQUIRED key 'included' is missing")
         for name in value.get("included", []):
             if name not in names:
-                self.err(file, f"{path}.included", name, f"{name!r} names no option")
+                self.err(file, f"{path}.included", f"{name!r} names no option")
         for name in value.get("selected", []):
             if name not in names:
-                self.err(file, f"{path}.selected", name, f"{name!r} names no option")
+                self.err(file, f"{path}.selected", f"{name!r} names no option")
         for name, delta in (value.get("deltas") or {}).items():
             if name not in names:
-                self.err(file, f"{path}.deltas", name, f"{name!r} names no option")
+                self.err(file, f"{path}.deltas", f"{name!r} names no option")
             self.check_object(file, f"{path}.deltas.{name}", delta, "Delta")
             if not delta:
-                self.err(file, f"{path}.deltas.{name}", "delta", "a Delta holds at least one key")
-        if "max_select" in value:
-            self.check_type(file, f"{path}.max_select", value["max_select"], "Integer")
-        field = path.rsplit(".", 1)[-1]
+                self.err(file, f"{path}.deltas.{name}", "a Delta holds at least one key")
         in_effect = value.get("selected", value.get("included", []))
         if "max_select" in value and len(in_effect) > value["max_select"]:
-            self.err(file, path, "max_select", "more options in effect than max_select")
+            self.err(file, path, "more options in effect than max_select")
         if not in_effect and field not in EMPTY_ALLOWED:
-            self.err(file, path, "empty", f"{field} gives an empty set no meaning")
+            self.err(file, path, f"{field} gives an empty set no meaning")
+        if field in EXACTLY_ONE:
+            if value.get("max_select") != 1 or len(value.get("included", [])) != 1:
+                self.err(file, path, f"{field} needs max_select 1 and one included option")
 
     def covers(self, field, outer, inner):
         """Whether an entry of a settable field covers another (sections 3.2, 5.5)."""
@@ -752,26 +1030,25 @@ class Checker:
 
     def check_narrowing(self, file, path, value, item_type, allowed):
         if not isinstance(value, dict) or not value.keys() <= {"include", "exclude"}:
-            self.err(file, path, "narrowing", "a Narrowing holds include[] and exclude[]")
+            self.err(file, path, "a Narrowing holds include[] and exclude[]")
             return
         if "include" not in value:
-            self.err(file, path, "include", "REQUIRED key 'include' is missing")
+            self.err(file, path, "REQUIRED key 'include' is missing")
         field = path.split(".")[-2]
         include, exclude = value.get("include", []), value.get("exclude", [])
         for key, within, entries in (("allowed", allowed, include), ("include", include, exclude)):
             for entry in entries:
                 self.check_type(file, path, entry, item_type)
                 if not any(self.covers(field, outer, entry) for outer in within):
-                    self.err(file, path, "covered", f"{entry!r} is not covered by {key}")
+                    self.err(file, path, f"{entry!r} is not covered by {key}")
 
     def check_settable(self, file, path, value, item_type):
-        """Section 3.2: the envelope form, allowed[] with a default and the buyer's value."""
         if not isinstance(value, dict) or not value.keys() <= {"allowed", "default", "value"}:
-            self.err(file, path, "settable", "a Settable holds allowed[], default, and value")
+            self.err(file, path, "a Settable holds allowed[], default, and value")
             return
         for key in ("allowed", "default"):
             if key not in value:
-                self.err(file, path, key, f"REQUIRED key {key!r} is missing")
+                self.err(file, path, f"REQUIRED key {key!r} is missing")
         allowed = value.get("allowed", [])
         for i, entry in enumerate(allowed):
             self.check_type(file, f"{path}.allowed[{i}]", entry, item_type)
@@ -780,30 +1057,29 @@ class Checker:
                 self.check_narrowing(file, f"{path}.{key}", value[key], item_type, allowed)
 
     def check_settable_range(self, file, path, value, item_type):
-        """Section 3.2: the range form, the keys of Range with a default and the buyer's value."""
         if not isinstance(value, dict) or not value.keys() <= {"min", "max", "default", "value"}:
-            self.err(file, path, "settable", "a SettableRange holds min, max, default, and value")
+            self.err(file, path, "a SettableRange holds min, max, default, and value")
             return
         if "min" not in value and "max" not in value:
-            self.err(file, path, "bound", "a SettableRange holds at least one bound")
+            self.err(file, path, "a SettableRange holds at least one bound")
         if "default" not in value:
-            self.err(file, path, "default", "REQUIRED key 'default' is missing")
+            self.err(file, path, "REQUIRED key 'default' is missing")
         for key in ("min", "max", "default", "value"):
             if key in value:
                 self.check_type(file, f"{path}.{key}", value[key], item_type)
         if "min" in value and "max" in value and value["min"] > value["max"]:
-            self.err(file, path, "bound", "min is greater than max")
+            self.err(file, path, "min is greater than max")
         for key in ("default", "value"):
             if key in value and ((("min" in value) and value[key] < value["min"])
                                  or (("max" in value) and value[key] > value["max"])):
-                self.err(file, f"{path}.{key}", "bounds", f"{key} is outside the bounds")
+                self.err(file, f"{path}.{key}", f"{key} is outside the bounds")
 
     def check_agreed_rate(self, file, path, item):
         """Recompute agreed_rate on the committed entry (section 5.6)."""
         committed = _committed_entry(item)
         for entry in item.get("pricing") or []:
             if entry is not committed and "agreed_rate" in entry:
-                self.err(file, path, "agreed_rate", "agreed_rate on an uncommitted entry")
+                self.err(file, path, "agreed_rate on an uncommitted entry")
         if committed is None or "agreed_rate" not in committed:
             return
         decimal = lambda n: Decimal(str(n))
@@ -819,62 +1095,18 @@ class Checker:
                 if committed.get("cost_method") in IMPRESSION_METHODS:
                     cpm += decimal(delta.get("delta_cpm", 0))
                 elif set(delta) == {"delta_cpm"}:
-                    self.err(file, path, name, "an option priced only by delta_cpm on this entry")
+                    self.err(file, path, "an option priced only by delta_cpm on this entry")
                 factor *= 1 + decimal(delta.get("delta_fraction", 0))
         rate = (decimal(committed["list_rate"]) + cpm) * factor
         rate = rate.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP)
         if rate != decimal(committed["agreed_rate"]):
-            self.err(file, path, "agreed_rate", f"agreed_rate recomputes to {rate}")
-
-    def check_mechanisms(self, file, path, item):
-        """Sections 5.6, 5.9, and 5.10: the mechanism options and what they require."""
-        for option in _options(item):
-            row = MECHANISMS.get(option.get("id"))
-            if row and row["delivery"] is not None and option.get("delivery_type") not in row["delivery"]:
-                self.err(file, path, option["id"],
-                         f"{option['id']} does not allow delivery_type {option.get('delivery_type')!r}")
-        if "deal_origin" in item and not _is_deal(_mechanisms(item)):
-            self.err(file, path, "deal_origin", "deal_origin on a line item with no deal mechanism")
-        for ref in item.get("external_references") or []:
-            if ref.get("reference_type") == "deal" and ref.get("system") != item.get("deal_origin"):
-                self.err(file, path, "deal", "a deal reference has system other than deal_origin")
-        programs = item.get("programs") or {}
-        for option in programs.get("available", []):
-            if (option.get("schedule") or {}).get("eventstatus") == 2:
-                name = option.get("id")
-                if name in programs.get("included", []):
-                    self.err(file, path, name, f"tentative {name} is in included[]")
-                if set((programs.get("deltas") or {}).get(name, {})) - {"delta_flat"}:
-                    self.err(file, path, name, f"tentative {name} has a delta other than delta_flat")
-        if item.get("serving_mode") == "embedded":
-            if item.get("episodes", "new") != "new":
-                self.err(file, path, "episodes", "episodes on an embedded line item is new")
-            for key in EMBEDDED_ABSENT:
-                if key in item:
-                    self.err(file, path, key, f"{key} on an embedded line item")
-            if item.get("time_zone") == "viewer_local":
-                self.err(file, path, "time_zone", "time_zone on an embedded line item is viewer_local")
-            if _mechanisms(item) != {"direct_io"}:
-                self.err(file, path, "transaction_mechanism", "an embedded line item offers only direct_io")
-        mechanism = item.get("transaction_mechanism") or {}
-        in_effect = mechanism.get("selected", mechanism.get("included", []))
-        delivery = {o.get("delivery_type") for o in _options(item) if o.get("id") in in_effect}
-        hold = item.get("hold") or {}
-        for key, figures in (("availability", item.get("availability")),
-                             ("hold.held_availability", hold.get("held_availability"))):
-            if figures and delivery == {"non_guaranteed"} and figures.get("certainty") != "forecast":
-                self.err(file, path, key, f"{key}.certainty is forecast when delivery_type is non_guaranteed")
-        committed = _committed_entry(item)
-        if committed and committed.get("transaction_mechanisms"):
-            for name in in_effect:
-                if name not in committed["transaction_mechanisms"]:
-                    self.err(file, path, name, f"the committed entry does not price {name}")
+            self.err(file, path, f"agreed_rate recomputes to {rate}")
 
     def check_commitment(self, file, path, item):
         """A commitment's arithmetic and its bounds (sections 5.6.1 and 5.6.5)."""
         for entry in item.get("pricing") or []:
             if entry.get("cost_method") == "FLAT" and "unit_bounds" in entry:
-                self.err(file, path, "unit_bounds", "unit_bounds on a FLAT entry")
+                self.err(file, path, "unit_bounds on a FLAT entry")
         commitment, committed = item.get("commitment"), _committed_entry(item)
         if not commitment or not committed or "agreed_rate" not in committed:
             return
@@ -898,91 +1130,71 @@ class Checker:
             elapsed = int(((parse(ends) - parse(starts)).total_seconds() + 1) // size)
         if method == "FLAT":
             if basis != "spend":
-                self.err(file, path, "basis", "a FLAT commitment has basis spend")
+                self.err(file, path, "a FLAT commitment has basis spend")
             if amount != rate + charges:
-                self.err(file, path, "amount", f"a FLAT amount is {rate + charges}")
+                self.err(file, path, f"a FLAT amount is {rate + charges}")
             if "derived_units" in commitment:
-                self.err(file, path, "derived_units", "derived_units on a FLAT commitment")
+                self.err(file, path, "derived_units on a FLAT commitment")
         elif elapsed is not None:
             units, total = elapsed, elapsed * rate + charges
             if amount != (elapsed if basis == "units" else total):
-                self.err(file, path, "amount", f"a TIME commitment is for {elapsed} units, {total} in all")
+                self.err(file, path, f"a TIME commitment is for {elapsed} units, {total} in all")
         elif basis == "spend":
             if charges > amount:
-                self.err(file, path, "amount", "delta_flat charges exceed the amount")
+                self.err(file, path, "delta_flat charges exceed the amount")
             if rate > 0:
                 units = int((amount - charges) / rate * rate_per)
         else:
             total, units = amount / rate_per * rate + charges, amount
         if units is not None and "derived_units" in commitment and commitment["derived_units"] != units:
-            self.err(file, path, "derived_units", f"derived_units recomputes to {units}")
-        spend = (item.get("commitment_bounds") or {}).get("spend") or {}
+            self.err(file, path, f"derived_units recomputes to {units}")
+        limits = item.get("commitment_bounds") or {}
+        spend = limits.get("spend") or {}
         if ("min" in spend and total < decimal(spend["min"])) or ("max" in spend and total > decimal(spend["max"])):
-            self.err(file, path, "commitment_bounds", f"seller total {total} is outside spend")
+            self.err(file, path, f"seller total {total} is outside spend")
         unit_limits = committed.get("unit_bounds") or {}
         if units is not None and (units < unit_limits.get("min", units) or units > unit_limits.get("max", units)):
-            self.err(file, path, "unit_bounds", f"{units} units are outside unit_bounds")
+            self.err(file, path, f"{units} units are outside unit_bounds")
 
-    def check_exclusion_list(self, file, path, value):
-        """An array of the type's entries, or a DocumentRef (section 5.5)."""
-        if isinstance(value, dict):
-            self.check_object(file, path, value, "DocumentRef")
-        elif not isinstance(value, list):
-            self.err(file, path, "list", "an ExclusionList is an array or a DocumentRef")
-        else:
-            entry = EXCLUSION_ENTRY.get(path.rsplit(".", 1)[-1])
-            for i, item in enumerate(value):
-                if entry:
-                    self.check_type(file, f"{path}[{i}]", item, entry)
-
-    def check_exclusions(self, file, path, item):
-        """A buyer supplies only the types the seller accepts (section 5.5)."""
-        accepted = (item.get("accepted_exclusions") or {}).get("types", {})
-        for term in accepted:
-            if ":" not in term and term not in EXCLUSION_ENTRY:
-                self.err(file, f"{path}.accepted_exclusions", term, f"{term!r} is not a core exclusion type")
-        for term, entries in (item.get("exclusions") or {}).items():
-            if term not in accepted:
-                self.err(file, f"{path}.exclusions", term, f"{term!r} is not an accepted exclusion type")
-            elif isinstance(entries, list) and len(entries) > accepted[term].get("max_entries", len(entries)):
-                self.err(file, f"{path}.exclusions", term, f"{term!r} holds more than max_entries")
-
-    def check_audiences(self, file, path, value):
-        """The keys AudienceSelectable adds to its Selectable (section 5.3)."""
-        combine = value.get("combine") or {}
-        if combine.get("deltas"):
-            self.err(file, f"{path}.combine", "deltas", "combine carries no deltas")
-        if combine and (combine.get("max_select") != 1 or len(combine.get("included", [])) != 1):
-            self.err(file, f"{path}.combine", "one", "combine needs max_select 1 and one included option")
-        options = {o.get("id"): o for o in value.get("available", []) if isinstance(o, dict)}
-        in_effect = value.get("selected", value.get("included", []))
-        meaning = self.spec.tables["AudienceOption"]["taxonomy"]["meaning"]
-        codes = {int(n) for n in re.findall(r"`(\d+)`", meaning)}
-        vendor_from = int(re.search(r"\((\d+) and up\)", meaning).group(1))
-        for name, option in options.items():
-            taxonomy = option.get("taxonomy")
-            if isinstance(taxonomy, int) and taxonomy not in codes and taxonomy < vendor_from:
-                self.err(file, f"{path}.available", name,
-                         f"{name!r} has taxonomy {taxonomy}, which section 5.3 does not allow")
-        for name in value.get("excluded", []):
-            if not options.get(name, {}).get("excludable"):
-                self.err(file, f"{path}.excluded", name, f"{name!r} is not an excludable option")
-            if name in in_effect:
-                self.err(file, f"{path}.excluded", name, f"{name!r} is also in effect")
+    def check_mechanisms(self, file, path, item):
+        """Each option fits its row in section 5.9, and the committed entry prices it."""
+        for option in _options(item):
+            row = MECHANISMS.get(option.get("id"))
+            if not row:
+                continue
+            if row["delivery"] is not None and option.get("delivery_type") not in row["delivery"]:
+                self.err(file, path, f"{option['id']} does not allow delivery_type {option.get('delivery_type')!r}")
+        committed = _committed_entry(item)
+        if committed and committed.get("transaction_mechanisms"):
+            mechanism = item.get("transaction_mechanism") or {}
+            for name in mechanism.get("selected", mechanism.get("included", [])):
+                if name not in committed["transaction_mechanisms"]:
+                    self.err(file, path, f"the committed entry does not price {name}")
 
     def check_measurement(self, file, path, item):
         """Metric kinds, and the counted_by values sections 5.6.4 and 5.7.1 fix (section 2.2)."""
         for i, tuple_ in enumerate(item.get("committed_metrics") or []):
             kind, value = METRIC_KIND.get(tuple_.get("metric")), tuple_.get("level")
             if kind == "Rate" and not SCALARS["Fraction"](value):
-                self.err(file, f"{path}.committed_metrics[{i}]", "kind", f"{value!r} is not a rate")
+                self.err(file, f"{path}.committed_metrics[{i}]", f"{value!r} is not a rate")
             if kind == "Count" and not SCALARS["Integer"](value):
-                self.err(file, f"{path}.committed_metrics[{i}]", "kind", f"{value!r} is not a count")
+                self.err(file, f"{path}.committed_metrics[{i}]", f"{value!r} is not a count")
+        counting = item.get("delivery_counting") or {}
+        multiplier = counting.get("impression_multiplier") or {}
+        logged_by = (counting.get("proof_of_performance") or {}).get("logged_by")
+        parties = [] if logged_by is None else [("logged_by", logged_by)]
+        for entry in item.get("pricing") or []:
+            parameters = entry.get("cost_parameters") or {}
+            for key, method in (("rating_source", "CPP"), ("action_source", "CPA")):
+                if entry.get("cost_method") == method and key in parameters:
+                    parties.append((key, parameters[key]))
+        for key, party in parties:
+            if not SCALARS["Measurer"](party):
+                self.err(file, path, f"{key} {party!r} is not a Measurer")
         selection = item.get("controlling_measurement") or {}
         counters = selection.get("available", [])
         expected = {}
         if item.get("channel") == "dooh" and _counts_impressions(item):
-            multiplier = (item.get("delivery_counting") or {}).get("impression_multiplier") or {}
             seller_domain = ((self.proposal or {}).get("seller") or {}).get("domain")
             vendor = multiplier.get("vendor")
             own = multiplier.get("source_type") == 2 or (seller_domain is not None and vendor == seller_domain)
@@ -996,33 +1208,10 @@ class Checker:
         for counter in counters:
             name = counter.get("id")
             if name in expected and counter.get("counted_by") != expected[name]:
-                self.err(file, path, name, f"counted_by of {name} is not {expected[name]!r}")
-
-    def check_pricing_entries(self, file, path, item):
-        """Section 5.6: entry ids are unique, and two entries differ on a key or mechanism."""
-        entries = item.get("pricing") or []
-        ids = [e.get("pricing_id") for e in entries]
-        if len(ids) != len(set(ids)):
-            self.err(file, path, "pricing_id", "two pricing[] entries share a pricing_id")
-        seen = set()
-        for entry in entries:
-            for name in entry.get("transaction_mechanisms") or _mechanisms(item):
-                key = (entry.get("cost_method"), json.dumps(entry.get("cost_parameters"), sort_keys=True),
-                       entry.get("currency"), name)
-                if key in seen:
-                    self.err(file, path, "pricing", f"two pricing[] entries are the same on {name}")
-                seen.add(key)
-
-    def check_dated_shares(self, file, path, item):
-        """Section 5.6.6: an option's dated_shares[] windows don't overlap."""
-        for option in (item.get("cancellation_policy") or {}).get("available", []):
-            windows = sorted((r["window"]["start"], r["window"]["end"]) for r in option.get("dated_shares", []))
-            for earlier, later in zip(windows, windows[1:]):
-                if later[0] <= earlier[1]:
-                    self.err(file, path, "dated_shares", f"{option.get('id')}: dated_shares[] windows overlap")
+                self.err(file, path, f"counted_by of {name} is not {expected[name]!r}")
 
     def check_fields(self, file, path, doc, fields):
-        known = {bare(k): r for k, r in fields.items() if "[]." not in k}
+        known = {k[:-2] if k.endswith("[]") else k: r for k, r in fields.items() if "[]." not in k}
         if "line_item_id" in doc:
             self.item = doc
         else:
@@ -1030,77 +1219,191 @@ class Checker:
             self.item = {}
             for key in ("seller", "buyer"):
                 if key in doc and "legal_name" not in doc[key]:
-                    self.err(file, key, "legal_name", "legal_name is REQUIRED here")
+                    self.err(file, key, "legal_name is REQUIRED here")
         for key in doc:
             if key not in known:
-                self.err(file, path or "(root)", key, f"key {key!r} is not in a field table")
+                self.err(file, path or "(root)", f"key {key!r} is not in a field table")
         for key, row in known.items():
             if key not in doc and self.required(file, path, row["required"], doc):
-                self.err(file, path or "(root)", key, f"REQUIRED field {key!r} is missing")
-            if key in doc:
+                self.err(file, path or "(root)", f"REQUIRED field {key!r} is missing")
+            if key in doc and key != "line_items":
                 sub = f"{path}.{key}" if path else key
-                if key == "pricing" and isinstance(doc[key], list):
-                    self.check_pricing(file, sub, doc[key], fields)
-                elif key == "line_items":
-                    continue
-                else:
-                    self.check_value(file, sub, doc[key], row)
+                self.check_type(file, sub, doc[key], row["type"])
+                self.check_values(file, sub, doc[key], row)
         if "line_item_id" in doc:
+            self.check_line_item(file, path or "(root)", doc)
             self.check_agreed_rate(file, path or "(root)", doc)
             self.check_commitment(file, path or "(root)", doc)
             self.check_mechanisms(file, path or "(root)", doc)
             self.check_measurement(file, path or "(root)", doc)
-            self.check_pricing_entries(file, path or "(root)", doc)
-            self.check_dated_shares(file, path or "(root)", doc)
             self.check_exclusions(file, path or "(root)", doc)
             if "audiences" in doc:
                 self.check_audiences(file, f"{path}.audiences" if path else "audiences", doc["audiences"])
             if "geo" in doc and "markets" in doc:
-                self.err(file, path or "(root)", "markets", "a line item declares geo or markets")
+                self.err(file, path or "(root)", "a line item declares geo or markets")
+        # A Placement key can be required though the OPTIONAL placement is absent.
+        if "line_item_id" in doc and "placement" not in doc:
+            self.check_object(file, f"{path}.placement" if path else "placement", {}, "Placement")
 
-    def check_pricing(self, file, path, entries, fields):
-        rows = {bare(k[len("pricing[]."):]): r for k, r in fields.items() if k.startswith("pricing[].")}
-        for i, entry in enumerate(entries):
-            sub = f"{path}[{i}]"
-            for key in entry:
-                if key not in rows:
-                    self.err(file, sub, key, f"key {key!r} is not in the pricing[] rows")
-            for key, row in rows.items():
-                if key not in entry and self.required(file, sub, row["required"], entry):
-                    self.err(file, sub, key, f"REQUIRED key {key!r} is missing")
-                if key in entry:
-                    self.check_value(file, f"{sub}.{key}", entry[key], row)
+    def check_dated_shares(self, file, path, item):
+        """Section 5.6.6: an option's dated_shares[] windows don't overlap."""
+        for option in (item.get("cancellation_policy") or {}).get("available", []):
+            windows = sorted((r["window"]["start"], r["window"]["end"]) for r in option.get("dated_shares", []))
+            for earlier, later in zip(windows, windows[1:]):
+                if later[0] <= earlier[1]:
+                    self.err(file, path, f"{option.get('id')}: dated_shares[] windows overlap")
+
+    def check_line_item(self, file, path, item):
+        """Rules between a line item's fields that no single table row states."""
+        self.check_dated_shares(file, path, item)
+        entries = item.get("pricing") or []
+        ids = [e.get("pricing_id") for e in entries]
+        if len(ids) != len(set(ids)):
+            self.err(file, path, "two pricing[] entries share a pricing_id")
+        seen = set()
+        for entry in entries:
+            for name in entry.get("transaction_mechanisms") or _mechanisms(item):
+                key = (entry.get("cost_method"), json.dumps(entry.get("cost_parameters"), sort_keys=True),
+                       entry.get("currency"), name)
+                if key in seen:
+                    self.err(file, path, f"two pricing[] entries are the same on {name}")
+                seen.add(key)
+        if "deal_origin" in item and not _is_deal(_mechanisms(item)):
+            self.err(file, path, "deal_origin on a line item with no deal mechanism")
+        for ref in item.get("external_references") or []:
+            if ref.get("reference_type") == "deal" and ref.get("system") != item.get("deal_origin"):
+                self.err(file, path, "a deal reference has system other than deal_origin")
+        programs = item.get("programs") or {}
+        for option in programs.get("available", []):
+            if (option.get("schedule") or {}).get("eventstatus") == 2:
+                name = option.get("id")
+                if name in programs.get("included", []):
+                    self.err(file, path, f"tentative {name} is in included[]")
+                if set((programs.get("deltas") or {}).get(name, {})) - {"delta_flat"}:
+                    self.err(file, path, f"tentative {name} has a delta other than delta_flat")
+        mechanism = item.get("transaction_mechanism") or {}
+        in_effect = mechanism.get("selected", mechanism.get("included", []))
+        delivery = {o.get("delivery_type") for o in _options(item) if o.get("id") in in_effect}
+        hold = item.get("hold") or {}
+        for key, figures in (("availability", item.get("availability")),
+                             ("hold.held_availability", hold.get("held_availability"))):
+            if figures and delivery == {"non_guaranteed"} and figures.get("certainty") != "forecast":
+                self.err(file, path, f"{key}.certainty is forecast when delivery_type is non_guaranteed")
+        limits = [e["price_valid_until"] for e in entries if "price_valid_until" in e]
+        limits += [(self.proposal or {}).get("offer_window", {}).get("end")] if self.proposal else []
+        if "valid_until" in hold and any(limit and hold["valid_until"] > limit for limit in limits):
+            self.err(file, path, "hold.valid_until exceeds offer_window.end or a price_valid_until")
+        for option in (item.get("properties") or {}).get("available", []):
+            if len((option.get("venue_type") or {"ids": [0]}).get("ids", [])) != 1:
+                self.err(file, path, "venue_type.ids holds exactly one id")
+        if item.get("serving_mode") == "embedded":
+            if item.get("episodes", "new") != "new":
+                self.err(file, path, "episodes on an embedded line item is new")
+            for key in EMBEDDED_ABSENT:
+                if key in item:
+                    self.err(file, path, f"{key} on an embedded line item")
+            if item.get("time_zone") == "viewer_local":
+                self.err(file, path, "time_zone on an embedded line item is viewer_local")
+            if _mechanisms(item) != {"direct_io"}:
+                self.err(file, path, "an embedded line item offers only direct_io")
 
     def check_removal_paths(self):
+        parsed = []
         for path in self.spec.removal:
-            parts = [re.sub(r"\[\*\]$", "", p) for p in path.lstrip("$.").split(".")]
-            fields = self.spec.proposal
-            if parts[0] == "line_items":
-                fields, parts = self.spec.line_item, parts[1:]
-            ok = parts[0] in {bare(k) for k in fields}
-            if ok and len(parts) > 1:
-                if parts[0] == "pricing":
-                    ok = f"pricing[].{parts[1]}" in fields
-                else:
-                    # Below a typed field, a path names a key of that type's table.
-                    row = fields.get(parts[0]) or fields.get(f"{parts[0]}[]")
-                    rows = self.rows_of(row["type"])
-                    ok = not rows or parts[1] in {bare(k) for k in rows}
-            if not ok:
-                self.err("spec", "removal path", path, f"{path} resolves to no row")
+            parts = [p.replace("[*]", "[]") for p in path.removeprefix("$.").split(".")]
+            parsed.append(parts)
+            if not self.resolves(self.spec.proposal, parts):
+                self.err("spec", "removal path", f"{path} resolves to no row")
+        # Section 3: these markers mean "not a term", so the value is outside the record.
+        for rows, prefix in ((self.spec.proposal, []), (self.spec.tables["LineItem"], ["line_items"])):
+            for key, row in rows.items():
+                if row["marker"] in ("lifecycle", "recorded", "asserted"):
+                    if prefix + [key.removesuffix("[]")] not in [
+                        [p.removesuffix("[]") for p in parts] for parts in parsed
+                    ]:
+                        self.err("spec", "removal list", f"{key} is {row['marker']}, and the removal list leaves it in the record")
+        # The same for each key of a mixed field, which its Mutability column marks.
+        flat = [[p.removesuffix("[]") for p in parts] for parts in parsed]
+        for field, row in self.spec.tables["LineItem"].items():
+            if row["marker"] != "mixed":
+                continue
+            name = field.removesuffix("[]")
+            for key, inner in self.spec.mixed_keys(row["type"]).items():
+                path = ["line_items", name, key.removesuffix("[]")]
+                if inner["marker"] in ("lifecycle", "recorded", "asserted") and path not in flat and path[:2] not in flat:
+                    self.err("spec", "removal list", f"{name}.{key} is {inner['marker']}, and the removal list leaves it in the record")
+
+    def check_summary_paths(self):
+        """Each section 2.1 path resolves, spelled as its table row spells it."""
+        for rows, paths in ((self.spec.line_item, self.spec.summary_paths),
+                            (self.spec.proposal, self.spec.proposal_paths)):
+            for path in paths:
+                if not self.resolves(rows, path.split("."), strict=True):
+                    self.err("spec", "summary path", f"{path} resolves to no row")
+
+    def resolves(self, rows, parts, strict=False):
+        """Whether a path names table rows. What an Object holds is not listed."""
+        head, rest = parts[0], parts[1:]
+        row = rows.get(head)
+        if row is None and not strict:
+            row = rows.get(f"{head}[]") or rows.get(head.removesuffix("[]"))
+        if row is None:
+            return False
+        return self.resolves_type(row["type"], rest, strict)
+
+    def resolves_type(self, typ, parts, strict):
+        if not parts:
+            return True
+        base, args = split_generic(typ)
+        if base == "Array":
+            return self.resolves_type(args[0], parts, strict)
+        selectable = self.spec.selectable_of(typ)
+        if selectable:
+            if parts[0] == "available[]":
+                return self.resolves_type(selectable[0], parts[1:], strict)
+            if parts[0] in selectable[1]:
+                return self.resolves(selectable[1], parts, strict)
+            return parts[0] in self.spec.tables["Selectable"] and not parts[1:]
+        if base == "Object":
+            return True
+        rows = self.rows_of(base)
+        return bool(rows) and self.resolves(rows, parts, strict)
+
+    def check_spec_blocks(self):
+        """Each yaml block in the body is a fragment of a line item (or of its ext)."""
+        for n, block in enumerate(self.spec.yaml_blocks):
+            fragment = yaml.load(block, Loader=StrictLoader)
+            self.item, self.proposal = fragment, None
+            where = f"yaml block {n + 1}"
+            for key, value in fragment.items():
+                row = self.spec.line_item.get(key) or self.spec.line_item.get(f"{key}[]")
+                if not row:
+                    self.err("spec", where, f"key {key!r} is not in a field table")
+                    continue
+                self.check_type("spec", f"{where}.{key}", value, row["type"])
+                self.check_values("spec", f"{where}.{key}", value, row)
+            self.check_exclusions("spec", where, fragment)
 
 
 # Digest --------------------------------------------------------------------
 
 
 def jcs_number(n):
+    """RFC 8785 section 3.2.2.3: the ECMAScript form of the shortest round trip."""
     if isinstance(n, bool):
         return "true" if n else "false"
-    if isinstance(n, int):
-        return str(n)
-    if n == int(n) and abs(n) < 1e21:
-        return str(int(n))
-    return repr(n)
+    if n == 0:
+        return "0"
+    sign, digits, exponent = Decimal(repr(float(n))).normalize().as_tuple()
+    text, point = "".join(map(str, digits)), len(digits) + exponent
+    if 0 < point <= 21:
+        body = text.ljust(point, "0")[:point] + ("." + text[point:] if len(text) > point else "")
+    elif -6 < point <= 0:
+        body = "0." + "0" * -point + text
+    else:
+        power = point - 1
+        body = text[0] + ("." + text[1:] if len(text) > 1 else "") + f"e{'+' if power > 0 else '-'}{abs(power)}"
+    return ("-" if sign else "") + body
 
 
 def jcs(value):
@@ -1122,7 +1425,8 @@ def remove_path(node, parts):
         return
     head, rest = parts[0], parts[1:]
     if head.endswith("[*]"):
-        for item in (node.get(head[:-3]) or []):
+        key = head[:-3]
+        for item in (node.get(key) or []):
             remove_path(item, rest)
         return
     if not rest:
@@ -1131,10 +1435,10 @@ def remove_path(node, parts):
         remove_path(node[head], rest)
 
 
-def record_digest(doc, removal, line_item_ids):
-    """Section 4.1.1: the digest of the binding record for the named line items."""
+def record_digest(doc, removal, line_item_ids=None):
     copy = json.loads(json.dumps(doc))
-    copy["line_items"] = [i for i in copy.get("line_items", []) if i["line_item_id"] in line_item_ids]
+    if line_item_ids is not None:
+        copy["line_items"] = [i for i in copy["line_items"] if i["line_item_id"] in line_item_ids]
     for path in removal:
         remove_path(copy, path[2:].split("."))
     # Section 4.1.1: the one object the removals don't leave in place when it is empty.
@@ -1166,6 +1470,68 @@ def check_digest_ignores_empty_buyer_supplied(checker, doc, removal):
     copy["line_items"][0]["buyer_supplied"] = {"suppression_allowed": True}
     if record_digest(copy, removal, [item["line_item_id"]]) in digests:
         checker.errors.append("record_digest: a buyer_supplied that keeps a term moved no digest")
+
+
+# Summary -------------------------------------------------------------------
+
+
+def project(doc, paths):
+    """Return the strict path subset of doc for the listed paths."""
+    tree = {}
+    for path in paths:
+        node = tree
+        for part in path.split("."):
+            node = node.setdefault(part, {})
+
+    def walk(value, spec):
+        if not spec:
+            return value
+        if isinstance(value, list):
+            return [walk(v, spec) for v in value]
+        if not isinstance(value, dict):
+            return value
+        res = {}
+        for key, sub in spec.items():
+            bare = key[:-2] if key.endswith("[]") else key
+            if bare in value:
+                res[bare] = walk(value[bare], sub)
+        return res
+
+    return walk(doc, tree)
+
+
+def full_examples():
+    items = {}
+    for path in sorted(EXAMPLES.glob("line-item-*.yaml")):
+        doc = load_yaml(path)
+        items[doc["line_item_id"]] = doc
+    return items
+
+
+def line_item_summary(item, spec):
+    out = project(item, spec.summary_paths)
+    out["has_requires"] = "requires" in item
+    return out
+
+
+def proposal_summary(proposal, spec):
+    return project(proposal, spec.proposal_paths)
+
+
+def build_manifest(spec):
+    """Section 2.3: the proposal's public, published line items, as summaries."""
+    proposal = load_yaml(EXAMPLES / "proposal.yaml")
+    entry = proposal_summary(proposal, spec)
+    entry["full_url"] = f"https://{proposal['seller']['domain']}/openproposal/{proposal['proposal_id']}"
+    entry["line_items"] = [
+        line_item_summary(item, spec) for item in full_examples().values()
+        if item.get("visibility") == "public" and item.get("status") == "published"
+    ]
+    return {
+        "generated_at": "2026-10-03T15:00:00Z",
+        "spec_version": proposal["spec_version"],
+        "proposals": [entry],
+    }
 
 
 def check_assent(checker, file, doc):
@@ -1202,6 +1568,95 @@ def check_assent(checker, file, doc):
         if (item.get("status") == "agreed") != (name in agreed):
             checker.errors.append(f"{file}: {name} has status {item.get('status')!r}, "
                                   f"and assent[] {'has' if name in agreed else 'has no'} matching pair")
+        if name in agreed:
+            check_eligible(checker, file, doc, item)
+
+
+def check_eligible(checker, file, doc, item):
+    """Section 5.8: the agreed buyer passes each eligibility field that is present."""
+    name, domain = item["line_item_id"], doc["buyer"]["domain"]
+    requirements = item.get("buyer_requirements") or {}
+    seats = requirements.get("seats") or {}
+    if "eligible_buyers" in item or "eligible_seats" in item:
+        listed = {s for e in item.get("eligible_seats", []) if e["dsp"] == seats.get("dsp") for s in e.get("ids", [])}
+        if domain not in item.get("eligible_buyers", []) and not (
+                seats.get("ids") and set(seats["ids"]) <= listed):
+            checker.errors.append(f"{file}: {name}: the buyer is in neither eligible_buyers nor eligible_seats")
+    if "allowed_dsps" in requirements and seats and seats["dsp"] not in requirements["allowed_dsps"]:
+        checker.errors.append(f"{file}: {name}: buyer_requirements.seats.dsp is not in allowed_dsps")
+
+
+def check_status(checker, file, doc):
+    """Section 4.3.3: a proposal's status is the first rule that applies."""
+    statuses = [i.get("status") for i in doc.get("line_items", [])]
+    if all(s == "draft" for s in statuses):
+        status = "draft"
+    elif "under_review" in statuses:
+        status = "under_review"
+    elif {"draft", "published", "sold_out"} & set(statuses):
+        status = "published"
+    elif "agreed" in statuses:
+        status = "agreed"
+    else:
+        status = "expired" if "expired" in statuses else "withdrawn"
+    if doc.get("status") != status:
+        checker.errors.append(f"{file}: status is {doc.get('status')!r}, and section 4.3.3 gives {status!r}")
+
+
+def check_history(checker, file, doc):
+    """Section 4.1.3: one seller entry per version, and pointers that resolve."""
+    history = doc.get("negotiation_history", [])
+    made = [e for e in history if e["actor"] == "seller" and e["action"] in ("published", "granted", "countered")]
+    if sorted(e["version"] for e in made) != list(range(1, doc["version"] + 1)):
+        checker.errors.append(f"{file}: negotiation_history has no single seller entry for each version")
+    if made and made[0]["action"] != "published":
+        checker.errors.append(f"{file}: negotiation_history starts with {made[0]['action']!r}, not published")
+    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    for n, entry in enumerate(history):
+        for path in entry["paths"]:
+            requested_value = path.get("requested_value")
+            if requested_value and entry["action"] not in ("requested", "declined", "withdrawn"):
+                checker.errors.append(f"{file}: negotiation_history[{n}]: a {entry['action']} path carries requested_value")
+            if requested_value and not set(requested_value) <= set(path["pointer"].split("/")):
+                checker.errors.append(f"{file}: negotiation_history[{n}]: requested_value names no field of {path['pointer']}")
+            node = items.get(path.get("line_item_id")) if "line_item_id" in path else doc
+            if node is None:
+                checker.errors.append(f"{file}: negotiation_history[{n}] names {path['line_item_id']}, "
+                                      "which is not a line item")
+                continue
+            for part in path["pointer"].split("/")[1:]:
+                part = part.replace("~1", "/").replace("~0", "~")
+                node = node[int(part)] if isinstance(node, list) else (node or {}).get(part)
+            if node is None:
+                checker.errors.append(f"{file}: negotiation_history[{n}]: {path['pointer']} resolves to nothing")
+
+
+def check_requires(checker, file, doc):
+    """Section 5.6.3: requires points at line items of the same proposal."""
+    names = {i["line_item_id"] for i in doc.get("line_items", [])}
+    for item in doc.get("line_items", []):
+        requires = item.get("requires") or {}
+        named = requires.get("all_of", []) + requires.get("any_of", [])
+        named += [m["line_item_id"] for m in requires.get("min_commitments", [])]
+        for name in named:
+            if name not in names:
+                checker.errors.append(f"{file}: {item['line_item_id']}.requires names {name}, "
+                                      "which is not a line item of this proposal")
+
+
+def applicable_max_share(terms, notice):
+    """Section 5.6.6: the range holding the effective date, or the top-level max_share."""
+    parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
+    effective = parse(notice["requested_effective_at"])
+    length = re.fullmatch(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", terms.get("notice_duration", "P0D"))
+    if length:  # a length in months or years has no fixed span; the requested date stands
+        days, hours, minutes, seconds = (int(part or 0) for part in length.groups())
+        earliest = parse(notice["notice_received_at"]) + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
+        effective = max(effective, earliest)
+    for span in terms.get("dated_shares", []):
+        if parse(span["window"]["start"]) <= effective <= parse(span["window"]["end"]):
+            return span["max_share"]
+    return terms.get("max_share", 1)
 
 
 def check_change_requests(checker, file, doc):
@@ -1234,76 +1689,18 @@ def check_change_requests(checker, file, doc):
                                       f"cancelled_share is above the max_share that applies")
 
 
-# Summary -------------------------------------------------------------------
-
-
-def project(doc, paths):
-    """Return the strict path subset of doc for the listed paths."""
-    tree = {}
-    for path in paths:
-        node = tree
-        for part in path.split("."):
-            node = node.setdefault(part, {})
-
-    def walk(value, spec):
-        if not spec:
-            return value
-        if isinstance(value, list):
-            return [walk(v, spec) for v in value]
-        if not isinstance(value, dict):
-            return value
-        res = {}
-        for key, sub in spec.items():
-            if bare(key) in value:
-                res[bare(key)] = walk(value[bare(key)], sub)
-        return res
-
-    return walk(doc, tree)
-
-
-def full_examples():
-    items = {}
-    for path in sorted(EXAMPLES.glob("line-item-*.yaml")):
-        doc = load_yaml(path)
-        items[doc["line_item_id"]] = doc
-    return items
-
-
-def line_item_summary(item, spec):
-    out = project(item, spec.summary_paths)
-    out["has_requires"] = "requires" in item
-    return out
-
-
-def proposal_summary(proposal, spec):
-    return project(proposal, spec.proposal_paths)
-
-
-def build_manifest(spec):
-    """Section 2.3: the proposal's public, published line items, as summaries."""
-    proposal = load_yaml(EXAMPLES / "proposal.yaml")
-    entry = proposal_summary(proposal, spec)
-    entry["full_url"] = f"https://{proposal['seller']['domain']}/openproposal/{proposal['proposal_id']}"
-    entry["line_items"] = [
-        line_item_summary(item, spec) for item in full_examples().values()
-        if item.get("visibility") == "public" and item.get("status") == "published"
-    ]
-    return {
-        "generated_at": "2026-10-03T15:00:00Z",
-        "spec_version": "3.0",
-        "proposals": [entry],
-    }
-
-
 def check_manifest(checker, spec):
-    path = EXAMPLES / "manifest.json"
-    manifest = load_json(path)
-    checker.check_object("manifest.json", "(root)", manifest, "ProposalManifest")
+    manifest = load_json(EXAMPLES / "manifest.json")
+    rows = spec.tables["ProposalManifest"]
+    keys = {k.removesuffix("[]") for k in rows}
+    for key in keys ^ manifest.keys():
+        checker.err("manifest.json", "(root)", f"key {key!r} differs from the ProposalManifest table")
+    for key, row in rows.items():
+        if key.removesuffix("[]") in manifest:
+            checker.check_type("manifest.json", key, manifest[key.removesuffix("[]")], row["type"])
     expected = build_manifest(spec)
-    expected["generated_at"] = manifest.get("generated_at")
-    if manifest != expected:
-        checker.err("manifest.json", "(root)", "subset",
-                    "the manifest is not the path subset of the full examples; "
+    if manifest != {**expected, "generated_at": manifest.get("generated_at")}:
+        checker.err("manifest.json", "(root)", "the manifest is not the path subset of the full examples; "
                     "run --regen-manifest")
 
 
@@ -1322,24 +1719,39 @@ def main():
         return 0
 
     checker = Checker(spec)
+    unparsed = []
     for path in sorted(EXAMPLES.glob("*.yaml")):
         try:
-            doc = load_yaml(path)
+            load_yaml(path)
         except yaml.YAMLError as e:
-            checker.errors.append(f"{path.name}: does not parse strictly: {e}")
-            continue
+            unparsed.append(f"{path.name}: does not parse strictly: {e}")
+    if unparsed:
+        print("\n".join(unparsed))
+        return 1
+
+    for path in sorted(EXAMPLES.glob("*.yaml")):
+        doc = load_yaml(path)
         checker.proposal = None
         if "line_item_id" in doc:
             checker.check_fields(path.name, "", doc, spec.line_item)
-        else:
-            checker.check_fields(path.name, "", doc, spec.proposal)
-            for i, item in enumerate(doc.get("line_items", [])):
-                checker.check_fields(path.name, f"line_items[{i}]", item, spec.line_item)
+            continue
+        checker.check_fields(path.name, "", doc, spec.proposal)
+        for i, item in enumerate(doc.get("line_items", [])):
+            checker.check_fields(path.name, f"line_items[{i}]", item, spec.line_item)
+        if "line_items" not in doc:
+            continue  # proposal.yaml shows its line items in their own files (section 6.1)
+        check_status(checker, path.name, doc)
+        check_history(checker, path.name, doc)
+        check_requires(checker, path.name, doc)
     try:
         check_manifest(checker, spec)
     except (ValueError, KeyError) as e:
         checker.errors.append(f"manifest.json: {e}")
+    checker.check_value_tables()
+    checker.check_table_cells()
+    checker.check_summary_paths()
     checker.check_removal_paths()
+    checker.check_spec_blocks()
 
     check_digest_ignores_empty_buyer_supplied(checker, load_yaml(EXAMPLES / "proposal-agreed.yaml"), spec.removal)
 
@@ -1363,9 +1775,9 @@ def main():
         for e in checker.errors:
             print(f"  - {e}")
         return 1
-    print("Examples match the tables.")
+    print("Examples match the tables. record_digest recomputes to:")
     for name, digest in digests.items():
-        print(f"  record_digest of {name}: {digest}")
+        print(f"  {name}: {digest}")
     return 0
 
 

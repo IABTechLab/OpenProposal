@@ -264,8 +264,8 @@ def marker_table(lines):
 def collect(rows):
     """Keep the first row seen per field, and flag a repeat that differs.
 
-    `status` legitimately appears on the proposal (4.1) and on the line item
-    (5.1), so a repeat is not an error, but the type and marker must agree
+    `status` and `ext` legitimately appear on the proposal (4.1) and on the line
+    item (5.1), so a repeat is not an error, but the type and marker must agree
     between the body and the appendix for each pair.
     """
     seen = {}

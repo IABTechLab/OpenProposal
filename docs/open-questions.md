@@ -46,7 +46,7 @@ that.
 
 Once one line item guarantees `viewable_rate` and another `completion_rate`,
 there is no normalised way for a buying agent to compare or optimise across
-them. Likely WS4, but the draft states it rather than pretending 3.0 covers it.
+them. The draft doesn't cover it.
 
 **What would settle it:** whether anyone has a normalisation that survives
 contact with a real cross-channel plan — or confirmation that this is correctly
