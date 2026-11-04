@@ -62,14 +62,15 @@ seller alike. An answer to one is not an answer to another.
 
 | Layer | Question | Answered by | Owner | In the proposal object |
 | :--- | :--- | :--- | :--- | :--- |
-| Request authentication | Which origin sent this request? | An [HTTP Message Signature](https://www.rfc-editor.org/rfc/rfc9421), with the key in that origin's [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) directory | The AAMP agent identity and signing profile (provisional name) | Nothing. The object never carries or re-proves it |
+| Message authentication | Which origin sent this request or response? | An [HTTP Message Signature](https://www.rfc-editor.org/rfc/rfc9421), with the key in that origin's [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) directory | This specification's Web Bot Auth profile (§ 2.8) | Nothing. The object never carries or re-proves it |
 | Authorization | What may this party, or its agent, do? | The seller's eligibility rules; a mandate the principal publishes or signs | This specification for the rules (§ 5.8); the AAMP authority document (provisional name) for mandates | The rules only, never the proof |
-| Legal assent | Which legal entity agreed to which terms? | The `assent[]` entries for the binding version, with both parties named in the proposal | This specification for the parties and the record (§ 4.1); the profile for any signature over it | Parties, `assent[]` |
+| Legal assent | Which legal entity agreed to which bytes? | Two matching `assent[]` entries over one `record_digest`, with both parties named in the record; as optional evidence, the signed messages that carried them | This specification for the record, digest, entry, and what each party keeps (§ 4.1.1, § 4.1.2); § 2.8 for how a message is signed and its key found | Parties, digest, entries |
 
-A request signature proves an `https` origin. It does not prove which party that
+A message signature proves an `https` origin. It does not prove which party that
 origin speaks for: a hosted agent's origin is the host's, and a mandate the party
-publishes or signs connects them. What authenticates a seller's response is the
-profile's to state. Reading a public file (§ 2.3) needs none of this.
+publishes or signs connects them. An `assent[]` entry travels in the body of a
+signed message, as optional evidence, and § 4.1.2 states when the signature
+attributes it to a party. Reading a public file (§ 2.3) needs none of this.
 
 ---
 
@@ -189,6 +190,7 @@ shared type or changes its form.
 | `IanaZone` | String: a name in the [IANA time zone database](https://www.iana.org/time-zones), such as `America/New_York` or `UTC` | A time zone |
 | `ZoneName` | An `IanaZone`, or `viewer_local` | `viewer_local` is where the ad renders |
 | `Url` | String: an absolute `http` or `https` URL ([RFC 3986](https://www.rfc-editor.org/rfc/rfc3986)) | A location a client can fetch |
+| `HttpsUrl` | A `Url` whose scheme is `https` | A location fetched over TLS |
 | `FieldPointer` | String: a JSON Pointer ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)) | A location in the object this specification defines |
 | `Ext` | `Map[Domain, Object]` | The extension container. § 2.5 states its rules |
 
@@ -210,7 +212,7 @@ retrievable, and the counterparty stores a copy.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `url` | Url | REQUIRED | The document. It MAY need authentication |
+| `url` | HttpsUrl | REQUIRED | The document. It MAY need authentication |
 | `digest` | Digest | REQUIRED | Over the exact bytes served, with no content coding |
 
 **`VersionRef`** locates an offer at a version. It carries no digest. A `proposal_id`
@@ -312,8 +314,8 @@ A party that rejects a request MUST return `errors[]`, one or more
 the request carries the errors.
 
 A seller's decline of a resolved `commitment`, or of a hold, answers a valid
-request and is not an error. What a party answers when request authentication
-fails is the AAMP agent identity and signing profile's to state.
+request and is not an error. What a party answers when a request fails message
+authentication is § 2.8's to state.
 
 **`ErrorObject`** keys:
 
@@ -323,7 +325,7 @@ fails is the AAMP agent identity and signing profile's to state.
 | `detail` | String | REQUIRED | Human-readable. A receiver SHOULD NOT parse it |
 | `pointer` | FieldPointer | OPTIONAL | Into the object this specification defines that the request carries, to the value that caused the error |
 | `version` | Integer | REQUIRED when the request names a proposal the requester may read | The proposal's `version` when the error was decided |
-| `retry` | Enum | REQUIRED | `same` \| `refetch` \| `none`. `same`: the same request can succeed later. `refetch`: a new attempt, composed on the current `version`, can succeed. `none`: only a changed request can succeed. On a commitment attempt, `same` keeps the `idempotency_key` and such an error is not a stored result (§ 5.6.1), and `refetch` and `none` take a new `idempotency_key` |
+| `retry` | Enum | REQUIRED | `same` \| `refetch` \| `none`. `same`: the same request can succeed later. `refetch`: a new attempt, composed on the current `version`, can succeed. `none`: only a changed request can succeed. On a `commit`, `same` keeps the `idempotency_key` and such an error is not a stored result (§ 5.6.1), and `refetch` and `none` take a new `idempotency_key` |
 
 Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_reference` \|
 `not_committable` \| `stale_version` \| `expired` \| `idempotency_conflict` \|
@@ -335,12 +337,12 @@ Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_referenc
 | `not_found` | A named proposal or line item does not exist, or the requester may not read it (§ 5.8) |
 | `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.5) |
 | `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
-| `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `requires` that is unmet rules out a `commit` (§ 5.6.3), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
+| `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `requires` that is unmet rules out a `commit` (§ 5.6.3), a live `commitment` entry already names a line item (§ 4.1.2), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
 | `stale_version` | An ask is stale (§ 4.1.3) |
 | `expired` | `offer_window.end` or `price_valid_until` has passed |
-| `idempotency_conflict` | An `idempotency_key` is reused with a different body |
+| `idempotency_conflict` | An `idempotency_key` is reused with a different `Commit` (§ 5.6.1) |
 | `not_eligible` | The buyer or the sender fails an eligibility or authority check the seller applies (§ 5.8) |
-| `record_mismatch` | A `record_digest` in the request does not equal the one the receiver recomputes (§ 4.1.1) |
+| `record_mismatch` | A `record_digest` in the request does not equal the one the receiver recomputes, and § 5.6.1 gives no other code (§ 4.1.1) |
 
 An `ErrorObject` is open. A receiver that does not recognize a code, or a key of
 the object, acts on `retry`.
@@ -477,6 +479,31 @@ it before reading the bytes, and `unresolved_reference` (§ 2.4) reports a misma
 people. A party that holds them limits who can read them, in stored records and
 logs as well as in responses. § 5.8 states the disclosure rule for `exclusions`.
 
+### 2.8 Web Bot Auth profile
+
+This section is the OpenProposal profile of [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/), the IETF
+protocol for signing automated HTTP traffic with
+[HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421). It selects options
+those documents define and adds no header, tag, key field, or error code. A party
+that signs an OpenProposal request or response signs it under this profile. Signing
+is OPTIONAL: § 4.1.2 states what a signature shows, and `agreed` never depends on one.
+When the AAMP agent identity and signing profile (provisional name) is published, it
+replaces this section.
+
+| Rule | Profile choice |
+| :--- | :--- |
+| Identity | An `https` origin. The signer names it in a covered `Signature-Agent` member, as the ASCII serialization of the origin ([RFC 6454 § 6.2](https://www.rfc-editor.org/rfc/rfc6454#section-6.2)): a lowercase host, no default port, and no path, query, fragment, or userinfo |
+| Keys | The origin's key directory, at `/.well-known/http-message-signatures-directory` with the media type `application/http-message-signatures-directory+json`. Each signing key is an Ed25519 key (`kty` `OKP`, `crv` `Ed25519`), and its `kid` is its JWK thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)) |
+| Signature | One signature, with `tag="web-bot-auth"`, `alg="ed25519"`, `keyid` set to the key's thumbprint, `created`, and `expires` no more than 300 seconds after `created`. A request also carries a `nonce` |
+| Request components | `@method`, `@target-uri`, `@authority`, and `"signature-agent";key=<label>` |
+| Response components | `@status`, `"@method";req`, `"@target-uri";req`, and `"signature-agent";key=<label>` |
+| Body | A message with a body carries `Content-Digest` ([RFC 9530](https://www.rfc-editor.org/rfc/rfc9530)) with `sha-256`, and its signature also covers `content-type` and `content-digest`. A verifier checks the digest against the body bytes |
+| Failures | A request whose signature fields do not parse gets `400`. One that fails verification or a rule of this profile gets `403`. A party that cannot verify a response MAY refuse to write its own entry (§ 4.1.2) |
+
+Requests and responses are both signed, so the seller's answers carry the same
+evidence as the buyer's entries. A standard Web Bot Auth verifier configured with
+these rules checks a request before the application reads its body.
+
 ---
 
 ## 3. Field mutability
@@ -608,8 +635,7 @@ no `status`, writes no history, reserves nothing, and doesn't limit a later decl
 
 **`BuyerWrites`** holds what a buyer writes on one line item. It is a strict path
 subset of the line item: a listed path has the type it has there, and no other path
-appears. Every path is OPTIONAL. A buyer artifact delivered after agreement
-(§ 4.1.1), such as `assets[]`, is not a write.
+appears. Every path is OPTIONAL. A buyer delivery (§ 4.1.1) is not a write.
 
 `BuyerWrites` lists these paths, where `<selectable>` is a field marked `selectable`,
 and `<settable>` is a field marked `settable` other than `frequency_cap`:
@@ -624,7 +650,7 @@ buyer_requirements.seat_owner
 ```
 
 **`LineItemWrites`** holds the keys of `BuyerWrites` and this one. It is the buyer's writes
-on one line item.
+on one line item, which a `Commit` (§ 5.6.1) carries.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
@@ -635,16 +661,15 @@ on one line item.
 ## 4. Proposal
 
 The proposal establishes identity, lifespan, negotiation state and the
-merchandising case for the line items beneath it. Nothing here is a commercial
-commitment, and nothing here is channel-specific — that all lives on the line
-items.
+merchandising case for the line items beneath it. The commitment and everything
+channel-specific live on the line items.
 
 ### 4.1 Identity and lifecycle
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `proposal_id` | String | REQUIRED | immutable | Identifies the proposal. Unique within `seller.domain` |
-| `version` | Integer | REQUIRED | derived | Monotonically increasing revision number, starting at 1, held by the seller. Each version is a snapshot of the proposal's offered terms (§ 4.1.3). A version is frozen at the earliest of: the proposal's `status` leaving `draft`; a `negotiation_history[]` entry or a `commitment` naming it; a counterparty receiving it in any representation (§ 2.1). The offered terms of a frozen version MUST NOT change; a change to them creates version `n+1`. The values § 4.1.3 lists as not offered terms change without a new version |
+| `version` | Integer | REQUIRED | derived | Monotonically increasing revision number, starting at 1, held by the seller. Each version is a snapshot of the proposal's offered terms (§ 4.1.3). A version is frozen at the earliest of: the proposal's `status` leaving `draft`; a `negotiation_history[]` or `assent[]` entry naming it; a counterparty receiving it in any representation (§ 2.1). The offered terms of a frozen version MUST NOT change; a change to them creates version `n+1`. The values § 4.1.3 lists as not offered terms change without a new version |
 | `spec_version` | String | REQUIRED | seller-set | The version of this specification the document follows, such as `3.0` |
 | `seller` | Party | REQUIRED | immutable | The selling entity. `seller.domain` is the seller's identifier for all purposes, including `assent[]`. `legal_name` is REQUIRED here |
 | `buyer` | Party | REQUIRED when `type` is `custom` or `assent[]` is present | immutable | The entity that assents, usually the agency. Its presence makes the proposal issued to that buyer (§ 4.3). Whom the spend is for is `commitment.advertisers[]` (§ 5.6.1), and whether the buyer may bind that advertiser is authorization (§ 1.2). `legal_name` is REQUIRED here |
@@ -652,11 +677,10 @@ items.
 | `proposal_template_id` | String | OPTIONAL | immutable | Links a proposal to the seller's template. Opaque to buyers; used for the seller's reporting |
 | `issued_from` | VersionRef | OPTIONAL | immutable | The shared proposal and version an issued proposal was made from (§ 4.3). A pointer: nothing is inherited through it |
 | `status` | ProposalStatus | REQUIRED | derived | Computed from the line items (§ 4.3.3) |
-| `record_digest` | Digest | OPTIONAL | derived | Of the binding record of this document over every line item it contains (§ 4.1.1). Either party MUST be able to recompute it from the document alone. Verifiable only against the Full Representation; a Summary Representation or manifest entry MAY carry it as a pointer |
-| `assent[]` | Array[AssentEntry] | OPTIONAL | recorded | Assent entries. Each entry is written whole by the party its `role` implies, is immutable once written, and MUST NOT be altered or removed by the other party. Entry: `{ role: commitment \| acceptance, version, record_digest, line_item_ids[], signed_at, signer, signature }`. See § 4.1.2. The form of `signer`, the signature container, key discovery and agent authentication are defined by the AAMP agent identity and signing profile, not by this specification |
+| `assent[]` | Array[AssentEntry] | OPTIONAL | recorded | The parties' acts (§ 4.1.2). Each entry is written whole by the party its `role` implies. Entries MUST NOT be edited or removed |
 | `offer_window` | Interval | OPTIONAL | seller-set | The window the offer holds: it does not hold before `start` or after `end`. **This is the offer window, not the campaign flight** |
 | `brief_id` | String | REQUIRED when `type` is `custom` | immutable | The buyer's brief this proposal answers |
-| `negotiation_history[]` | Array[HistoryEntry] | REQUIRED when the current `version` is frozen (§ 4.1.3) | recorded | Ordered, append-only. Entries MUST NOT be edited or removed. A commit and its acceptance are in `assent[]`, not here |
+| `negotiation_history[]` | Array[HistoryEntry] | REQUIRED when the current `version` is frozen (§ 4.1.3) | recorded | Ordered, append-only. Entries MUST NOT be edited or removed. A commit and its answers are in `assent[]`, not here, and an entry here voids nothing |
 | `line_items[]` | Array[LineItem] | REQUIRED | seller-set | The line items (§ 5), in the order the seller wrote them |
 | `linked_execution` | Enum | OPTIONAL | seller-set | `all`. Every `line_item_id` the version carries is committed together, as though each line item's `requires.all_of[]` named the others (§ 5.6.3). Absent, the proposal is subsettable (§ 2) |
 | `ext` | Ext | OPTIONAL | seller-set | See Extensions (§ 2.5) |
@@ -710,7 +734,8 @@ Registry entry is buyer policy.
 
 The binding record of a document for a set of line items S is the JSON form of
 that document in its Full Representation (§ 2.1), restricted to the line items in
-S, with the following paths removed and no others. The paths are RFC 9535 JSONPath.
+S, with the following paths removed and no others, apart from the one exception below.
+The paths are RFC 9535 JSONPath.
 Arrays hash in document order, and no party reorders an array it did not write. The
 hold's status is every `hold_status` key except `hold_available`, `hold_duration`
 and `hold_scope`.
@@ -719,149 +744,187 @@ and `hold_scope`.
 $.version
 $.status
 $.assent
-$.record_digest
 $.negotiation_history
+$.best_for
+$.not_suitable_for
+$.seasonality_notes
 $.line_items[*].status
 $.line_items[*].availability
 $.line_items[*].addressable_scale
 $.line_items[*].assets
 $.line_items[*].buyer_supplied.match_rate_expected
-$.line_items[*].pricing[*].seller_rate
+$.line_items[*].buyer_supplied.segments
+$.line_items[*].buyer_supplied.suppression_list
 $.line_items[*].pricing[*].min_rate
 $.line_items[*].hold_status.*, except hold_available, hold_duration and hold_scope
-$.line_items[*].commitment.version
-$.line_items[*].commitment.idempotency_key
 $.line_items[*].commitment.derived_units
-$.line_items[*].deal_id_issuance
 $.line_items[*].external_references
 $.line_items[*].correlation_id
 ```
 
-Each removed path is one of three things: lifecycle state or sequence position
-(`version`, `status`, `assent[]`, `record_digest`, `negotiation_history[]`, the
-hold's status, `commitment.version`, `idempotency_key`); a seller assertion, an
-informative figure, or an identifier minted downstream of agreement
-(`availability`, `addressable_scale`, `match_rate_expected`, `derived_units`,
-`deal_id_issuance`, `external_references[]`, `correlation_id`); or a value that
-is not a term of the agreement: the seller's own figures (`seller_rate`,
-`min_rate`; the transacted rate is `agreed_rate`) and buyer artifacts delivered
-after agreement (`assets[]`). The requirement on creative (`formats`, `specs`,
-`creative_policy`, `materials_due`) is a term.
+Restricting to S leaves `line_items[]` an array of the line items in S, in document
+order however S is named. Nothing else narrows: a proposal-level value such as
+`description`, and a value that names a line item outside S such as
+`requires.all_of[]`, stay as they are. Removing a path takes out the member it selects
+and nothing else: a path that selects nothing removes nothing, and an object left empty
+stays. The one exception is `buyer_supplied`: if it holds no key after these removals, it
+is removed too, whether the removals emptied it or it was written empty.
 
-Every other value is inside the record: `seller`, `buyer`, and `issued_from`; every
+Each removed path is one of three things: lifecycle state or sequence position
+(`version`, `status`, `assent[]`, `negotiation_history[]`, the hold's status); a
+seller assertion, advisory text, an informative figure, or an
+identifier minted downstream of agreement (`best_for[]`, `not_suitable_for[]`,
+`seasonality_notes`, `availability`, `addressable_scale`, `match_rate_expected`,
+`min_rate`, `derived_units`, `external_references[]`, `correlation_id`); or a buyer
+delivery (`assets[]`, `segments[]`, `suppression_list`). The requirement on creative
+(`formats`, `specs`, `creative_policy`, `materials_due`) is a term, and so is the
+permission to deliver a list (`segments_allowed`, `suppression_allowed`,
+`exclusions_accepted`).
+
+Every other value is inside the record, named here or not: `proposal_id`,
+`spec_version`, `seller`, `buyer`, `type`, `proposal_template_id`, `brief_id`,
+`issued_from`, `offer_window`, `linked_execution`, and `ext`; every
 `seller-set` field, including prose (`description`, `specifications`, `content_detail`,
 `creative_policy`, `specs`); the seller's value of a `requestable` field, such as
 `pricing[].list_rate`, including one a `grant` or `counter` put in force; every option
 space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`, `min` / `max`,
-`default`); every value the buyer writes under § 3 (`selected[]`, `value`,
-`commitment`, data under `supplied` fields other than `assets[]`);
-`pricing[].agreed_rate`; and `hold_available`, `hold_duration`, `hold_scope`.
+`default`); every `BuyerWrites` value (§ 3.4) and `commitment`, as they stand at `agreed`; `pricing[].agreed_rate`; `hold_available`, `hold_duration`, and `hold_scope`; and every `DocumentRef` (§ 2.2) whole, with any key its publisher
+added, whose `url` and `digest` pin the bytes. A list the buyer delivers after `agreed` is a delivery and does
+not change the agreed record (§ 4.1.2).
 
-**Digest input.** The record is computed over the composed record as the parties
-exchange it: the Full Representation of `version` as the seller published it to
-this buyer, with the buyer's § 3 writes applied. Each party computes it over the
-document it transmits or receives, never over its internal store; a value
-present in a store but absent from the exchanged document is, by construction,
-not a term. A `derived` value inside the record is computed by the rule this
-specification states for it; where no rule exists, the two parties' digests
-differ and the line item is not agreed.
+**Composed record.** The binding record is cut from the composed record: the Full
+Representation of `version` as the seller published it to this buyer, with the buyer's
+writes (§ 3.4) applied. A write sets the key it names and changes nothing else. A stored line
+item holds the writes of a `commit` only while its `commitment` entry is live or matched by
+an `acceptance`. Otherwise, as for a rejected `commit`, a full fetch doesn't show them
+and they enter no later composed record. A document
+that already holds those writes at that `version` is its own composed record. A `Commit`
+(§ 5.6.1) carries the buyer's entry and writes, not a copy of the seller's terms. A value
+no party exchanged is not a term. Nothing is filled in: a key the document doesn't hold
+stays absent, whatever default its row states or § 3.1 or § 3.2 puts in effect, so writing a
+default and omitting it give different digests.
+
+**`derived` values.** Every party computes the digest by the same steps. The only
+`derived` value inside the record is `pricing[].agreed_rate` on the committed entry. On
+a line item with a `commitment`, a party sets it to the § 5.6 result before serializing,
+replacing a written value or adding an absent one. The value serialized is the double
+nearest that result.
 
 **Canonical form.** The digest input is the RFC 8785 (JSON Canonicalization
 Scheme) serialization of the binding record, encoded as UTF-8. This
-specification names no wire format; for this section JSON is the data model, and
-a document carried as YAML is converted to JSON under the YAML 1.2 core schema
-before canonicalization. A document whose JSON form contains duplicate object
-keys is invalid. Strings, timestamps included, are hashed as written; a party
-MUST NOT reformat a value it did not write. Numbers serialize as RFC 8785
-§ 3.2.2.3 prescribes (IEEE-754 double precision, shortest round-trip form). A
+specification names no wire format; for this section JSON is the data model. A
+document carried as YAML is a single YAML document, converted to JSON under the YAML 1.2
+core schema: aliases expand, and `<<` is an ordinary key. A non-string mapping key,
+`.inf`, `.nan`, a recursive alias, an explicit tag, or a second document in the stream
+has no JSON form and makes the document invalid for this section, and so do duplicate
+object keys in its JSON form.
+
+A string is the value the JSON form holds, so a final line break that a YAML block scalar
+keeps is part of it. Strings, `Instant` values included, are hashed as that value; a party
+MUST NOT trim, normalize, or reformat a value it did not write. Numbers serialize as
+RFC 8785 § 3.2.2.3 prescribes (IEEE-754 double precision, shortest round-trip form). A
 producer MUST NOT write a Number that this serialization does not reproduce as
-the decimal value written; a Number with at most 15 significant digits inside
+the numeric value written; a Number with at most 15 significant digits inside
 the range of a double always does, and a document containing one that does not
-is invalid for this section. `24.00` and `24` are the same value.
+is invalid for this section. `24.00`, `24`, and the YAML `0x18` are the same value. Each
+test of validity here reads the whole document, before any path is removed.
 
-`record_digest` is the `Digest` (§ 2.2) of the digest input.
-
-**Two values.** On a shared proposal no buyer-written value is present, and
-the digest identifies the offered terms of that version: what a cache or a
-manifest entry compares. On a composed record the
-buyer's writes are present, and the digest identifies what this buyer and the
-seller agree to. An `assent[]` entry always carries the second. A shared proposal
-carries no `assent[]`.
+`record_digest` is the `Digest` (§ 2.2) of the digest input. It sits only on `assent[]`
+entries.
 
 A receiving party MUST recompute `record_digest` and compare it byte-for-byte
-before relying on any `assent[]` entry. A `record_digest` asserted in a document
-is a convenience, not evidence.
+before relying on a live `commitment` entry, over the line items as they stand plus the
+writes its `commit` carries (§ 5.6.1), or on a matching pair, from its agreed record
+(§ 4.1.2). A `withdrawal` or `decline` acts on the entries it matches (§ 4.1.2), so its
+`record_digest` is compared, not recomputed.
 
 #### 4.1.2 Assent
 
-- `assent[]` is carried on the composed record exchanged between one buyer and
-  the seller. A proposal MAY carry any number of entries. A line item MUST NOT
-  be named by more than one live buyer `commitment` entry, nor by more than one
-  live seller `acceptance` entry. An entry is live until it is void or replaced
-  under the following rules.
-- The parties are the record's `seller` and `buyer` (§ 4.1). `role` names what
-  the entry does, and it implies the party. `role: commitment` is written by the
-  buyer. Its `line_item_ids[]` MUST be non-empty, MUST name line items whose
-  `commitment` object (§ 5.6.1) is populated in the record, and on their own MUST
-  meet linked execution and each named line item's `requires` (§ 5.6.3).
-  `role: acceptance` is written by the seller and names the `version`,
-  `record_digest` and `line_item_ids[]` the seller accepts. Neither entry refers
-  to the other, and the order in which they are written is not constrained.
-- `record_digest` in an entry is the digest of the binding record for the line
-  items in that entry's `line_item_ids[]` (§ 4.1.1). It equals the
-  document-level `record_digest` when the document contains exactly those line
-  items. `version` in an entry is the `version` of the record the digest was
-  computed over; because `version` is outside the binding record, the entry
-  binds it explicitly.
-- The line items of a buyer `commitment` entry are `agreed` when, and only when,
-  `assent[]` contains a live seller `acceptance` entry with equal `version`,
-  equal `record_digest` and equal `line_item_ids[]`, and both signatures verify
-  under the AAMP agent identity and signing profile. `line_item_ids[]` compare as
-  sets. Equal digests already imply
-  equal line item sets; the explicit condition rules out partial acceptance. A
-  line item for which no such pair exists is not agreed, whatever its `status`
-  says.
-- A seller MUST NOT write an `acceptance` entry after the proposal's
-  `offer_window.end`, nor for a `commitment` entry it receives after the
-  `price_valid_until` of the committed `pricing[]` entry of any line item the
-  `commitment` entry names.
-  Such a `commitment` entry is void, and so is one unmatched when `offer_window.end`
-  passes. A `negotiation_history[]` entry at the same `version` with
-  `actor: buyer, action: withdrawn` or `actor: seller, action: declined`,
-  written after the `commitment` entry, also voids it. A void entry stays in
-  `assent[]`, does not count toward `agreed`, and the line items it names MAY
-  appear in a new `commitment` entry.
-- A later entry from the same party whose `version`, `record_digest` and
-  `line_item_ids[]` equal those of one of its live entries replaces that entry
-  (a retry after a lost response). A later entry from the same party that names
-  a line item already in one of its live entries but differs in any of the three
-  is invalid, and the earlier entry stands.
-- The signing input of an entry is the RFC 8785 serialization of the entry with
-  `signature` removed. `signature` is a detached signature over that input in
-  the container the AAMP agent identity and signing profile defines, carrying
-  the key identifier and algorithm. `signer` identifies the agent that signed;
-  if the container also names the signer, that name MUST equal `signer`. The
-  form of `signer`, the container and algorithms, key resolution, and how
-  `signer` is bound to the party `role` implies are defined by the profile.
-  This specification requires of the profile only that (a) verification needs
-  only the stored record and key material the signer has published, or a
-  retained copy of it, and MUST NOT require an interactive request to the
-  counterparty or a registry lookup; (b) the signature is bound to this artifact
-  type, so an assent signature cannot be presented as a signature over any other
-  AAMP artifact; and (c) a signature remains verifiable for the life of the
-  agreement, including after the signing key is rotated.
-- Transitional rule. Until the profile is published, `signer` and `signature`
-  MAY be absent. An entry without them is an unsigned assent record whose
-  authenticity rests on the authenticated channel it arrived over, and the
-  `agreed` rule applies without the signature condition.
+`assent[]` holds the parties' acts in the order they were written, and only it
+decides whether a line item is agreed.
+
+**`AssentEntry`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `role` | Enum | REQUIRED | `commitment` \| `acceptance` \| `withdrawal` \| `decline`. It says what the entry does, and it implies the party |
+| `version` | Integer | REQUIRED | The `version` of the record the digest was computed over. `version` is outside the binding record, so the entry binds it |
+| `record_digest` | Digest | REQUIRED | Of the binding record for the line items in `line_item_ids[]` (§ 4.1.1) |
+| `line_item_ids[]` | Array[String] | REQUIRED | The line items the entry names. MUST be non-empty |
+| `at` | Instant | REQUIRED | When the party wrote the entry, by its own statement. No rule reads order from it |
+| `idempotency_key` | String | REQUIRED when `role` is `commitment` | Buyer-generated, unique per `commit`, opaque, and scoped to one buyer and seller pair. The seller MUST NOT interpret it (§ 5.6.1) |
+| `ground` | VocabularyTerm | OPTIONAL | On a `decline` entry only, why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. No rule reads it, and a receiver that doesn't know a term still reads the entry as a `decline` |
+
+Two entries *match* when their `version`, `record_digest`, and `line_item_ids[]` are
+equal. `line_item_ids[]` compare as sets, so an acceptance cannot cover part of a
+commitment.
+
+- `role: commitment` is written by the buyer. Its `line_item_ids[]` MUST name line
+  items whose `commitment` object (§ 5.6.1) is populated in the record, and on their
+  own MUST meet linked execution and each named line item's `requires` (§ 5.6.3). The
+  entry accepts every `terms_refs[]` entry (§ 5.8) of the line items it names, at the
+  bytes each `digest` pins, so a buyer compares each document with its `digest` first.
+- `role: acceptance` is written by the seller, only while a `commitment` entry it
+  matches is live. An `acceptance` that matches no live entry is invalid.
+- `role: withdrawal` is written by the buyer, and `role: decline` by the seller. Each
+  ends the `commitment` entries before it that it matches.
+- A `commitment` entry is *live* until the first of these: a matching `withdrawal` or
+  `decline`, its `commit` going stale (§ 4.1.3) or void (§ 4.3.2, § 4.3.4), or
+  `offer_window.end`. Once a matching `acceptance` exists, nothing ends it. An entry
+  that is not live stays in `assent[]`, and the line items it names MAY appear in a new
+  `commitment` entry.
+- A line item MUST NOT be named by more than one live `commitment` entry, nor by more
+  than one `acceptance` entry. A later entry that would break this is invalid, and the
+  earlier entry stands. A retry after a lost response re-sends the same entry and
+  writes no new one (§ 5.6.1).
+- The line items of a `commitment` entry are `agreed` when, and only when, `assent[]`
+  holds a matching `acceptance` entry. A line item for which no such pair exists is not
+  agreed, whatever its `status` says.
 - Adding an `assent[]` entry does not change `version`.
 - `agreed` is terminal for a line item. Every `seller-set`, `selectable`,
   `settable`, and `requestable` value of it and its `pricing[].agreed_rate` MUST
-  remain as in the version `assent[]` names. A later version of the proposal does
-  not touch the agreed record: a party verifies an entry over the version it
-  names (§ 4.1.3), not the current one. A change to a value inside the record is
+  remain as in the version `assent[]` names. A change to a value inside the record is
   applied outside it, in the downstream standard the line item lands in (§ 1.1),
   against the agreed record as its baseline.
+
+**Agreed record.** The agreed record of a matching pair is its digest input (§ 4.1.1)
+and the two entries. To check a pair, a party recomputes `record_digest` from the
+agreed record, not from the current document, and tests that the two entries match. A
+later version of the proposal does not touch the agreed record. Each party keeps the
+agreed record, and a copy of every document a `DocumentRef` in it pins.
+This specification does not set how long.
+
+**Signed messages.**
+
+- An entry travels in the body of an HTTP message signed under the Web Bot Auth
+  profile (§ 2.8), which defines how a message is signed and its key found. The key
+  sits in the signing origin's key directory.
+  Requests and responses are both signed, so the seller's `acceptance` and `decline`
+  arrive signed, as the buyer's entries do.
+- The signature attributes the entry to the record's party that `role` implies
+  when it covers the body, through `Content-Digest`
+  ([RFC 9530](https://www.rfc-editor.org/rfc/rfc9530)), and the host of the signing
+  origin is that party's `domain` or a subdomain of it, such as `signing.<domain>`.
+  Which of those origins a party accepts for its counterparty is that party's own
+  configuration, such as an allowlist in a seller's admin.
+  `record_digest` covers `seller` and `buyer`, so the signed body also binds the
+  party's name.
+- A party that keeps this evidence keeps it with the agreed record: the signed
+  message that carried the counterparty's entry, as received (its signature fields,
+  the values of the components they cover, and the exact body bytes), and the bytes
+  of the key directory it verified against.
+  Entries are append-only, so any signed message that carries an entry is evidence
+  of the same entry.
+- The evidence is OPTIONAL. An entry is complete without it. No check in this
+  specification requires or verifies a signature, and `agreed` does not depend on one.
+- A valid signature shows that the holder of a key in the signing origin's directory
+  sent the entry. It does not show that the holder had authority to bind the party, or
+  that anyone read the referenced documents. Authority to bind a party is a separate
+  question (§ 1.2), and this specification does not settle it.
+- Within the limits on a decline (§ 4.3.2, § 5.6.1), a party MAY refuse to write its own entry
+  for any reason, including a counterparty message it cannot verify. Once a matching
+  pair exists, an absent or failed signature, or a key later removed from its
+  directory, does not change `agreed`.
 
 #### 4.1.3 Offered terms and versions
 
@@ -874,11 +937,11 @@ carries. The following are not offered terms and MAY change without a new versio
 and line item), `assent[]`, `negotiation_history[]`, `availability`,
 `addressable_scale`, the hold's status (every `hold_status` key except
 `hold_available`, `hold_duration` and `hold_scope`, which offer the hold),
-`deal_id_issuance`, `external_references[]`, `correlation_id`,
-`assets[].approval_status`; `pricing[].seller_rate`, which is what the publisher
-receives and not a term offered to the buyer; every value the buyer writes (a
-`BuyerWrites` value, `commitment`, any other `supplied` field, and a `requestable`
-ask); and every `derived` value computed from a buyer's writes (`pricing[].agreed_rate`,
+`external_references[]`, `correlation_id`, `assets[].approval_status`; `best_for[]`,
+`not_suitable_for[]`, and `seasonality_notes`, which are advisory (§ 4.2);
+`pricing[].min_rate`, which is a hint; every value the buyer writes (a `BuyerWrites` value,
+`commitment`, any other `supplied` field, and a `requestable` ask); and
+every `derived` value computed from a buyer's writes (`pricing[].agreed_rate`,
 `commitment.derived_units`). A buyer composes against a named `version` and never increments it.
 
 **Freezing.** A seller MAY edit a proposal in place only while its current
@@ -912,13 +975,11 @@ differs between that `version` and the current one. `version` is outside the
 record, so a revision that touches only another line item does not make it stale,
 and a change to a proposal-level term does. Under `linked_execution: all`, a change
 to the set of `line_item_id`s also makes it stale. The seller computes the test
-from the versions it retains, and no digest is published for it. For a `commit`,
-the seller recomputes `record_digest` over the line items as they stand plus the
-buyer's writes. A value equal to the one in the buyer's `assent[]` entry means the
-seller MAY accept, at the `version` that entry names.
+from the versions it retains, and no digest is published for it. § 5.6.1 states the
+test for a `commit`.
 
 **Retention.** A seller MUST keep every version that a `negotiation_history[]`
-entry, a `commitment` or an `assent[]` entry names retrievable by
+or `assent[]` entry names retrievable by
 `(proposal_id, version)` for as long as the proposal is retrievable. This
 specification does not define how a party fetches a version.
 
@@ -933,6 +994,10 @@ The case a buying agent reads to decide whether to look further.
 | `best_for[]` | Array[String] | OPTIONAL | seller-set | Advisory planning hints. Non-normative, and never the basis for a match |
 | `not_suitable_for[]` | Array[String] | OPTIONAL | seller-set | Advisory exclusion guidance. Non-normative |
 | `seasonality_notes` | String | OPTIONAL | seller-set | When the proposal performs differently |
+
+`best_for[]`, `not_suitable_for[]`, and `seasonality_notes` are advisory. They are
+outside the binding record (§ 4.1.1) and the offered terms (§ 4.1.3), so editing them
+creates no `version`.
 
 ### 4.3 Lifecycle
 
@@ -955,10 +1020,11 @@ none of them.
 **Asks.** A buyer `request` (`requestable`, not `hold_status`) or `commit`
 (§ 5.6.1) is an *ask*: it names a `version` and stays *open* until answered or
 withdrawn, or until it goes stale (§ 4.1.3) or void (§ 4.3.2, § 4.3.4). A `commit` is one
-act: the buyer's `assent[]` entry and the `commitment` of each line item that entry
-names. A `request` is identified by its `line_item_id`, `pointer`, and `requested_value`
-(§ 4.1). Two equal ones are one ask while that ask is open, and an equal `request` after
-it ends is a new ask. Holds change neither `status` nor `negotiation_history[]`.
+act, a `Commit` (§ 5.6.1): the buyer's `assent[]` entry and the writes of each line item that
+entry names. A `commit` that goes stale or void is no longer open, and its `commitment` entry
+is no longer live (§ 4.1.2). A `request` is identified by its `line_item_id`, `pointer`, and `requested_value` (§ 4.1). Two equal ones
+are one ask while that ask is open, and an equal `request` after it ends is a new ask.
+Holds change neither `status` nor `negotiation_history[]`.
 
 #### 4.3.1 Interactions
 
@@ -969,10 +1035,10 @@ it ends is a new ask. Holds change neither `status` nor `negotiation_history[]`.
 | `request` | buyer | asks a `requestable` value on one line item against a named `version`, stated as a `HistoryPath` (§ 4.1) with `requested_value`; `requested` |
 | `grant` | seller | of a `request`: new `version` with the requested value in force as an offered term; `granted` |
 | `counter` | seller | of a `request`: new `version` with another value; `countered` |
-| `decline` | seller | no new `version`; `declined` |
-| `commit` | buyer | `commitment` (§ 5.6.1) pinned to `version`, with the buyer's `assent[]` entry; no entry |
+| `decline` | seller | no new `version`. Of a `request`: `declined`. Of a `commit`: the seller's `assent[]` entry; no entry |
+| `commit` | buyer | a `Commit` (§ 5.6.1): the buyer's `assent[]` entry, which pins the `version`, and its writes (§ 3.4); no entry |
 | `accept` | seller | of a `commit`: the seller's `assent[]` entry, no new `version`; no entry |
-| `withdraw` | seller: line item or proposal; buyer: its own ask | `withdrawn`. A seller's is one entry. For each line item it moved to `withdrawn`, its `paths[]` holds a `HistoryPath` with that `line_item_id` and the `pointer` `/status` |
+| `withdraw` | seller: line item or proposal; buyer: its own ask | `withdrawn`. A seller's is one entry. For each line item it moved to `withdrawn`, its `paths[]` holds a `HistoryPath` with that `line_item_id` and the `pointer` `/status`. Of the buyer's `commit`: the buyer's `assent[]` entry; no entry |
 | hold request, grant, decline, release | buyer; seller; seller; buyer, or seller on a revision (rule 2) | `hold_status` only; no entry |
 
 A buyer that turns down an offer, including a counter, takes no action and leaves no entry.
@@ -1015,7 +1081,7 @@ The seller of an issued proposal MUST answer a resolved `commit` under it that a
 while the entry holds, on or after `offer_window.start`, and passes the checks of
 § 5.6.1 and any authority check the seller applies (§ 5.8): accept it, or decline it
 on an allowed ground. The allowed grounds are lack of availability, an exclusivity
-conflict (§ 5.6), and a ground stated in the `terms_ref` in force when the entry was
+conflict (§ 5.6), and a ground stated in the `terms_refs[]` in force when the entry was
 first offered. `sold_out` is lack of availability: a `commit` that arrives while the
 line item is `sold_out` returns `not_committable` (§ 2.4).
 
@@ -1047,7 +1113,7 @@ A seller `withdraw` of the proposal moves to `withdrawn` every line item that
 | Instant | Ends | Effect when passed |
 | :--- | :--- | :--- |
 | `offer_window.end` | the offer window | every `published`, `under_review`, or `sold_out` line item is `expired`; open asks are void |
-| `pricing[].price_valid_until` | the firm entry | `status` unchanged; the seller MUST NOT accept a later `commit` under that entry, and SHOULD `publish` or `withdraw` |
+| `pricing[].price_valid_until` | the firm entry | `status` unchanged; a later `commit` under that entry is rejected (§ 5.6.1), and the seller SHOULD `publish` or `withdraw` |
 | `hold_status.hold_expires_at` | the hold | `hold_status.state` becomes `expired`; `status` unchanged |
 
 `hold_expires_at` MUST NOT exceed `offer_window.end` or the earliest
@@ -1266,7 +1332,7 @@ exclusions:
   app_bundle:       [{ platform: roku, bundle: "123456" }]
   iab_content_category: ["IAB-CT3.0:<id>"]   # IAB Content Taxonomy ids
   keyword:          ["crypto"]
-  list_ref:         { url: "<url>", sha256: "<hash>" }
+  list_ref:         { url: "<url>", digest: "<Digest>" }
 ```
 
 - Each `app_bundle[]` entry is `{ platform, bundle }`. `bundle` is the OpenRTB
@@ -1280,8 +1346,7 @@ exclusions:
   `exclusions_accepted.types`. A seller MUST reject it deterministically
   rather than ignore it, with `not_offered`.
 - A seller MUST NOT present `best_effort` enforcement as a guarantee.
-- `list_ref` MUST be hash-pinned, and resolved into the stored record at
-  `agreed`.
+- `list_ref` is a `DocumentRef` (§ 2.2).
 
 **`GeoCode`** is a String: an ISO 3166-1 alpha-2 country code, an ISO 3166-2
 subdivision code, or an extension `VocabularyTerm` for any other area, such as a
@@ -1357,7 +1422,6 @@ Monday.
 | `pricing[].cost_method` | VocabularyTerm | REQUIRED | seller-set | The billable unit. Core terms: `CPM` \| `CPC` \| `FLAT` |
 | `pricing[].list_rate` | Number | REQUIRED | requestable | The rate before options. A buyer MAY request another value, and a granted value is the `list_rate` of the next `version` |
 | `pricing[].agreed_rate` | Number | REQUIRED when this is the committed entry | derived | The transacted rate (below). Absent on every other entry |
-| `pricing[].seller_rate` | Number | OPTIONAL | seller-set | What the publisher receives |
 | `pricing[].price_valid_until` | Instant | OPTIONAL | seller-set | How long the entry holds (§ 4.3.2). Distinct from the proposal's `offer_window.end` |
 | `pricing[].currency` | String | REQUIRED | seller-set | ISO-4217 |
 | `pricing[].min_rate` | Number | OPTIONAL | seller-set | A hint: the lowest `list_rate` the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
@@ -1395,11 +1459,15 @@ and `value` on the line item is within what the seller declared (§ 3.1, § 3.2)
 the commitment fits `commitment_bounds` and `min_spend`, is not stale (§ 4.1.3),
 and meets `requires` (§ 5.6.3). A resolved `commitment` is an offer to buy. It
 binds only when the seller accepts it;
-`assent[]` (§ 4.1) records that acceptance for the binding `version`. A seller
-MAY decline a resolved `commitment`; the buyer MAY recompose. A decline for lack
-of availability MUST return `availability` recomputed against the buyer's
-composition; the seller's determination is authoritative. While a buyer's hold
-(§ 5.6.2) runs, the seller MUST NOT decline that buyer's `commitment` for lack of
+`assent[]` (§ 4.1.2) records that acceptance for the binding `version`. A seller
+MAY decline a resolved `commitment` with a `decline` entry; the buyer MAY recompose.
+A decline for lack of availability MUST state the `availability` of each line item it covers,
+recomputed against the buyer's composition; the seller's determination is authoritative.
+The figures travel in a `CommitResult` with the `decline` entry, in whatever delivers it: the
+response to the `commit`, a replay, or a later delivery by the binding. A
+full fetch returns the entry without them, and a buyer that learns of the decline
+that way gets figures from an availability read (§ 3.3).
+While a buyer's hold (§ 5.6.2) runs, the seller MUST NOT decline that buyer's `commitment` for lack of
 availability. This does not cover inventory that a hold granted ahead of it
 (§ 5.6.2) reserves or took on converting. A firm entry limits a
 decline to the grounds in § 4.3.2. Acceptance ends the availability check; booking
@@ -1416,36 +1484,57 @@ is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 
 | Key | Type | Required | Meaning | Mutability |
 | :--- | :--- | :--- | :--- | :--- |
-| `proposal_id` | String | REQUIRED | The proposal the commitment is made against | settable |
-| `version` | Integer | REQUIRED | The proposal `version` the commitment was priced against | settable |
 | `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 | settable |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** | settable |
 | `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for | settable |
 | `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding | derived |
-| `idempotency_key` | String | REQUIRED | Buyer-generated, unique per commitment attempt | settable |
 
-An `idempotency_key` is opaque and scoped to one buyer and seller pair. The
-seller MUST NOT interpret it.
+The buyer's `assent[]` entry (§ 4.1.2) pins the `version` of a `commit` and carries its
+`idempotency_key`, so `commitment` repeats neither.
 
-The seller MUST reject a new commitment attempt that is stale (§ 4.1.3), whose
-proposal is past `offer_window.end`, or where the `pricing[]` entry the commitment is priced against
-is past its `price_valid_until`. The rejection MUST carry `stale_version`, or
-`expired` when `offer_window.end` or `price_valid_until` has passed, so the buyer can
-fetch it again. These checks MUST be deterministic: they depend only on the
-stored proposal and the time the seller receives the attempt. A seller that
-rejects an attempt before `offer_window.start` returns `not_committable` with
-`retry: same`.
+**`Commit`** keys:
 
-For a replay from the same buyer of a commitment attempt the seller has
-already processed, with the same `idempotency_key` and the same body (every
-value the buyer sent with the attempt except `idempotency_key`), the seller
-MUST return the original result, whether an acceptance or a rejection, and
-MUST NOT create a second commitment. The staleness and expiry checks apply to a
-new attempt, not to returning a stored result. An error whose `retry` is `same`
-is not a stored result, so the retry runs the checks again. Reusing an
-`idempotency_key` with a different body MUST return `idempotency_conflict` and
-MUST NOT create or modify a commitment. A retry against a new `version` is a
-new attempt, with a new `idempotency_key`.
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `entry` | AssentEntry | REQUIRED | The buyer's entry (§ 4.1.2), with `role: commitment` |
+| `writes` | Map[String, LineItemWrites] | REQUIRED | The buyer's writes (§ 3.4), keyed by each `line_item_id` that `entry.line_item_ids[]` names |
+
+**`CommitResult`** is the result of a `commit` that wrote an entry, as it stands. Its keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `entries[]` | Array[AssentEntry] | REQUIRED | The buyer's `commitment` entry, then each matching `acceptance`, `decline`, or `withdrawal` entry written after it in `assent[]` |
+| `availability` | Map[String, Object] | REQUIRED when `entries[]` holds a `decline` for lack of availability | The figures that `decline` states, keyed by `line_item_id`, each in the form of the line item's `availability` (§ 5.6). They are not part of the entry |
+
+The seller recomputes `record_digest` over the line items the entry names as they
+stand, plus the `writes` of the `Commit` (§ 4.1.1). A value equal to the entry's means
+the line items have not changed and the buyer read the same terms, so the seller MAY accept,
+at the `version` the entry names.
+
+The seller MUST reject a new `commit` whose `record_digest` differs from the recomputed
+value, that is stale (§ 4.1.3), whose proposal is past `offer_window.end`, or where the
+committed entry is past its `price_valid_until`. The rejection MUST carry `expired` when
+`offer_window.end` or `price_valid_until` has passed, `stale_version` when the `commit`
+is stale, `not_committable` when a ground of that code applies (§ 2.4), and otherwise
+`record_mismatch`, so the buyer can fetch it again. A rejected `commit` writes no entry.
+These checks MUST be deterministic: they depend only on the stored proposal, the
+`commit`, and the time the seller receives it. A seller that rejects a `commit` before
+`offer_window.start`, or because a live `commitment` entry already names one of its line
+items (§ 4.1.2), returns `not_committable` with `retry: same`.
+
+A `commit` on an issued proposal that this specification gives the seller no ground to
+reject writes the buyer's `commitment` entry. The seller's answer comes in the same
+response or later. Either way it is an `assent[]` entry, which a full fetch returns
+(§ 2.1). How a buyer learns of a later answer belongs to the binding.
+
+For a replay from the same buyer of a `commit` the seller has already processed, with
+the same `idempotency_key` and an otherwise equal `Commit`, the seller MUST return the
+result as it now stands: the rejection, or the `CommitResult`. It MUST NOT write a second
+`commitment` entry. The checks above apply to a new `commit`, not to returning a stored
+result. An error whose `retry` is `same` is not a stored result, so the retry runs the
+checks again. Reusing an `idempotency_key` with a different `Commit` MUST return
+`idempotency_conflict` and MUST NOT write an entry or change a `commitment`. A retry
+against a new `version` is a new `commit`, with a new `idempotency_key`.
 
 #### 5.6.2 hold_status
 
@@ -1529,7 +1618,8 @@ self-contained.
 
 `visibility` says who may read a line item. `required_credentials[]`,
 `eligible_buyers[]`, `eligible_seats[]`, and `buyer_requirements` (§ 5.9) say who
-may commit to it.
+may commit to it. `terms_refs[]` names the binding documents a `commitment` entry
+accepts (§ 4.1.2).
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
@@ -1537,10 +1627,7 @@ may commit to it.
 | `required_credentials[]` | Array[RequiredCredential] | OPTIONAL | seller-set | What a buyer holds to be eligible |
 | `eligible_buyers[]` | Array[RegistrableDomain] | OPTIONAL | seller-set | The buyers that may commit, by `buyer.domain` |
 | `eligible_seats[]` | Array[SeatRef] | OPTIONAL | seller-set | The seats that may commit. An entry with an absent or empty `ids[]` names no seat and admits no one, unlike an absent OpenRTB 2.6 `Deal.wseat`, which sets no restriction |
-| `terms_acceptance_required` | Boolean | OPTIONAL | seller-set | Whether legal terms must be accepted before assent |
-| `terms_ref` | Object | REQUIRED when `terms_acceptance_required` is `true` | seller-set | `{ url, sha256, version }`: the legal terms or IO template the buyer accepts at assent. Hash-pinned, so assent (§ 4.1) binds to an exact document |
-
-`terms_ref` MUST be hash-pinned and frozen at `agreed`.
+| `terms_refs[]` | Array[DocumentRef] | OPTIONAL | seller-set | The binding documents of this line item, such as a main agreement and its addenda, or an IO template. Every entry applies, with no AND or OR. A `commitment` entry accepts them all (§ 4.1.2). Absent: a `commitment` entry accepts no document |
 
 `exclusions` (§ 5.5) reveal the buyer's strategy. A seller MUST NOT disclose a
 buyer's `exclusions` to any party other than that buyer.
@@ -1562,7 +1649,7 @@ only when it may read one of its line items. A response carries only the line it
 requester may read, and a request for any other line item, or for a proposal the
 requester may not read, returns `not_found` (§ 2.4). A full fetch leaves out only line
 items (§ 2.1), so a value it returns can name a line item the requester may not read,
-such as a line item's `requires` (§ 5.6.3) or a `negotiation_history[]` path.
+such as a line item's `requires` (§ 4.1.1) or a `negotiation_history[]` path.
 
 **Who may commit.** A buyer is eligible when each of these that is present holds:
 
@@ -1589,9 +1676,9 @@ names. That is a rejection, not a decline, so the limits on a decline (§ 4.3.2,
 A consumer that does not know a `credential_type` MUST NOT treat the proposal or
 line item as invalid for that reason. It MUST treat that entry as unsatisfiable.
 
-Agent identity and request authentication are defined by the AAMP agent identity
-and signing profile (provisional name). They are not expressed through
-`required_credentials[]`.
+Message authentication follows the Web Bot Auth profile (§ 2.8). Agent identity is
+defined by the AAMP agent identity and signing profile (provisional name). Neither is
+expressed through `required_credentials[]`.
 
 ### 5.9 Execution
 
@@ -1600,7 +1687,6 @@ and signing profile (provisional name). They are not expressed through
 | `buying_route` | Enum | OPTIONAL | seller-set | `DIRECT_PUBLISHER` \| `PUBLISHER_AD_SERVER` \| `SSP_PLATFORM` \| `DSP` \| `SEARCH_SOCIAL` |
 | `transaction_mechanism` | Selectable[TransactionMechanism] | REQUIRED | selectable | See `TransactionMechanism` below. A seller MAY offer the same inventory through more than one. `max_select: 1` |
 | `serving_mode` | VocabularyTerm | OPTIONAL | seller-set | Core terms: `client_side` \| `ssai` \| `dai` |
-| `deal_id_issuance` | String | OPTIONAL | derived | When and how the deal id is minted. Issued on acceptance of the commitment (§ 5.6.1) |
 | `buyer_requirements` | BuyerRequirements | OPTIONAL | mixed | See below |
 | `serving_platform` | String | OPTIONAL | seller-set | Where the line item serves |
 
@@ -1650,7 +1736,7 @@ and signing profile (provisional name). They are not expressed through
 A buyer's own code for a supplier goes in `external_references[]`.
 
 This specification does not define IO generation. IO creation is a connector
-concern. OpenProposal supplies the agreed record, `terms_ref` and
+concern. OpenProposal supplies the agreed record, `terms_refs[]`, and
 `correlation_id` a connector needs.
 
 ---
@@ -1692,6 +1778,14 @@ priced on its own. See
 A manifest (§ 2.3) listing the public line items of the example proposal. The
 display line item is `registry_gated`, so it is not listed. See
 [`examples/manifest.json`](../examples/manifest.json).
+
+### 6.8 Agreed record
+
+Shows a custom proposal after the seller counters a request and accepts a
+commitment: matching `assent[]` entries over one `record_digest` (§ 4.1.1,
+§ 4.1.2), which covers the `digest` of each document in `terms_refs[]` (§ 5.8), and
+the history that led there (§ 4.3). See
+[`examples/proposal-agreed.yaml`](../examples/proposal-agreed.yaml).
 
 ### 6.12 Issued proposal, partly agreed
 
@@ -1741,7 +1835,7 @@ item is agreed at version 1, with a commitment. Its buyer writes `selected[]` an
 relationships are expressed as issued proposals (`visibility: named`,
 `eligible_buyers[]` set to that buyer, with the negotiated `pricing[]`) plus
 the buyer agent's business rules. "Preferred partner" weighting is a buyer-side
-ranking rule, not part of this specification. `agreement` and `terms_ref`
+ranking rule, not part of this specification. `agreement` and `terms_refs[]`
 (§ 5.10, § 5.8) point at the agreement and terms a line item is executed under;
 IO generation happens through connectors.
 
@@ -1798,7 +1892,6 @@ body is normative.**
 | `proposal_template_id` | 4.1 Identity and lifecycle | String | OPTIONAL | immutable |
 | `issued_from` | 4.1 Identity and lifecycle | VersionRef | OPTIONAL | immutable |
 | `status` | 4.1 Identity and lifecycle | ProposalStatus | REQUIRED | derived |
-| `record_digest` | 4.1 Identity and lifecycle | Digest | OPTIONAL | derived |
 | `assent[]` | 4.1 Identity and lifecycle | Array[AssentEntry] | OPTIONAL | recorded |
 | `offer_window` | 4.1 Identity and lifecycle | Interval | OPTIONAL | seller-set |
 | `brief_id` | 4.1 Identity and lifecycle | String | REQUIRED when `type` is `custom` | immutable |
@@ -1842,7 +1935,6 @@ body is normative.**
 | `pricing[].cost_method` | 5.6 Commercial terms | VocabularyTerm | REQUIRED | seller-set |
 | `pricing[].list_rate` | 5.6 Commercial terms | Number | REQUIRED | requestable |
 | `pricing[].agreed_rate` | 5.6 Commercial terms | Number | REQUIRED when this is the committed entry | derived |
-| `pricing[].seller_rate` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
 | `pricing[].price_valid_until` | 5.6 Commercial terms | Instant | OPTIONAL | seller-set |
 | `pricing[].currency` | 5.6 Commercial terms | String | REQUIRED | seller-set |
 | `pricing[].min_rate` | 5.6 Commercial terms | Number | OPTIONAL | seller-set |
@@ -1863,12 +1955,10 @@ body is normative.**
 | `required_credentials[]` | 5.8 Transaction eligibility | Array[RequiredCredential] | OPTIONAL | seller-set |
 | `eligible_buyers[]` | 5.8 Transaction eligibility | Array[RegistrableDomain] | OPTIONAL | seller-set |
 | `eligible_seats[]` | 5.8 Transaction eligibility | Array[SeatRef] | OPTIONAL | seller-set |
-| `terms_acceptance_required` | 5.8 Transaction eligibility | Boolean | OPTIONAL | seller-set |
-| `terms_ref` | 5.8 Transaction eligibility | Object | REQUIRED when `terms_acceptance_required` is `true` | seller-set |
+| `terms_refs[]` | 5.8 Transaction eligibility | Array[DocumentRef] | OPTIONAL | seller-set |
 | `buying_route` | 5.9 Execution | Enum | OPTIONAL | seller-set |
 | `transaction_mechanism` | 5.9 Execution | Selectable[TransactionMechanism] | REQUIRED | selectable |
 | `serving_mode` | 5.9 Execution | VocabularyTerm | OPTIONAL | seller-set |
-| `deal_id_issuance` | 5.9 Execution | String | OPTIONAL | derived |
 | `buyer_requirements` | 5.9 Execution | BuyerRequirements | OPTIONAL | mixed |
 | `serving_platform` | 5.9 Execution | String | OPTIONAL | seller-set |
 | `external_references[]` | 5.10 External references and settlement | Array[ExternalReference] | OPTIONAL | recorded |
@@ -1884,12 +1974,12 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 9 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel` |
-| seller-set | 38 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].seller_rate`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].min_rate`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_acceptance_required`, `terms_ref`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
+| seller-set | 36 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].min_rate`, `min_spend`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `buying_route`, `serving_mode`, `serving_platform`, `agreement`, `billing`, `supported_order_systems[]` |
 | selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
 | requestable | 4 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `commitment_bounds`, `committed_metrics[]` |
-| derived | 6 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `record_digest`, `pricing[].agreed_rate`, `deal_id_issuance`, `correlation_id` |
+| derived | 4 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `pricing[].agreed_rate`, `correlation_id` |
 | lifecycle | 1 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item) |
 | recorded | 3 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `external_references[]` |
 | asserted | 2 | The seller states it from data the buyer can't recompute. Not a term, and it changes without a new version. | `addressable_scale`, `availability` |
@@ -1897,8 +1987,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 87 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
-`supplied` and 4 `requestable`. The remaining 65 are `seller-set`, `immutable`,
+Of 83 fields, **22 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+`supplied` and 4 `requestable`. The remaining 61 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]`, and its keys of `commitment`, `assets[]`,
 `buyer_supplied`, and `buyer_requirements`.

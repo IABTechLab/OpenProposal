@@ -5,6 +5,40 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 1.2, § 2.2, § 2.4, § 2.8, § 3.4, § 4, § 4.1, § 4.1.1, § 4.1.2, § 4.1.3, § 4.2, § 4.3,
+  § 4.3.1, § 4.3.2, § 4.3.4, § 5.5, § 5.6, § 5.6.1, § 5.8, § 5.9, § 5.10, § 6, § 7, appendices,
+  examples, checkers — what is signed, and how a seller checks it. `record_digest` sits only on
+  `assent[]` entries, and the document-level field and its "two values" are gone. § 4.1.1 states
+  the exact bytes of the digest input. A removal leaves an empty object in place, except
+  `buyer_supplied`, and nothing fills in a default. `agreed_rate` takes the § 5.6 result, a
+  `DocumentRef` enters whole, and the YAML conversion and validity tests are stated. The removal
+  list drops `seller_rate`, `deal_id_issuance`, `commitment.version`, and
+  `commitment.idempotency_key`. It adds `min_rate`, `best_for[]`, `not_suitable_for[]`,
+  `seasonality_notes`, `segments[]`, and `suppression_list`. `AssentEntry` has a key table: `role`
+  is `commitment`, `acceptance`, `withdrawal`, or `decline`, and `signed_at` becomes `at`.
+  `signer` is removed, and `idempotency_key` moves here from `commitment`. Only `assent[]` decides
+  whether a line item is agreed, and a history entry voids nothing. A `commitment` entry stops
+  being live when its `commit` goes stale or void, and an `acceptance` matches only a live entry.
+  A `Commit` holds the buyer's entry and its `writes`. A `CommitResult` holds the entries and any
+  `availability` figures a `decline` states. The seller's check on `version` becomes a recomputed
+  digest. Its rejections come in order: `expired`, `stale_version`, `not_committable`, then
+  `record_mismatch`. A `commit` writes an entry only on an issued proposal, and a replay returns
+  the result as it stands. An entry travels in the body of an HTTP message signed under the
+  OpenProposal profile of Web Bot Auth (§ 2.8). `Content-Digest` covers the body, and requests
+  and responses are both signed. Which signing origins a party accepts is its own configuration,
+  and any signed copy of an entry is evidence of it. The evidence is OPTIONAL, and `agreed`
+  doesn't depend on it. Each party keeps the agreed record. `terms_ref` and
+  `terms_acceptance_required` become `terms_refs[]` of `DocumentRef`, and a `commitment` entry
+  accepts them all. An absent list accepts no document. A `DocumentRef`'s `url` is an `HttpsUrl`,
+  a new type, and `list_ref` is a `DocumentRef`. `commitment.proposal_id` and
+  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking
+  ([#63](https://github.com/IABTechLab/OpenProposal/issues/63),
+  [#27](https://github.com/IABTechLab/OpenProposal/issues/27),
+  [#24](https://github.com/IABTechLab/OpenProposal/issues/24),
+  [#34](https://github.com/IABTechLab/OpenProposal/issues/34),
+  [#45](https://github.com/IABTechLab/OpenProposal/issues/45),
+  [#73](https://github.com/IABTechLab/OpenProposal/issues/73),
+  [#75](https://github.com/IABTechLab/OpenProposal/issues/75)).
 - § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.

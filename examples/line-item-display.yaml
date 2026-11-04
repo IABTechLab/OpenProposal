@@ -63,7 +63,6 @@ exclusions_accepted:                   # what this seller can enforce (§ 5.5)
 pricing:
   - cost_method:       CPM
     list_rate:         24.00
-    seller_rate:       20.40
     min_rate:          21.00
     price_valid_until: "2026-11-15T23:59:59Z"
     currency:          USD
@@ -88,9 +87,9 @@ reporting:
 
 visibility:            registry_gated
 required_credentials:  [{ credential_type: iab_registry, issuer: "registry.iabtechlab.ai" }]
-terms_acceptance_required: true
-terms_ref:             { url: "https://examplepub.example/legal/io-terms-2026.pdf",
-                         sha256: "<sha256 of the terms document>", version: "2026.1" }
+terms_refs:
+  - { url: "https://examplepub.example/legal/io-terms-2026.pdf",
+      digest: "sha256:83e44f6fa723c35fef1b3528b16cc13a8a19ee34a32b658f6d3cc243ce12592e", version: "2026.1" }
 
 buying_route:           PUBLISHER_AD_SERVER
 transaction_mechanism:  { available: ["programmatic_guaranteed", "preferred_deal"],

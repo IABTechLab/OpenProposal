@@ -20,13 +20,14 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:cdcd75ebd66938fcd872cfc1bf66d10a3244758d7810125639beabe0dcf53430",
+      record_digest: "sha256:990b934f85b9eb16fbde1416d19cc0f73979a884cc9ec6031532f9bde5e9aac9",
       line_item_ids: ["business-daily-display"],
-      signed_at: "2026-10-05T10:14:03Z" }
+      at: "2026-10-05T10:14:03Z",
+      idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:cdcd75ebd66938fcd872cfc1bf66d10a3244758d7810125639beabe0dcf53430",
+      record_digest: "sha256:990b934f85b9eb16fbde1416d19cc0f73979a884cc9ec6031532f9bde5e9aac9",
       line_item_ids: ["business-daily-display"],
-      signed_at: "2026-10-05T10:31:47Z" }
+      at: "2026-10-05T10:31:47Z" }
 
 negotiation_history:
   - { version: 1, actor: seller, action: published, paths: [],
@@ -75,15 +76,12 @@ line_items:
       max_select:   1
       selected:     ["notice-7d"]                            # the buyer's write
     commitment:
-      proposal_id:     "examplepub-agencya-q4-2026-omni"
-      version:         1
       basis:           spend
       amount:          80000.00
       currency:        USD
       flight:          { start: "2026-10-12T00:00:00Z", end: "2026-12-21T23:59:59Z" }
       advertisers:     [{ domain: "brand-a.example" }]
       derived_units:   2904865             # derived: 80000.00 / 27.54 × 1000
-      idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9"
     hold_status:    { hold_available: true, hold_duration: "P7D",
                       hold_scope: line_item, state: none }
     visibility:     named

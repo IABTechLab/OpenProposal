@@ -51,6 +51,7 @@ LAYOUTS = {
     ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
     ("Interaction", "Actor", "Effect; history `action`"),
     ("Instant", "Ends", "Effect when passed"),
+    ("Rule", "Profile choice"),
     # Generated.
     ("Field", "Section", "Type", "Required", "Marker"),
     ("Marker", "Count", "Meaning", "Fields"),
@@ -64,7 +65,6 @@ BASE_TYPES = {
 # Named in a Type cell before the change that gives them a key table. Remove a
 # name when its table lands. This list only shrinks.
 PENDING_TYPES = {
-    "AssentEntry": "the assent entry",
     "PropertyOption": "the property option",
     "AudienceOption": "the audience option",
     "BuyerSupplied": "the buyer-supplied audience data",
@@ -87,7 +87,6 @@ PENDING_OBJECTS = {
     "`availability`": "waiting: the availability figure",
     "`commitment_bounds`": "waiting: the commitment bounds",
     "`creative_policy`": "waiting: the creative policy",
-    "`terms_ref`": "waiting: the binding document reference",
 }
 
 BODY_SECTION = re.compile(r"^#{3,4} ((?:4|5)\.\d+(?:\.\d+)?)\s")

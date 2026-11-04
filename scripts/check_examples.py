@@ -20,8 +20,12 @@ change to this script. It checks:
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
   - Each section 4.1.1 removal path resolves to a table row.
-  - Each assent[] entry's record_digest recomputes under section 4.1.1, over the
-    line items its line_item_ids[] names.
+  - record_digest in examples/proposal-agreed.yaml and examples/proposal-issued.yaml
+    recomputes under section 4.1.1, over the line items each entry names, and a
+    buyer_supplied that holds no key after the removals moves no digest.
+  - In those examples a withdrawal or decline matches a commitment entry before it,
+    an acceptance matches a live commitment entry, and a line item is agreed only
+    with a matching pair (section 4.1.2).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -80,8 +84,11 @@ CONDITIONS = {
         lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
                             for e in (p or {}).get("negotiation_history", [])),
     "`invoice_period` is `cycle`": lambda o, i, p: o.get("invoice_period") == "cycle",
-    "`terms_acceptance_required` is `true`":
-        lambda o, i, p: i.get("terms_acceptance_required") is True,
+    "`role` is `commitment`": lambda o, i, p: o.get("role") == "commitment",
+    # No example holds a CommitResult. A ground of availability is the one sign of it.
+    "`entries[]` holds a `decline` for lack of availability":
+        lambda o, i, p: any(e.get("role") == "decline" and e.get("ground") == "availability"
+                            for e in o.get("entries", [])),
     "`basis` is `spend`": lambda o, i, p: o.get("basis") == "spend",
     "`at` is absent": lambda o, i, p: "at" not in o,
     "`before_start` is absent": lambda o, i, p: "before_start" not in o,
@@ -125,6 +132,7 @@ SCALARS = {
     "MediaChannel": (lambda v: isinstance(v, str) and TERM.match(v)),
     "String": (lambda v: isinstance(v, str)),
     "Url": (lambda v: isinstance(v, str) and v.startswith(("http://", "https://"))),
+    "HttpsUrl": (lambda v: isinstance(v, str) and v.startswith("https://")),
     "Integer": (lambda v: isinstance(v, int) and not isinstance(v, bool)),
     "IntegerFlag": (lambda v: v in (0, 1) and not isinstance(v, bool)),
     "Number": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
@@ -663,7 +671,71 @@ def record_digest(doc, removal, line_item_ids):
         head, _, tail = path.partition(", except ")
         keep = re.split(r",\s*|\s+and\s+", tail) if tail else ()
         remove_path(copy, head[2:].split("."), keep)
+    # Section 4.1.1: the one object the removals don't leave in place when it is empty.
+    for item in copy.get("line_items", []):
+        if item.get("buyer_supplied") == {}:
+            del item["buyer_supplied"]
     return "sha256:" + hashlib.sha256(jcs(copy).encode("utf-8")).hexdigest()
+
+
+def check_digest_ignores_empty_buyer_supplied(checker, doc, removal):
+    """Section 4.1.1: a removed buyer_supplied value moves no digest, and a kept one does."""
+    item = doc["line_items"][0]
+    forms = [
+        None,
+        {},
+        {"match_rate_expected": 0.65},
+        {"segments": [], "suppression_list": {}, "match_rate_expected": 0.65},
+    ]
+    digests = set()
+    for form in forms:
+        copy = json.loads(json.dumps(doc))
+        copy["line_items"][0].pop("buyer_supplied", None)
+        if form is not None:
+            copy["line_items"][0]["buyer_supplied"] = form
+        digests.add(record_digest(copy, removal, [item["line_item_id"]]))
+    if len(digests) != 1:
+        checker.errors.append("record_digest: an absent and an empty buyer_supplied give different digests")
+    copy = json.loads(json.dumps(doc))
+    copy["line_items"][0]["buyer_supplied"] = {"suppression_allowed": True}
+    if record_digest(copy, removal, [item["line_item_id"]]) in digests:
+        checker.errors.append("record_digest: a buyer_supplied that keeps a term moved no digest")
+
+
+def check_assent(checker, file, doc):
+    """Section 4.1.2: only a matching pair makes agreed, and an acceptance matches a live entry."""
+    def key(entry):
+        return entry["version"], entry["record_digest"], frozenset(entry["line_item_ids"])
+
+    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    commitments, live, matched, agreed = [], set(), set(), set()
+    for entry in doc.get("assent", []):
+        role = entry["role"]
+        if "ground" in entry and role != "decline":
+            checker.errors.append(f"{file}: {role} entry carries ground")
+        for named in entry["line_item_ids"]:
+            if named not in items:
+                checker.errors.append(f"{file}: {role} entry names {named}, which is not a line item")
+            elif role == "commitment" and "commitment" not in items[named]:
+                checker.errors.append(f"{file}: commitment entry names {named}, which has no commitment")
+        if role == "commitment":
+            commitments.append(key(entry))
+            live.add(key(entry))
+        elif role == "acceptance":
+            # Section 4.1.2: an acceptance matches only a live commitment entry.
+            if key(entry) not in live:
+                checker.errors.append(f"{file}: acceptance entry matches no live commitment entry")
+            else:
+                matched.add(key(entry))
+                agreed.update(entry["line_item_ids"])
+        elif key(entry) not in commitments:
+            checker.errors.append(f"{file}: {role} entry matches no commitment entry before it")
+        elif key(entry) not in matched:
+            live.discard(key(entry))
+    for name, item in items.items():
+        if (item.get("status") == "agreed") != (name in agreed):
+            checker.errors.append(f"{file}: {name} has status {item.get('status')!r}, "
+                                  f"and assent[] {'has' if name in agreed else 'has no'} matching pair")
 
 
 # Summary -------------------------------------------------------------------
@@ -773,14 +845,17 @@ def main():
         checker.errors.append(f"manifest.json: {e}")
     checker.check_removal_paths()
 
+    check_digest_ignores_empty_buyer_supplied(checker, load_yaml(EXAMPLES / "proposal-agreed.yaml"), spec.removal)
+
     digests = {}
-    for path in sorted(EXAMPLES.glob("*.yaml")):
-        doc = load_yaml(path)
+    for name in ("proposal-agreed.yaml", "proposal-issued.yaml"):
+        doc = load_yaml(EXAMPLES / name)
+        check_assent(checker, name, doc)
         for entry in doc.get("assent", []):
             digest = record_digest(doc, spec.removal, entry["line_item_ids"])
-            digests[path.name] = digest
+            digests[name] = digest
             if entry["record_digest"] != digest:
-                checker.errors.append(f"{path.name}: record_digest recomputes to {digest}")
+                checker.errors.append(f"{name}: record_digest recomputes to {digest}")
 
     stale = KNOWN - checker.used_known
     for item in sorted(stale):
