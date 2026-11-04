@@ -667,7 +667,8 @@ buyer MUST NOT alter the keys the seller declares beside them.
 
 ### 3.1 Selectable structure
 
-Every field marked `selectable` is a `Selectable[T]`, where `T` is the option type.
+Every field marked `selectable` is a `Selectable[T]`, or a named type that holds its
+keys, where `T` is the option type.
 
 **`Selectable`** keys:
 
@@ -1496,7 +1497,7 @@ exclusions_accepted:
   max_entries:  { domain: 5000, keyword: 500 }
   enforcement:  { domain: pre_serve, app_bundle: pre_serve,
                   iab_content_category: pre_serve, keyword: best_effort }
-  verification: ["IAS", "DoubleVerify"]
+  verification: ["integralads.com", "doubleverify.com"]
 
 exclusions:
   domain:           ["example-gambling.example"]
@@ -1513,6 +1514,8 @@ exclusions:
   across stores, with `validation`.
 - `iab_content_category[]` entries are IAB Content Taxonomy ids.
 - `enforcement` is `pre_serve` or `best_effort` per type.
+- `verification[]` holds the third parties that can attest the seller enforced these
+  lists, each a `RegistrableDomain`.
 - A buyer MUST NOT supply an exclusion type absent from
   `exclusions_accepted.types`. A seller MUST reject it deterministically
   rather than ignore it, with `not_offered`.
@@ -1892,7 +1895,7 @@ open: the term sets its keys.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `viewability_standard` | VocabularyTerm | REQUIRED when `cost_method` is `CPMV` | The viewability standard that counts a unit |
+| `viewability_standard` | VocabularyTerm | REQUIRED when `cost_method` is `CPMV` | The viewability standard that counts a unit. Core term: `mrc`, the MRC guidelines that `viewable_rate` cites (§ 5.7.1) |
 | `view_s` | Integer | REQUIRED when `cost_method` is `CPV` and `view_fraction` is absent | Seconds played that make a view. Absent when `view_fraction` is present |
 | `view_fraction` | Fraction | REQUIRED when `cost_method` is `CPV` and `view_s` is absent | The fraction of the creative played that makes a view. Absent when `view_s` is present |
 | `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. This version lists no core terms |
@@ -2007,30 +2010,113 @@ accepted term on the same inventory and dates.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `committed_metrics[]` | Array[CommittedMetric] | OPTIONAL | requestable | `{ metric, value, basis }` tuples — `viewable_rate` for display, `completion_rate` for video/audio/CTV, an audience-modelled metric for DOOH. Seller declares a ceiling; a buyer MAY request above it |
-| `measurement_source` | Selectable[MeasurementOption] | OPTIONAL | selectable | See `MeasurementOption` below. Lets a buyer transact in its own currency. Nothing in effect: no provider |
-| `shortfall_remedy` | Selectable[VocabularyTerm] | OPTIONAL | selectable | Core terms: `makegood` \| `credit` \| `none`, plus `remedy_terms` |
-| `reporting` | Selectable[ReportingOption] | OPTIONAL | selectable | See `ReportingOption` below. Nothing in effect: no report is promised |
+| `committed_metrics[]` | Array[CommittedMetric] | OPTIONAL | requestable | `CommittedMetric` tuples (§ 5.7.1). Seller declares its offered `level`. A buyer MAY request a stricter `level`, one further in `direction`. A request MUST NOT change a tuple's `direction` |
+| `measurement_source` | Selectable[MeasurementOption] | OPTIONAL | selectable | Lets a buyer choose the measurement provider it transacts on. See § 5.7.1. Nothing in effect: no provider |
+| `controlling_measurement` | Selectable[ControllingMeasurementOption] | REQUIRED when the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds` | selectable | Whose count of billable units is invoiced. See § 5.7.1. `max_select: 1`. `included[]` MUST name exactly one option |
+| `shortfall_remedy` | ShortfallRemedy | OPTIONAL | selectable | Core terms: `makegood` \| `credit` \| `none`. See `remedy_terms` in § 5.7.1. Nothing in effect: this line item states no remedy. Its committed levels stay guaranteed, because only `none` makes them targets |
+| `reporting` | Selectable[ReportingOption] | OPTIONAL | selectable | See § 5.7.1. Nothing in effect: no report is promised |
+
+#### 5.7.1 Settlement
+
+`measurement_source` measures committed metrics; its `attribution_window` isn't
+a settlement window. `controlling_measurement` counts the units the invoice
+uses. Counted delivery, including delivery that still counts after
+`commitment.flight.end`, falls in an invoice period. The seller sets the
+period in `billing.invoice_period` (§ 5.10). A `month` is a calendar month in
+`billing.time_zone`. `cycle` periods run back to back from `commitment.flight.start`,
+each `billing.cycle_length` long.
+
+**`CommittedMetric`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `metric` | VocabularyTerm | REQUIRED | What is measured. Core terms below. A receiver that doesn't know the term skips the line item (§ 2.2): a tuple binds outside any option |
+| `level` | Number | REQUIRED | The offered level: a `Fraction` under a rate term, a count under a count term |
+| `direction` | Enum | REQUIRED | `at_least` \| `at_most` |
+
+A term defines whether its `level` is a rate or a count, and its definition names
+its standard. Core terms: `viewable_rate` \| `completion_rate` \| `ivt_rate`.
+
+| `metric` | Kind | Usual `direction` | Definition |
+| :--- | :--- | :--- | :--- |
+| `viewable_rate` | Rate | `at_least` | Viewable impressions per measured impression, as the MRC Viewable Ad Impression Measurement Guidelines (Desktop, Version 2.0) and the MRC Mobile Viewable Ad Impression Measurement Guidelines (June 2016) define them. Usual on display |
+| `completion_rate` | Rate | `at_least` | Completed views per started ad, as the VAST `complete` and `start` tracking events report them. Usual on video, audio, and CTV |
+| `ivt_rate` | Rate | `at_most` | Impressions identified as invalid traffic per measured impression, with invalid traffic as the MRC Invalid Traffic Detection and Filtration Standards Addendum (IVT 2.0) defines it |
 
 **`MeasurementOption`** keys:
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `id` | String | REQUIRED | Option id (§ 3.1) |
-| `vendor` | String | REQUIRED | The measurement provider |
+| `measured_by` | Measurer | REQUIRED | The measurement provider |
 | `attribution_window` | Duration | OPTIONAL | How long after exposure the provider attributes an event |
-| `qualifier` | String | OPTIONAL | A product or method of the provider |
+| `qualifier` | String | OPTIONAL | A product or method of `measured_by` |
+
+**`ControllingMeasurementOption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
+| `counted_by` | Measurer | REQUIRED | Who counts. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source` |
+| `qualifier` | String | OPTIONAL | A product or method of `counted_by`, such as a named ad server |
+| `discrepancy_threshold` | Fraction | OPTIONAL | A fraction of the controlling count. When the other measurement, a party's own count of the same units, exceeds the controlling count by more than this over an invoice period, reconciliation opens |
+| `final_after` | Duration | OPTIONAL | Such as `P30D` (30 days). A count is final that long after its invoice period ends. Committed values, whichever source measures them, are final that long after `commitment.flight.end` |
 
 **`ReportingOption`** keys:
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `id` | String | REQUIRED | Option id (§ 3.1) |
-| `feed_type` | Enum | REQUIRED | `log_level` \| `aggregate` |
+| `report_type` | VocabularyTerm | REQUIRED | The report's grain. Core terms: `log_level` (one record per event) \| `aggregate` (totals over a period or a dimension) |
 | `cadence` | TimeUnit | OPTIONAL | How often a report arrives |
-| `delivery_mechanism` | VocabularyTerm | OPTIONAL | How a report arrives. Core terms: `api` \| `s3` |
-| `provided_metrics[]` | Array[String] | OPTIONAL | The metrics a report holds |
+| `delivery_method` | VocabularyTerm | OPTIONAL | How a report arrives. Core terms: `api` \| `s3` |
+| `provided_metrics[]` | Array[VocabularyTerm] | OPTIONAL | The metrics a report holds. Core terms: the `unit` terms of § 5.6.5, and the Rate terms of the `metric` table (§ 5.7.1) |
 | `latency` | Duration | OPTIONAL | How long after the period a report arrives |
+
+**`ShortfallRemedy`** holds the keys of `Selectable[VocabularyTerm]` and this one:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `remedy_terms` | RemedyTerms | OPTIONAL | The seller's terms for a remedy |
+
+**`RemedyTerms`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `makegood_window` | Duration | OPTIONAL | How long past `commitment.flight.end` a makegood may run |
+| `makegood_type` | VocabularyTerm | OPTIONAL | What a makegood delivers. Core terms: `same_unit` (more delivery on the inventory bought) \| `comparable_unit` (delivery on other inventory) \| `added_time` (more running time) |
+
+Settlement reads the terms in force: the agreed record (§ 4.1.2) plus any change
+the applying system has applied (§ 1.2).
+
+A shortfall is a final value that misses a committed `level` in its
+`direction`, under any `delivery_type`: a committed `level` is guaranteed in
+its own right. Final delivery below `commitment.amount` is a
+shortfall only where the line item's `delivery_type` (§ 5.9) is `guaranteed`:
+counted in units when `commitment.basis` is `units`, and, when it is `spend`, valued as
+§ 5.6.5 values delivery, against `commitment.amount` without `delta_flat` charges. Every
+shortfall follows the `shortfall_remedy` rules below.
+
+`shortfall_remedy`: the options in effect are ordered, first choice first. `none`
+MUST be the only option in effect. It means no remedy for any shortfall, and
+committed levels become targets, which an agent MUST NOT present as
+guaranteed. At a shortfall, the seller offers the first remedy. The buyer MAY
+refuse a `makegood`, and the seller then offers the next. If none remains, the
+shortfall settles under `remedy_terms`. A makegood MUST NOT run past
+`commitment.flight.end` without the buyer's consent. A seller MAY offer that
+consent upfront in `remedy_terms`. A buyer that commits with `makegood` in effect
+consents to a makegood within `makegood_window`.
+
+Under `sov_basis: impressions` (§ 5.9), the promised share is the offered
+`sov_share`. The delivered share is measured against the same denominator and
+pool, so the two are comparable.
+
+Reports, restated counts, reconciliation, and the remedy workflow run downstream.
+[OpenDirect 2.1 `Stats`](https://github.com/InteractiveAdvertisingBureau/OpenDirect/blob/82bc294314aba017fc639ba634aecc53adfd675f/OpenDirect.v2.1.final.md#object_stats)
+reports delivery to date on a Line, with a spot's `shareoftime`. No standard in § 1.1
+states a final count, a delivered share of impressions, a reconciliation, or a remedy.
+A line item with no `controlling_measurement` option in effect, or no `final_after` on
+the option in effect, states no final count either.
 
 ### 5.8 Transaction eligibility
 
@@ -2142,7 +2228,8 @@ allows.
 seller promises to deliver, independent of how the line item transacts and how it is
 priced.
 
-- `guaranteed`: the seller reserves the committed units for the flight.
+- `guaranteed`: the seller reserves the committed units for the flight, or, on a
+  `FLAT` entry, which has none, the days of `commitment.flight` (§ 5.6.5).
 - `share_of_voice`: the seller reserves a fixed share of the inventory, up to
   all of it, for the flight. With a `daypart` (§ 5.5), the share is of the
   daypart's hours only, read in the line item's `time_zone`. Sponsorships,
@@ -2187,7 +2274,7 @@ use this basis. Its scope is the line item's flight and `daypart`.
 | `delivering_party` | Party | OPTIONAL | Who delivers. Absent: the `seller` |
 | `invoicing_party` | Party | OPTIONAL | Who invoices. Absent: the `seller` |
 | `payment_terms` | String | OPTIONAL | The payment terms, such as `net 30` |
-| `invoice_period` | VocabularyTerm | OPTIONAL | The invoice period. Core terms: `month` (default) \| `cycle` |
+| `invoice_period` | VocabularyTerm | OPTIONAL | The invoice period (§ 5.7.1). Core terms: `month` (default) \| `cycle` |
 | `cycle_length` | Duration | REQUIRED when `invoice_period` is `cycle` | How long each `cycle` period runs, such as `P28D` (4 weeks) |
 | `time_zone` | IanaZone | OPTIONAL | The clock for a `month` invoice period. Absent: `UTC` |
 
@@ -2341,9 +2428,11 @@ see [docs/open-questions.md](../docs/open-questions.md).
    `agreed_rate` of 24.00 `CPM` buys 3,333,333 impressions if 24.00 is what the seller
    invoices. If 24.00 is gross of a 15% commission, the seller invoices 20.40, and
    80,000.00 stated net buys 3,921,568.
-
-<!-- Question 10 is added by a later change. -->
-
+10. **What settles a shortfall once no remedy remains?** A buyer MAY refuse a sole or
+    last `makegood`, and § 5.7.1 then points at `remedy_terms`, whose keys describe only
+    a makegood. This draft also doesn't state what a `credit` is worth. Such a shortfall
+    could settle under terms the seller states or fall back to a credit, or a sole
+    makegood within the flight could bind the buyer.
 11. **Must a manifest response carry both `ETag` and `Last-Modified`, or is either
     enough?** § 2.3 requires at least one, so a buyer's client handles whichever the
     seller sends.
@@ -2436,7 +2525,8 @@ body is normative.**
 | `requires` | 5.6 Commercial terms | Requires | OPTIONAL | seller-set |
 | `committed_metrics[]` | 5.7 Guarantees | Array[CommittedMetric] | OPTIONAL | requestable |
 | `measurement_source` | 5.7 Guarantees | Selectable[MeasurementOption] | OPTIONAL | selectable |
-| `shortfall_remedy` | 5.7 Guarantees | Selectable[VocabularyTerm] | OPTIONAL | selectable |
+| `controlling_measurement` | 5.7 Guarantees | Selectable[ControllingMeasurementOption] | REQUIRED when the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds` | selectable |
+| `shortfall_remedy` | 5.7 Guarantees | ShortfallRemedy | OPTIONAL | selectable |
 | `reporting` | 5.7 Guarantees | Selectable[ReportingOption] | OPTIONAL | selectable |
 | `visibility` | 5.8 Transaction eligibility | Enum | REQUIRED | seller-set |
 | `required_credentials[]` | 5.8 Transaction eligibility | Array[RequiredCredential] | OPTIONAL | seller-set |
@@ -2462,7 +2552,7 @@ body is normative.**
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
 | seller-set | 43 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
-| selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
+| selectable | 14 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
 | requestable | 5 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `pricing[].unit_bounds`, `commitment_bounds`, `committed_metrics[]` |
@@ -2474,13 +2564,13 @@ body is normative.**
 
 ### What the distribution says
 
-Of 92 fields, **23 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+Of 93 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
 `supplied` and 5 `requestable`. The remaining 69 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.
 
 Only the 5 `requestable` fields require a round trip to resolve (§ 5.6.1).
-Everything else the buyer touches — 18 fields — resolves against bounds the seller
+Everything else the buyer touches — 19 fields — resolves against bounds the seller
 declared up front. That ratio is the design claim: composition is constraint
 satisfaction, and negotiation is the exception.

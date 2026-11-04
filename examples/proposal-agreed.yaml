@@ -19,12 +19,12 @@ description: >
 
 assent:
   - { role: commitment, version: 2,
-      record_digest: "sha256:6bf83082243277d3dd81c7495c7013fc0d0a46148972183dc0dbb7983097c95f",
+      record_digest: "sha256:6849bfa8901d427a71ebce8e988d274cc2d9ba3a01a0bfefecc2430dc2ec4730",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:14:03Z",
       idempotency_key: "agency-a-camp1-q4-2026-5d10e2c7" }
   - { role: acceptance, version: 2,
-      record_digest: "sha256:6bf83082243277d3dd81c7495c7013fc0d0a46148972183dc0dbb7983097c95f",
+      record_digest: "sha256:6849bfa8901d427a71ebce8e988d274cc2d9ba3a01a0bfefecc2430dc2ec4730",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:31:47Z" }
 
@@ -74,6 +74,11 @@ line_items:
           price_type: 3 }
     commitment_bounds: { spend: { min: 10000.00, max: 500000.00 },
                          earliest_start: "2026-10-05T00:00:00Z", latest_end: "2026-12-31T23:59:59Z" }
+    controlling_measurement:
+      available:    [{ id: seller-count, counted_by: seller,
+                       discrepancy_threshold: 0.10, final_after: "P10D" }]
+      included:     ["seller-count"]
+      max_select:   1
     commitment:
       basis:           spend
       amount:          80000.00
@@ -113,6 +118,11 @@ line_items:
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD,
           price_type: 1 }                  # First Price
     commitment_bounds: { spend: { min: 25000.00 } }
+    controlling_measurement:
+      available:    [{ id: seller-count, counted_by: seller,
+                       discrepancy_threshold: 0.10, final_after: "P10D" }]
+      included:     ["seller-count"]
+      max_select:   1
     commitment:
       basis:           spend
       amount:          160000.00

@@ -66,8 +66,8 @@
           "committed_metrics": [
             {
               "metric": "completion_rate",
-              "value": 0.92,
-              "basis": "seller_reported"
+              "level": 0.92,
+              "direction": "at_least"
             }
           ],
           "transaction_mechanism": {
@@ -117,8 +117,8 @@
           "committed_metrics": [
             {
               "metric": "completion_rate",
-              "value": 0.95,
-              "basis": "seller_reported"
+              "level": 0.95,
+              "direction": "at_least"
             }
           ],
           "transaction_mechanism": {

@@ -5,6 +5,34 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 3.1, § 5.5, § 5.6.5, § 5.7, § 5.7.1, § 5.9, § 5.10, § 8, appendices, examples, docs,
+  checkers — who measures, the metric terms, and the terms settlement reads. Settlement reads
+  the terms in force: the agreed record plus any change the applying system has applied.
+  § 5.7.1 says what OpenDirect 2.1 `Stats` reports. It also says that no standard in § 1.1
+  states a final count, a delivered share of impressions, a reconciliation, or a remedy.
+  `controlling_measurement` names whose count is invoiced and when it is final. It is
+  REQUIRED with `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`,
+  and `discrepancy_threshold` names the other measurement. `measurement_source` option
+  `vendor` becomes `measured_by`, and `counted_by` names who counts. Both are a `Measurer`,
+  compared byte for byte, and a `qualifier` beside either names a product or method.
+  `verification[]` holds the domains of third parties that can attest enforcement.
+  `CommittedMetric` has a key table: `value` becomes `level`, and `direction` is REQUIRED.
+  `basis` and `seller_reported` are removed: the term names the standard, and
+  `measurement_source` says who measures. `metric` has a core table of `viewable_rate`,
+  `completion_rate`, and `ivt_rate`, each naming its standard, and `viewability_standard`
+  gains the core term `mrc`. § 3.1 lets a named type hold the keys of a `Selectable[T]`, so
+  `shortfall_remedy` is a `ShortfallRemedy`, and `RemedyTerms` has a key table. § 5.7.1
+  states what a shortfall is and how `shortfall_remedy` settles it. `guaranteed` covers a
+  `FLAT` entry, which has no units. `feed_type` becomes `report_type`, a `VocabularyTerm`,
+  and `delivery_mechanism` becomes `delivery_method`. `provided_metrics[]` takes the § 5.6.5
+  `unit` terms and the § 5.7.1 rate terms.
+  `billing.invoice_period` points at § 5.7.1, and § 8 gains question 10, on a shortfall with
+  no remedy left. Breaking
+  ([#93](https://github.com/IABTechLab/OpenProposal/issues/93),
+  [#95](https://github.com/IABTechLab/OpenProposal/issues/95),
+  [#134](https://github.com/IABTechLab/OpenProposal/issues/134),
+  [#38](https://github.com/IABTechLab/OpenProposal/issues/38)).
+
 - § 1.1, § 2.1, § 2.2, § 2.4, § 2.5, § 3.1 to § 3.3, § 4.1, § 4.3.2, § 4.4, § 5.6, § 5.6.1, § 5.6.3,
   § 5.6.5 to § 5.6.7, § 6, § 8, appendices, examples, docs, checkers, pricing fixtures — pricing.
   `cost_method` is an open vocabulary, with core terms that have a `unit` and a rate per in

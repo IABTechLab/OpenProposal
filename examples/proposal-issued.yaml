@@ -20,12 +20,12 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:19a1e3e7079032e144928008906f944c64d6efe364dcb18c00270ff624a4cde4",
+      record_digest: "sha256:12da9aebc30cd2b9ed2ca73e866a4e04f93eb1191094efd3a8a6dd72ab5a9d62",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:14:03Z",
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:19a1e3e7079032e144928008906f944c64d6efe364dcb18c00270ff624a4cde4",
+      record_digest: "sha256:12da9aebc30cd2b9ed2ca73e866a4e04f93eb1191094efd3a8a6dd72ab5a9d62",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:31:47Z" }
 
@@ -93,6 +93,11 @@ line_items:
       deltas:       { "notice-7d": { delta_fraction: 0.02 } }
       max_select:   1
       selected:     ["notice-7d"]                            # the buyer's write
+    controlling_measurement:
+      available:    [{ id: seller-count, counted_by: seller,
+                       discrepancy_threshold: 0.10, final_after: "P10D" }]
+      included:     ["seller-count"]
+      max_select:   1
     commitment:
       pricing_id:      "bd-cpm-usd"
       basis:           spend
@@ -132,6 +137,11 @@ line_items:
           price_valid_until: "2026-12-01T23:59:59Z", currency: USD,
           price_type: 3 }                  # Fixed Price
     commitment_bounds: { spend: { min: 25000.00 } }
+    controlling_measurement:
+      available:    [{ id: seller-count, counted_by: seller,
+                       discrepancy_threshold: 0.10, final_after: "P10D" }]
+      included:     ["seller-count"]
+      max_select:   1
     hold_terms:     { available: true, duration: "P14D" }
     hold:                                # granted on version 1, re-offered at version 2
       status:       held

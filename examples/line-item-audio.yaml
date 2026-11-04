@@ -55,7 +55,15 @@ exclusivity:
   deltas:       { "auto-pod": { delta_cpm: 4.00 }, "sole-stream": { delta_flat: 25000.00 } }
   max_select:   1
 
-committed_metrics: [{ metric: completion_rate, value: 0.92, basis: seller_reported }]
+committed_metrics: [{ metric: completion_rate, level: 0.92, direction: at_least }]
+measurement_source:
+  available:    [{ id: seller-measured, measured_by: seller }]
+  included:     ["seller-measured"]
+controlling_measurement:
+  available:    [{ id: seller-count, counted_by: seller,
+                   discrepancy_threshold: 0.10, final_after: "P30D" }]
+  included:     ["seller-count"]
+  max_select:   1
 visibility:        public
 transaction_mechanism:
   available:  [{ id: preferred_deal, delivery_type: non_guaranteed }]

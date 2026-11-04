@@ -132,6 +132,20 @@ invoice is expected to match.
 
 ---
 
+### OQ-10 — What settles a shortfall once no remedy remains?
+
+**Issue:** [#95](https://github.com/IABTechLab/OpenProposal/issues/95)  ·  **Spec:** § 5.7.1
+
+A buyer may refuse a sole or last `makegood`, and § 5.7.1 then points at `remedy_terms`,
+whose keys describe only a makegood. The draft also doesn't state what a `credit` is
+worth. Such a shortfall could settle under terms the seller states or fall back to a
+credit, or a sole makegood within the flight could bind the buyer.
+
+**What would settle it:** what sellers and buyers do today when a makegood is refused,
+and how they value a credit.
+
+---
+
 ### OQ-11 — Must a manifest response carry both `ETag` and `Last-Modified`?
 
 **Issue:** [#29](https://github.com/IABTechLab/OpenProposal/issues/29)  ·  **Spec:** § 2.3

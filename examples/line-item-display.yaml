@@ -90,15 +90,25 @@ commitment_bounds: { spend: { min: 10000.00, max: 500000.00 },
 hold_terms:     { available: true, duration: "P7D" }
 
 committed_metrics:
-  - { metric: viewable_rate, value: 0.70, basis: mrc }
+  - { metric: viewable_rate, level: 0.70, direction: at_least }
+  - { metric: ivt_rate,      level: 0.05, direction: at_most }
 measurement_source:
-  available:    [{ id: ias, vendor: "IAS", attribution_window: "P30D" },
-                 { id: dv, vendor: "DoubleVerify", attribution_window: "P30D" }]
+  available:    [{ id: ias, measured_by: "integralads.com" },
+                 { id: dv, measured_by: "doubleverify.com" }]
   included:     ["ias"]
+  max_select:   1
+controlling_measurement:              # whose count is invoiced
+  available:
+    - { id: seller-count, counted_by: seller,
+        discrepancy_threshold: 0.10, final_after: "P10D" }
+    - { id: buyer-3pas, counted_by: buyer, qualifier: "Buyer ad server A",
+        discrepancy_threshold: 0.10, final_after: "P15D" }
+  included:     ["seller-count"]
+  max_select:   1
 shortfall_remedy: { available: ["makegood", "credit"], included: ["makegood"] }
 reporting:
-  available:    [{ id: daily-aggregate, feed_type: aggregate, cadence: day, delivery_mechanism: api },
-                 { id: daily-log-level, feed_type: log_level, cadence: day, delivery_mechanism: s3 }]
+  available:    [{ id: daily-aggregate, report_type: aggregate, cadence: day, delivery_method: api },
+                 { id: daily-log-level, report_type: log_level, cadence: day, delivery_method: s3 }]
   included:     ["daily-aggregate"]
   deltas:       { daily-log-level: { delta_flat: 2500.00 } }
 

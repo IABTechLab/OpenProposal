@@ -41,6 +41,8 @@ change to this script. It checks:
     acceptance entry (section 4.4). A cancellation names an option in effect, and its
     cancelled_share is within the max_share of the range holding its effective date, or
     the top-level one, and an option's dated_shares[] windows don't overlap (section 5.6.6).
+  - A core metric's level has the kind its row states, and counted_by equals the
+    party section 5.7.1 names, under the Measurer comparison (section 2.2).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -69,6 +71,8 @@ COMPOSES = {"Commitment": ["CommitmentAmount"], "MinCommitment": ["CommitmentAmo
             "ManifestEntry": ["ProposalSummary"]}
 # Named types that hold the keys of BuyerWrites (section 3.4), a path list.
 WRITES_TYPES = {"LineItemWrites"}
+# Named types that hold the keys of a Selectable[T], with their T, and add their own rows.
+SELECTABLE_HOLDERS = {"ShortfallRemedy": "VocabularyTerm"}
 
 # (file, path, finding): removed by the change named in the comment.
 KNOWN = {
@@ -86,6 +90,8 @@ IMPRESSION_METHODS = set()
 MECHANISMS = {}
 # The cost table of section 5.6.5, as cost_method -> rate per.
 RATE_PER = {}
+# The core metric table of section 5.7.1, as term -> Rate or Count.
+METRIC_KIND = {}
 RATE_UNIT_SECONDS = {"hour": 3600, "day": 86400, "week": 604800}
 
 
@@ -191,6 +197,9 @@ CONDITIONS = {
     "an option's `delivery_type` is `share_of_voice`":
         lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
     "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
+    "the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
+        lambda o, i, p: "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
+        or any("unit_bounds" in e for e in i.get("pricing", [])),
     "the line item offers a deal mechanism": lambda o, i, p: _is_deal(_mechanisms(i)),
     "the entry prices a deal mechanism":
         lambda o, i, p: _is_deal(o.get("transaction_mechanisms") or _mechanisms(i)),
@@ -332,6 +341,7 @@ class Spec:
         self._read_option_rules()
         self._read_mechanisms()
         self._read_cost_methods()
+        self._read_metrics()
 
     def _read_mechanisms(self):
         """The section 5.9 table: deal or not, and the allowed delivery types."""
@@ -355,10 +365,19 @@ class Spec:
                 break
             RATE_PER[clean_key(c[0])] = int(c[3].replace(",", "")) if c[3] else None
 
+    def _read_metrics(self):
+        """The section 5.7.1 table: whether each core metric is a rate or a count."""
+        start = self.lines.index("| `metric` | Kind | Usual `direction` | Definition |")
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            METRIC_KIND[clean_key(c[0])] = c[1]
+
     def _read_option_rules(self):
         """Sections 3.1 and 5.6: what a row says of its options and its deltas."""
         for key, row in self.line_item.items():
-            if not row["type"].startswith("Selectable["):
+            if not row["type"].startswith("Selectable[") and row["type"] not in SELECTABLE_HOLDERS:
                 continue
             if re.search(r"[Nn]othing in effect", row["description"]):
                 EMPTY_ALLOWED.add(key)
@@ -498,6 +517,9 @@ class Checker:
         if base == "Selectable":
             self.check_selectable(file, path, value, args[0])
             return
+        if base in SELECTABLE_HOLDERS:
+            self.check_selectable(file, path, value, SELECTABLE_HOLDERS[base], self.spec.tables.get(base, {}))
+            return
         if base == "Settable":
             self.check_settable(file, path, value, args[0])
             return
@@ -573,17 +595,21 @@ class Checker:
         return any(p.split(".")[0].removesuffix("[]") == key for p in self.spec.write_paths
                    if not p.startswith("<"))
 
-    def check_selectable(self, file, path, value, option_type):
+    def check_selectable(self, file, path, value, option_type, extra=None):
         if not isinstance(value, dict):
             self.err(file, path, "selectable", "expected a Selectable")
             return
         if "available" not in value:
             self.err(file, path, "available", "a Selectable holds available[]")
             return
-        known = {bare(k) for k in self.spec.tables["Selectable"]}
+        extra = {bare(k): r for k, r in (extra or {}).items()}
+        known = {bare(k) for k in self.spec.tables["Selectable"]} | set(extra)
         for key in value:
             if key not in known:
                 self.err(file, path, key, f"key {key!r} is not a Selectable key")
+        for key, row in extra.items():
+            if key in value:
+                self.check_value(file, f"{path}.{key}", value[key], row)
         names = []
         for i, option in enumerate(value["available"]):
             if isinstance(option, dict):
@@ -788,6 +814,27 @@ class Checker:
         if units is not None and (units < unit_limits.get("min", units) or units > unit_limits.get("max", units)):
             self.err(file, path, "unit_bounds", f"{units} units are outside unit_bounds")
 
+    def check_measurement(self, file, path, item):
+        """Metric kinds, and the counted_by value section 5.7.1 fixes (section 2.2)."""
+        for i, tuple_ in enumerate(item.get("committed_metrics") or []):
+            kind, value = METRIC_KIND.get(tuple_.get("metric")), tuple_.get("level")
+            if kind == "Rate" and not SCALARS["Fraction"](value):
+                self.err(file, f"{path}.committed_metrics[{i}]", "kind", f"{value!r} is not a rate")
+            if kind == "Count" and not SCALARS["Integer"](value):
+                self.err(file, f"{path}.committed_metrics[{i}]", "kind", f"{value!r} is not a count")
+        selection = item.get("controlling_measurement") or {}
+        counters = selection.get("available", [])
+        expected = {}
+        committed = _committed_entry(item)
+        if committed and committed.get("cost_method") == "CPP":
+            source = (committed.get("cost_parameters") or {}).get("rating_source")
+            for name in selection.get("selected", selection.get("included", [])):
+                expected[name] = source
+        for counter in counters:
+            name = counter.get("id")
+            if name in expected and counter.get("counted_by") != expected[name]:
+                self.err(file, path, name, f"counted_by of {name} is not {expected[name]!r}")
+
     def check_pricing_entries(self, file, path, item):
         """Section 5.6: entry ids are unique, and two entries differ on a key or mechanism."""
         entries = item.get("pricing") or []
@@ -839,6 +886,7 @@ class Checker:
             self.check_agreed_rate(file, path or "(root)", doc)
             self.check_commitment(file, path or "(root)", doc)
             self.check_mechanisms(file, path or "(root)", doc)
+            self.check_measurement(file, path or "(root)", doc)
             self.check_pricing_entries(file, path or "(root)", doc)
             self.check_dated_shares(file, path or "(root)", doc)
             if "geo" in doc and "markets" in doc:

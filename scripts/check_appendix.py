@@ -45,6 +45,7 @@ LAYOUTS = {
     # Value tables (section 2.6): the first header cell names the key that holds the list.
     ("`transaction_mechanism`", "Downstream standard", "`reference_type` (§ 5.10)", "Change path"),
     ("`transaction_mechanism`", "Deal mechanism", "`delivery_type`"),
+    ("`metric`", "Kind", "Usual `direction`", "Definition"),
     ("`method`", "Who hosts the creative", "What reaches the seller"),
     ("`code`", "Returned when"),
     ("`channel`", "Condition"),
@@ -73,7 +74,6 @@ PENDING_TYPES = {
     "PropertyOption": "the property option",
     "AudienceOption": "the audience option",
     "BuyerSupplied": "the buyer-supplied audience data",
-    "CommittedMetric": "the committed metric tuple",
 }
 
 # Objects typed Object: open by definition, small and inline, or waiting on the
