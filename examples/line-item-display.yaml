@@ -147,6 +147,17 @@ formats:
   included:     ["display/300x250"]
   deltas:       { "display/970x250": { delta_cpm: 3.00 } }
 
+format_specs:                           # copied from version 1; values illustrative
+  "display/300x250":
+    spec_ref: "registry.example/display/300x250@1"
+    spec:         { w: 300, h: 250 }
+  "display/728x90":
+    spec_ref: "registry.example/display/728x90@1"
+    spec:         { w: 728, h: 90 }
+  "display/970x250":
+    spec_ref: "registry.example/display/970x250@1"
+    spec:         { w: 970, h: 250 }
+
 creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
 materials_due:     { before_start: "P1D" }
 

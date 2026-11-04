@@ -58,12 +58,14 @@ deferred.
 
 **Issue:** [#5](https://github.com/IABTechLab/OpenProposal/issues/5)  ·  **Spec:** § 5.4
 
-`specs` delegates to a registry that cannot currently answer for half the
-declared channels. Either the registry is extended before 3.0 ratifies, or the
-spec has to say what an agent does when a format id has no registry entry.
+A `format_specs` entry can copy a registry version or be defined by the seller
+(§ 5.4), so half the declared channels have only seller-defined specs today. Either
+the registry is extended before 3.0 ratifies, or seller-defined specs stay the path
+for those channels. A `spec_ref` names a registry by domain alone: this draft
+doesn't say which registry that is or how to fetch an entry.
 
 **What would settle it:** a commitment and timeline on registry coverage, or a
-proposed fallback behaviour.
+proposed fallback behaviour, and which registry a `spec_ref` can name.
 
 ---
 

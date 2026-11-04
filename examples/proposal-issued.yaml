@@ -20,12 +20,12 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:0e83c1fe45a13b16e06d0958785b4d0ce7be28bf32e05b466930b275ebc70bd8",
+      record_digest: "sha256:72e0993149a037d841e7b6611abd5abd7cff810151c211ce04653862f1f05aed",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:14:03Z",
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:0e83c1fe45a13b16e06d0958785b4d0ce7be28bf32e05b466930b275ebc70bd8",
+      record_digest: "sha256:72e0993149a037d841e7b6611abd5abd7cff810151c211ce04653862f1f05aed",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:31:47Z" }
 
@@ -74,6 +74,13 @@ line_items:
       included:     ["display/300x250"]
       deltas:       { "display/970x250": { delta_cpm: 3.00 } }
       selected:     ["display/300x250", "display/970x250"]   # the buyer's write
+    format_specs:
+      "display/300x250":
+        spec_ref: "registry.example/display/300x250@1"
+        spec:         { w: 300, h: 250 }
+      "display/970x250":
+        spec_ref: "registry.example/display/970x250@1"
+        spec:         { w: 970, h: 250 }
     creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
     geo:
       allowed:      ["US"]
@@ -141,6 +148,15 @@ line_items:
     formats:
       available:    ["ctv/instream-15s"]
       included:     ["ctv/instream-15s"]
+    format_specs:
+      "ctv/instream-15s":
+        spec_ref: "registry.example/ctv/instream-15s@1"
+        spec:                               # copied from version 1; values illustrative
+          duration:    { nominal_s: 15, tolerance_ms: 500 }
+          source:      vast_mezzanine
+          mezzanine:   { required_for: [ssai], min_resolution: "1920x1080" }
+          loudness:    { standard: atsc_a85, target: -24, tolerance_db: 2 }
+          creative_id: { universal_ad_id: required }
     creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
     materials_due:  { at: "2026-10-20T23:59:59Z" }   # version 1 had "2026-10-13T23:59:59Z"
     pricing:

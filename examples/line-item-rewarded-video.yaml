@@ -19,6 +19,9 @@ placement:                             # every impression of this line item (§ 
   playmethod:   [3]                    # Initiates on Click with Sound On (3)
   api:          [6, 7]                 # MRAID 3.0 (6), OMID 1.0 (7)
 formats:        { available: ["video/30s"], included: ["video/30s"] }
+format_specs:
+  "video/30s":                         # seller-defined: no spec_ref
+    spec:        { asset: video_file, duration: { nominal_s: 30, tolerance_ms: 500 } }
 creative_delivery: { method: buyer_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
 frequency_cap:  { count: { min: 1, max: 3, default: 2 }, period: day, per: device }

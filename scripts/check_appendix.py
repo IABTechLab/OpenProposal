@@ -80,13 +80,11 @@ PENDING_TYPES = {}
 # Objects typed Object: open by definition, small and inline, or waiting on the
 # change that names them. Remove an entry when its table lands. Only shrinks.
 PENDING_OBJECTS = {
-    "`specs`": "waiting: the format spec",
-    "`approval`": "waiting: the review policy",
-    "`creative_policy`": "waiting: the creative policy",
     "`contacts[]`": "imported: OpenDirect 2.1 Contact",
     "`content`": "imported: AdCOM 1.0 Content",
     "`data_label`": "imported: Data Transparency Standard 1.1",
     "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
+    "`spec`": "open: the format entry sets its keys",
 }
 
 BODY_SECTION = re.compile(r"^#{3,4} ((?:4|5)\.\d+(?:\.\d+)?)\s")
@@ -100,7 +98,7 @@ LEAD_IN = re.compile(r"^\*\*`([A-Z][A-Za-z]+)`")
 SHARED_TYPE = re.compile(r"`([A-Z][A-Za-z]+)`")
 SELECTABLE_OBJECT = re.compile(r"^Selectable\[([A-Z][A-Za-z]+)\]$")
 SELECTABLE_HOLDER = re.compile(r"^\*\*`[A-Za-z]+`\*\* holds the keys of `Selectable\[([A-Z][A-Za-z]+)\]`")
-STRING_OPTIONS = {"String", "VocabularyTerm", "GeoCode", "Environment", "CombineOperator"}
+STRING_OPTIONS = {"String", "VocabularyTerm", "GeoCode", "Environment", "CombineOperator", "FormatId"}
 ISSUE_CITE = re.compile(r"(?<![\w/&])#\d+\b|/issues/\d+")
 
 

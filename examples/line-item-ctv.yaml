@@ -23,9 +23,23 @@ break_position:                                # where in the stream, priced (§
   included:     ["midroll-any"]
   deltas:       { "preroll": { delta_cpm: 4.00 }, "first-in-pod": { delta_cpm: 9.00 } }
   max_select:   1
-formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
+formats:        { available: ["ctv/instream-15s", "ctv/instream-30s", "ctv/instream-6s"],
                   included: ["ctv/instream-15s"],
                   deltas: { "ctv/instream-30s": { delta_cpm: 8.00 } } }
+format_specs:
+  "ctv/instream-15s":
+    spec_ref: "registry.example/ctv/instream-15s@1"
+    spec:                                   # copied from version 1; values illustrative
+      duration:    { nominal_s: 15, tolerance_ms: 500 }
+      source:      vast_mezzanine
+      mezzanine:   { required_for: [ssai], min_resolution: "1920x1080" }
+      loudness:    { standard: atsc_a85, target: -24, tolerance_db: 2 }
+      creative_id: { universal_ad_id: required }
+  "ctv/instream-30s":
+    spec_ref: "registry.example/ctv/instream-30s@1"
+    spec:        { duration: { nominal_s: 30, tolerance_ms: 500 } }
+  "ctv/instream-6s":                        # seller-defined: no spec_ref
+    spec:        { asset: video_file, duration: { nominal_s: 6, tolerance_ms: 250 } }
 creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
 frequency_cap:  { count: { min: 1, max: 4, default: 3 }, period: day, per: household }

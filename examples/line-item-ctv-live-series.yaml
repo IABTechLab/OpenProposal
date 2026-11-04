@@ -87,6 +87,10 @@ programs:                     # the content the line item serves within (§ 5.2.
 environments:   { available: ["ctv"], included: ["ctv"] }
 placement:      { plcmt: 1, ssai: 3 }      # Instream (1); all server-side (3) (§ 5.2.2)
 formats:        { available: ["ctv/instream-30s"], included: ["ctv/instream-30s"] }
+format_specs:
+  "ctv/instream-30s":
+    spec_ref: "registry.example/ctv/instream-30s@1"
+    spec:         { duration: { nominal_s: 30, tolerance_ms: 500 } }
 
 pricing:
   - { pricing_id: "playoffs-cpm-usd", cost_method: CPM, list_rate: 60.00, price_type: 3,

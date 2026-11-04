@@ -26,6 +26,9 @@ properties:
 environments:   { available: ["dooh"], included: ["dooh"] }
 formats:        { available: ["dooh/landscape-1920x1080-10s"],
                   included: ["dooh/landscape-1920x1080-10s"] }
+format_specs:
+  "dooh/landscape-1920x1080-10s":           # seller-defined: no spec_ref
+    spec:        { asset: video_file, w: 1920, h: 1080, duration: { nominal_s: 10, tolerance_ms: 500 } }
 
 delivery_counting:
   play_tolerance_ms: 500

@@ -19,12 +19,12 @@ description: >
 
 assent:
   - { role: commitment, version: 2,
-      record_digest: "sha256:61f3fb94e716191be1f9548ff84d459474d3f9eafa02f65fab646cbf571a80e7",
+      record_digest: "sha256:a9290958d7f148d212b552b51b6cc3ccca86edbc817f2058252b3ee9d7d3a10a",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:14:03Z",
       idempotency_key: "agency-a-camp1-q4-2026-5d10e2c7" }
   - { role: acceptance, version: 2,
-      record_digest: "sha256:61f3fb94e716191be1f9548ff84d459474d3f9eafa02f65fab646cbf571a80e7",
+      record_digest: "sha256:a9290958d7f148d212b552b51b6cc3ccca86edbc817f2058252b3ee9d7d3a10a",
       line_item_ids: ["business-daily-display", "weather-app-ctv"],
       at: "2026-09-22T10:31:47Z" }
 
@@ -68,6 +68,10 @@ line_items:
     formats:
       available:    ["display/300x250"]
       included:     ["display/300x250"]
+    format_specs:
+      "display/300x250":
+        spec_ref: "registry.example/display/300x250@1"
+        spec:         { w: 300, h: 250 }
     creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
     materials_due:  { at: "2026-09-28T23:59:59Z" }   # version 1 had "2026-09-24T23:59:59Z"
     pricing:
@@ -121,6 +125,15 @@ line_items:
     formats:
       available:    ["ctv/instream-15s"]
       included:     ["ctv/instream-15s"]
+    format_specs:
+      "ctv/instream-15s":
+        spec_ref: "registry.example/ctv/instream-15s@1"
+        spec:                               # copied from version 1; values illustrative
+          duration:    { nominal_s: 15, tolerance_ms: 500 }
+          source:      vast_mezzanine
+          mezzanine:   { required_for: [ssai], min_resolution: "1920x1080" }
+          loudness:    { standard: atsc_a85, target: -24, tolerance_db: 2 }
+          creative_id: { universal_ad_id: required }
     creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
     pricing:
       - { pricing_id: "ctv-pa-cpm-usd", cost_method: CPM, list_rate: 45.00, agreed_rate: 45.00, min_rate: 39.60,

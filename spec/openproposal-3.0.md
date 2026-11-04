@@ -509,8 +509,10 @@ ext:
   reject a document because of it. It MUST keep `ext` unchanged when it
   stores or forwards the document.
 - In an object whose keys this specification lists, a key outside `ext` that
-  it does not list is invalid. The open objects `DocumentRef` (§ 2.2), `ErrorObject`
-  (§ 2.4), and `CostParameters` (§ 5.6.5) are unaffected.
+  it does not list is invalid. An object whose content another definition
+  sets, such as a `FormatSpec`'s `spec` (§ 5.4), is unaffected, and so are the
+  open objects `DocumentRef` (§ 2.2), `ErrorObject` (§ 2.4), and `CostParameters`
+  (§ 5.6.5).
 - On the proposal and a line item, `ext` is part of the Full Representation and
   of the record frozen at `agreed` (§ 4.1.1), and a seller change to it is a
   revision. On a `change_requests[]` entry, it is outside the record, as the
@@ -597,9 +599,9 @@ section. A value that points into a document is a `FieldPointer`.
 This section is informative. It sets no requirement on a party to a transaction.
 
 **Text is data.** Agents that can spend read this object, and much of it is text
-the counterparty wrote: `description`, `specifications`, `best_for[]`,
+the counterparty wrote: `description`, `media_kit_detail`, `best_for[]`,
 `not_suitable_for[]`, `seasonality_notes`, `approval`, `creative_policy`, `ext` values,
-a change request's `comments`, an error's `detail`, and the document behind a
+a `FormatSpec`'s `spec`, a change request's `comments`, an error's `detail`, and the document behind a
 `DocumentRef`. That text is data, and it can hold instructions aimed at a language
 model. An agent keeps it apart from its own instructions, and rests a decision to
 assent or spend on the structured fields, not on prose alone.
@@ -924,15 +926,15 @@ identifier minted downstream of agreement (`best_for[]`, `not_suitable_for[]`,
 `seasonality_notes`, `availability`, `addressable_scale`, `expected_match_rate`,
 `min_rate`, `derived_units`, `external_references[]`); or a buyer
 delivery (`assets[]`, `segments[]`, `suppression_list`). The requirement on creative
-(`formats`, `specs`, `creative_policy`, `materials_due`) is a term, and so is the
+(`formats`, `format_specs`, `creative_policy`, `materials_due`) is a term, and so is the
 permission to deliver a list (`segments_allowed`, `suppression_allowed`,
 `accepted_exclusions`).
 
 Every other value is inside the record, named here or not: `proposal_id`,
 `spec_version`, `seller`, `buyer`, `type`, `proposal_template_id`, `brief_id`,
 `issued_from`, `offer_window`, `linked_execution`, and `ext`; every
-`seller-set` field, including `hold_terms` and prose (`description`, `specifications`,
-`creative_policy`, `specs`); the seller's value of a `requestable` field, such as
+`seller-set` field, including `hold_terms` and prose (`description`, `media_kit_detail`,
+`creative_policy`, `format_specs`); the seller's value of a `requestable` field, such as
 `pricing[].list_rate`, including one a `grant` or `counter` put in force; every option
 space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`, `min` / `max`,
 `default`); every `BuyerWrites` value (§ 3.4) and `commitment`, as they stand at `agreed`; `pricing[].agreed_rate`; and every `DocumentRef` (§ 2.2) whole, with any key its publisher
@@ -1138,7 +1140,7 @@ The case a buying agent reads to decide whether to look further.
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `description` | String | REQUIRED | seller-set | Prose, not a name. Where the "why buy" case is made, including which channels a multi-channel proposal spans |
-| `specifications` | String | OPTIONAL | seller-set | Detail at media-kit depth |
+| `media_kit_detail` | String | OPTIONAL | seller-set | Detail at media-kit depth |
 | `best_for[]` | Array[String] | OPTIONAL | seller-set | Advisory planning hints. Non-normative, and never the basis for a match |
 | `not_suitable_for[]` | Array[String] | OPTIONAL | seller-set | Advisory exclusion guidance. Non-normative |
 | `seasonality_notes` | String | OPTIONAL | seller-set | When the proposal performs differently |
@@ -1711,13 +1713,35 @@ object.
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `formats` | Selectable[String] | OPTIONAL | selectable | Registry format ids namespaced by channel, such as `display/300x250` and `audio/host-read-30s` |
-| `specs` | Object | OPTIONAL | seller-set | As defined by the referenced format registry entry. OpenProposal does not hardcode a shape per channel |
+| `formats` | Selectable[FormatId] | OPTIONAL | selectable | Format ids, such as `display/300x250` and `audio/host-read-30s`. Absent: this line item states no format |
+| `format_specs` | Map[FormatId, FormatSpec] | REQUIRED when the proposal has left `draft` and `formats` is present | seller-set | Map from format id to `FormatSpec` |
 | `creative_delivery` | CreativeDelivery | OPTIONAL | seller-set | How creative travels. See the creative path below. Absent: this line item states no path, and a `materials_due` still applies |
 | `assets[]` | Array[Asset] | OPTIONAL | mixed | A record of the creative that reaches the seller |
 | `materials_due` | MaterialsDue | OPTIONAL | requestable | Deadline for creative to reach the seller. A buyer MAY request a later date |
-| `approval` | Object | OPTIONAL | seller-set | Review SLA and revision policy |
+| `approval` | String | OPTIONAL | seller-set | Review SLA and revision policy, in prose |
+| `creative_policy` | String | OPTIONAL | seller-set | Content and category restrictions on creative, in prose |
 | `production` | Selectable[ProductionOption] | OPTIONAL | selectable | Custom units. See `ProductionOption` below. Nothing in effect: no custom unit |
+
+**`FormatId`** is a String: `<channel>/<name>`, where `<channel>` is the line item's
+`channel`, with no `/` or `@` inside a part.
+
+**`FormatSpec`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `spec_ref` | EntryRef | OPTIONAL | The format registry entry the spec comes from. Absent when the seller defines it |
+| `spec` | Object | REQUIRED | The full specification. OpenProposal does not hardcode a shape per channel |
+
+Once the proposal leaves `draft`, every id in `formats.available[]` MUST have a
+`format_specs` entry. When `spec_ref` is present, `spec` MUST equal the content
+of the version it names, and the format id SHOULD equal the `<collection>/<entry_id>`
+part of `spec_ref`. A later registry version does not change an agreed record's
+`format_specs`.
+
+A `spec` MAY hold `asset`, a `VocabularyTerm` (§ 2.2) that says what the buyer
+supplies for the format. Core terms: `audio_file` \| `video_file` \| `image_file` \|
+`markup` \| `script`. A receiver that doesn't know a term treats that format as
+unavailable.
 
 **`MaterialsDue`** holds exactly one key:
 
@@ -1731,7 +1755,7 @@ object.
 | Key | Type | Required | Meaning | Mutability |
 | :--- | :--- | :--- | :--- | :--- |
 | `asset_id` | String | REQUIRED | Identity of the asset within the line item | supplied |
-| `format_id` | String | REQUIRED | The `formats.available[]` id the asset is for | supplied |
+| `format_id` | FormatId | REQUIRED | The `formats.available[]` id the asset is for | supplied |
 | `url` | String | REQUIRED when `markup` is absent | Where the asset is, such as a tag URL with its macros unexpanded | supplied |
 | `markup` | String | REQUIRED when `url` is absent | The tag or creative markup | supplied |
 | `submitted_at` | Instant | OPTIONAL | When the buyer delivered it | supplied |
@@ -1985,7 +2009,6 @@ with `devicetype` 8.
 | `hold` | Hold | OPTIONAL | lifecycle | The buyer's hold. Absent until the buyer first asks. See 5.6.2 |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | See § 5.6.6. Absent: this field states no right to cancel, and `terms_refs[]` (§ 5.8) may state one |
 | `exclusivity` | Selectable[ExclusivityOption] | OPTIONAL | selectable | See § 5.6.7. Nothing in effect: no exclusivity |
-| `creative_policy` | Object | OPTIONAL | seller-set | Content and category restrictions on creative |
 | `requires` | Requires | OPTIONAL | seller-set | Conditions that must hold in the same `commit` for this line item to be committable. See 5.6.3 |
 
 `pricing[]` entries are alternatives. The buyer commits under exactly one, the
@@ -2770,8 +2793,9 @@ mechanism. See
 
 Shows priced cancellation options at three `notice_duration` values,
 `break_position` with priced pre-roll and first-in-pod options (§ 5.2.3),
-server-side insertion in `placement.ssai` (§ 5.2.2), and `keywords` accepted
-only as `best_effort` (§ 5.5). See
+server-side insertion in `placement.ssai` (§ 5.2.2),
+`format_specs` entries, two pinned to a format registry version and one defined by
+the seller (§ 5.4), and `keywords` accepted only as `best_effort` (§ 5.5). See
 [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
 
 Inspecting this line item's VAST creative is subject to § 5.4.1.
@@ -2849,15 +2873,15 @@ cancel part of the agreed line item (§ 5.6.6). See
 - **No inheritance mechanism to specify or debug.** Fields live at exactly one
   level, so there is no "overridable unless restated" rule to maintain.
 - **The proposal reads as a pitch, not a schema dump.** `description`,
-  `specifications`, `best_for[]` and `seasonality_notes` are what a model needs to
+  `media_kit_detail`, `best_for[]` and `seasonality_notes` are what a model needs to
   decide whether to look further.
 - **Every line item states its own terms, in exactly one channel.** A
   buying agent can hand a line item, with the proposal's identity, to a downstream
   system, with no proposal-level defaults or cross-channel ambiguity to resolve.
 - **Channels share one object, not a schema fork per channel.** `channel` is the
   discriminator. Fields such as `placement`, `programs`, `break_position`, and the
-  DOOH property keys apply only where a channel needs them, and the format registry,
-  through `specs`, carries what is channel-specific about creative shape.
+  DOOH property keys apply only where a channel needs them, and `format_specs`
+  carries what is channel-specific about creative shape.
 - **Composition resolves without a round trip.** Because the seller declares the
   option set and its pricing up front, a buyer agent performs constraint
   satisfaction rather than negotiation. Only genuinely out-of-envelope asks
@@ -2902,9 +2926,11 @@ see [docs/open-questions.md](../docs/open-questions.md).
    guarantees `viewable_rate` and another `completion_rate`, there is no
    normalised way for a buying agent to compare or optimise across them. 3.0
    doesn't cover it.
-4. **The format registry has no entries for `audio/*`, `ctv/*` or `dooh/*`.**
-   `specs` delegates to a registry that cannot currently answer for half the
-   declared channels.
+4. **The format registry has no entries for `audio/*`, `ctv/*` or `dooh/*`.** A
+   `format_specs` entry can copy a registry version or be defined by the seller
+   (§ 5.4), so half the declared channels have only seller-defined specs today. A
+   `spec_ref` names a registry by domain alone: this draft doesn't say which
+   registry that is or how to fetch an entry.
 5. **Do `linked_execution` and `requires` cover bundle purchases**, or does the
    proposal also need a `min_line_items` field?
 6. **Should `billing.payment_terms` and `billing.invoicing_party` be repeated on
@@ -2960,7 +2986,7 @@ body is normative.**
 | `linked_execution` | 4.1 Identity and lifecycle | Enum | OPTIONAL | seller-set |
 | `ext` | 4.1 Identity and lifecycle | Ext | OPTIONAL | seller-set |
 | `description` | 4.2 Agent comprehension | String | REQUIRED | seller-set |
-| `specifications` | 4.2 Agent comprehension | String | OPTIONAL | seller-set |
+| `media_kit_detail` | 4.2 Agent comprehension | String | OPTIONAL | seller-set |
 | `best_for[]` | 4.2 Agent comprehension | Array[String] | OPTIONAL | seller-set |
 | `not_suitable_for[]` | 4.2 Agent comprehension | Array[String] | OPTIONAL | seller-set |
 | `seasonality_notes` | 4.2 Agent comprehension | String | OPTIONAL | seller-set |
@@ -2979,12 +3005,13 @@ body is normative.**
 | `addressable_scale` | 5.3 Audience reach | AddressableScale | OPTIONAL | asserted |
 | `activation_route` | 5.3 Audience reach | Selectable[VocabularyTerm] | OPTIONAL | selectable |
 | `buyer_supplied` | 5.3 Audience reach | BuyerSupplied | OPTIONAL | mixed |
-| `formats` | 5.4 Creative requirements | Selectable[String] | OPTIONAL | selectable |
-| `specs` | 5.4 Creative requirements | Object | OPTIONAL | seller-set |
+| `formats` | 5.4 Creative requirements | Selectable[FormatId] | OPTIONAL | selectable |
+| `format_specs` | 5.4 Creative requirements | Map[FormatId, FormatSpec] | REQUIRED when the proposal has left `draft` and `formats` is present | seller-set |
 | `creative_delivery` | 5.4 Creative requirements | CreativeDelivery | OPTIONAL | seller-set |
 | `assets[]` | 5.4 Creative requirements | Array[Asset] | OPTIONAL | mixed |
 | `materials_due` | 5.4 Creative requirements | MaterialsDue | OPTIONAL | requestable |
-| `approval` | 5.4 Creative requirements | Object | OPTIONAL | seller-set |
+| `approval` | 5.4 Creative requirements | String | OPTIONAL | seller-set |
+| `creative_policy` | 5.4 Creative requirements | String | OPTIONAL | seller-set |
 | `production` | 5.4 Creative requirements | Selectable[ProductionOption] | OPTIONAL | selectable |
 | `geo` | 5.5 Targeting envelope | Settable[GeoCode] | OPTIONAL | settable |
 | `markets` | 5.5 Targeting envelope | Selectable[GeoCode] | OPTIONAL | selectable |
@@ -3017,7 +3044,6 @@ body is normative.**
 | `hold` | 5.6 Commercial terms | Hold | OPTIONAL | lifecycle |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
 | `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityOption] | OPTIONAL | selectable |
-| `creative_policy` | 5.6 Commercial terms | Object | OPTIONAL | seller-set |
 | `requires` | 5.6 Commercial terms | Requires | OPTIONAL | seller-set |
 | `committed_metrics[]` | 5.7 Guarantees | Array[CommittedMetric] | OPTIONAL | requestable |
 | `measurement_source` | 5.7 Guarantees | Selectable[MeasurementOption] | OPTIONAL | selectable |
@@ -3048,7 +3074,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `episodes`, `placement`, `specs`, `creative_delivery`, `approval`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `retention`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `media_kit_detail`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `episodes`, `placement`, `format_specs`, `creative_delivery`, `approval`, `creative_policy`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `retention`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 16 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `programs`, `environments`, `break_position`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |

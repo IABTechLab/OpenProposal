@@ -5,6 +5,24 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2.5, § 2.6, § 2.7, § 4.1.1, § 4.2, § 5.4, § 5.6, § 6.1, § 6.3, § 6.6, § 7, § 8, appendices,
+  examples, docs, checkers — formats. `specs` becomes `format_specs` and `specifications` becomes
+  `media_kit_detail`, so the two names no longer look alike. `format_specs` maps each `FormatId` to
+  a `FormatSpec`, which holds the whole `spec` and, when it comes from a registry, a `spec_ref`.
+  A `spec_ref` is an `EntryRef`, so it names one exact version. Once the proposal leaves `draft`,
+  every offered format has an entry, and a pinned `spec` equals the content of its version. A
+  format id SHOULD equal the `<collection>/<entry_id>` part of its `spec_ref`. A seller-defined
+  format has no registry behind it, so `formats` holds format ids, and absent `formats` states no
+  format. A `spec` MAY state `asset`, what the buyer supplies, as a `VocabularyTerm`. `approval` and
+  `creative_policy` are prose in § 5.4. § 2.5 exempts a `FormatSpec`'s
+  `spec` from the closed-key rule, and § 2.7 lists it as text the counterparty wrote. § 8 states
+  that this draft doesn't say which registry a `spec_ref` names or how to fetch an entry.
+  Its question 3 no longer names an undefined workstream. `examples/proposal.yaml` holds its
+  line items, and the checker compares the line item files that have no `commitment` with it.
+  The checker also tests each format id against its channel. Breaking
+  ([#87](https://github.com/IABTechLab/OpenProposal/issues/87),
+  [#5](https://github.com/IABTechLab/OpenProposal/issues/5),
+  [#32](https://github.com/IABTechLab/OpenProposal/issues/32)).
 - § 1.1, § 2.1, § 2.6, § 3.3, § 4.1.1, § 5.2, § 5.2.2, § 5.2.3, § 5.2.9, § 5.4, § 5.6.4, § 5.7,
   § 5.7.1, § 5.9, § 6.3, § 6.4, § 6.7, § 6.10, § 6.11, § 7, appendices, examples, checker — video
   and audio inventory. `break_position` sells position and pod slot as priced

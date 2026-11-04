@@ -11,6 +11,9 @@ properties:     { available: [{ id: "show-x", name: "Show X", domains: ["show-x.
 placement:      { feed: 3 }                 # Podcast (3) (§ 5.2.2)
 episodes:       new                         # required on a podcast feed (§ 5.2); new under embedded (§ 5.9)
 formats:        { available: ["audio/host-read-30s"], included: ["audio/host-read-30s"] }
+format_specs:
+  "audio/host-read-30s":                    # seller-defined: no spec_ref
+    spec:        { asset: script, read_length_s: 30, language: en }
 
 # no geo, device, or frequency_cap: everyone who downloads gets the read
 

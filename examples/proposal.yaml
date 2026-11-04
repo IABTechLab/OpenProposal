@@ -21,7 +21,7 @@ negotiation_history:
 description: >
   Cross-channel Example Publisher US package spanning display, video, audio,
   and CTV. Business and financial audience skew, weekday-heavy delivery.
-specifications: >
+media_kit_detail: >
   Display across two business-news sites; rewarded video in a pack of puzzle
   games; audio on a music stream; CTV via weather and sports app inventory.
   First-party B2B and investor audiences available with clean-room activation.
@@ -53,6 +53,18 @@ line_items:
     formats:        { available: ["audio/host-read-30s", "audio/produced-30s"],
                       included: ["audio/produced-30s"],
                       deltas: { "audio/host-read-30s": { delta_cpm: 9.00 } } }
+    format_specs:                           # seller-defined: no spec_ref; values illustrative
+      "audio/host-read-30s":
+        spec:
+          asset:           script           # the buyer supplies a script, not an audio file
+          read_length_s:   30
+          language:        en
+          delivery:        pre_recorded
+          script_approval: { rounds: 2, lead_time: "P5D" }
+      "audio/produced-30s":
+        spec:
+          asset:           audio_file
+          duration:        { nominal_s: 30, tolerance_ms: 500 }
 
     production:
       available:    [{ id: "seller_built", built_by: seller, lead_time: "P14D" },
@@ -139,6 +151,15 @@ line_items:
     environments:   { available: ["ctv"], included: ["ctv"] }
     placement:      { plcmt: 1, ssai: 3 }      # Instream (1); all server-side (3) (§ 5.2.2)
     formats:        { available: ["ctv/instream-15s"], included: ["ctv/instream-15s"] }
+    format_specs:
+      "ctv/instream-15s":
+        spec_ref: "registry.example/ctv/instream-15s@1"
+        spec:                                   # copied from version 1; values illustrative
+          duration:    { nominal_s: 15, tolerance_ms: 500 }
+          source:      vast_mezzanine
+          mezzanine:   { required_for: [ssai], min_resolution: "1920x1080" }
+          loudness:    { standard: atsc_a85, target: -24, tolerance_db: 2 }
+          creative_id: { universal_ad_id: required }
     creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
     frequency_cap:  { count: { min: 1, max: 2, default: 1 }, period: day, per: household }
@@ -254,6 +275,10 @@ line_items:
     environments:   { available: ["ctv"], included: ["ctv"] }
     placement:      { plcmt: 1, ssai: 3 }      # Instream (1); all server-side (3) (§ 5.2.2)
     formats:        { available: ["ctv/instream-30s"], included: ["ctv/instream-30s"] }
+    format_specs:
+      "ctv/instream-30s":
+        spec_ref: "registry.example/ctv/instream-30s@1"
+        spec:         { duration: { nominal_s: 30, tolerance_ms: 500 } }
 
     pricing:
       - { pricing_id: "playoffs-cpm-usd", cost_method: CPM, list_rate: 60.00, price_type: 3,
@@ -300,9 +325,23 @@ line_items:
       included:     ["midroll-any"]
       deltas:       { "preroll": { delta_cpm: 4.00 }, "first-in-pod": { delta_cpm: 9.00 } }
       max_select:   1
-    formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
+    formats:        { available: ["ctv/instream-15s", "ctv/instream-30s", "ctv/instream-6s"],
                       included: ["ctv/instream-15s"],
                       deltas: { "ctv/instream-30s": { delta_cpm: 8.00 } } }
+    format_specs:
+      "ctv/instream-15s":
+        spec_ref: "registry.example/ctv/instream-15s@1"
+        spec:                                   # copied from version 1; values illustrative
+          duration:    { nominal_s: 15, tolerance_ms: 500 }
+          source:      vast_mezzanine
+          mezzanine:   { required_for: [ssai], min_resolution: "1920x1080" }
+          loudness:    { standard: atsc_a85, target: -24, tolerance_db: 2 }
+          creative_id: { universal_ad_id: required }
+      "ctv/instream-30s":
+        spec_ref: "registry.example/ctv/instream-30s@1"
+        spec:        { duration: { nominal_s: 30, tolerance_ms: 500 } }
+      "ctv/instream-6s":                        # seller-defined: no spec_ref
+        spec:        { asset: video_file, duration: { nominal_s: 6, tolerance_ms: 250 } }
     creative_delivery: { method: seller_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
     frequency_cap:  { count: { min: 1, max: 4, default: 3 }, period: day, per: household }
@@ -499,6 +538,17 @@ line_items:
       included:     ["display/300x250"]
       deltas:       { "display/970x250": { delta_cpm: 3.00 } }
 
+    format_specs:                           # copied from version 1; values illustrative
+      "display/300x250":
+        spec_ref: "registry.example/display/300x250@1"
+        spec:         { w: 300, h: 250 }
+      "display/728x90":
+        spec_ref: "registry.example/display/728x90@1"
+        spec:         { w: 728, h: 90 }
+      "display/970x250":
+        spec_ref: "registry.example/display/970x250@1"
+        spec:         { w: 970, h: 250 }
+
     creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
     materials_due:     { before_start: "P1D" }
 
@@ -613,6 +663,9 @@ line_items:
       playmethod:   [3]                    # Initiates on Click with Sound On (3)
       api:          [6, 7]                 # MRAID 3.0 (6), OMID 1.0 (7)
     formats:        { available: ["video/30s"], included: ["video/30s"] }
+    format_specs:
+      "video/30s":                         # seller-defined: no spec_ref
+        spec:        { asset: video_file, duration: { nominal_s: 30, tolerance_ms: 500 } }
     creative_delivery: { method: buyer_hosted, protocols: [13], secure_required: true }   # VAST 4.2 (13)
 
     frequency_cap:  { count: { min: 1, max: 3, default: 2 }, period: day, per: device }

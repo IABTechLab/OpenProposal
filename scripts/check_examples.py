@@ -16,6 +16,8 @@ change to this script. It checks:
     the operators section 5.3 lists, with no deltas.
   - An exclusions entry is an array of its type's entries or a DocumentRef, and its
     type is one accepted_exclusions accepts.
+  - Each format id starts with the channel and has a format_specs entry, and every
+    copy of one spec_ref version holds one spec (section 5.4).
   - selected[] or included[] fits max_select, and an empty set has a stated meaning.
   - A settable field holds its form, and each buyer value is within its bounds.
   - agreed_rate recomputes under section 5.6, on the committed entry only.
@@ -199,6 +201,8 @@ CONDITIONS = {
     "`channel` is `video`": lambda o, i, p: i.get("channel") == "video",
     "`placement.feed` is Podcast (3) or Catch-up radio (4)":
         lambda o, i, p: (i.get("placement") or {}).get("feed") in (3, 4),
+    "the proposal has left `draft` and `formats` is present":
+        lambda o, i, p: "formats" in i and (p or i).get("status") != "draft",
     "`daypart` or `frequency_cap` is present":
         lambda o, i, p: "daypart" in i or "frequency_cap" in i,
     "`channel` is `video` or `audio`": lambda o, i, p: i.get("channel") in ("video", "audio"),
@@ -301,6 +305,7 @@ SCALARS = {
     "HttpsUrl": (lambda v: isinstance(v, str) and v.startswith("https://")),
     "CurrencyCode": (lambda v: isinstance(v, str) and re.fullmatch(r"[A-Z]{3}", v)),
     "ClockTime": (lambda v: isinstance(v, str) and re.fullmatch(r"(?:[01][0-9]|2[0-3]):[0-5][0-9]|24:00", v)),
+    "FormatId": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+", v)),
     "Integer": (lambda v: isinstance(v, int) and not isinstance(v, bool)),
     "Number": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
     "Amount": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
@@ -317,7 +322,8 @@ SCALARS = {
     "LineItemStatus": (lambda v: v in CLOSED["LineItemStatus"]),
     "ApprovalStatus": (lambda v: v in CLOSED["ApprovalStatus"]),
     "TransactionMechanism": (lambda v: v in MECHANISMS),
-    "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)),
+    "EntryRef": (lambda v: isinstance(v, str) and re.fullmatch(r"[^/@]+/[^/@]+/[^/@]+@[^/@]+", v)
+                 and DOMAIN.match(v.split("/")[0])),
     "FieldPointer": (lambda v: isinstance(v, str) and (v == "" or v.startswith("/"))),
     "Ext": (lambda v: isinstance(v, dict) and all(
         isinstance(k, str) and DOMAIN.match(k) and isinstance(item, dict)
@@ -695,6 +701,7 @@ class Checker:
         self.spec = spec
         self.errors = []
         self.item, self.proposal = {}, None
+        self.entry_specs = {}
 
     def err(self, file, path, msg):
         self.errors.append(f"{file}: {path}: {msg}")
@@ -930,6 +937,28 @@ class Checker:
                 self.err(file, f"{path}.exclusions", f"{term!r} is not an accepted exclusion type")
             elif isinstance(entries, list) and len(entries) > accepted[term].get("max_entries", len(entries)):
                 self.err(file, f"{path}.exclusions", f"{term!r} holds more than max_entries")
+
+    def check_formats(self, file, path, item):
+        """Format ids, their format_specs entries, and spec_ref (section 5.4)."""
+        specs = item.get("format_specs") or {}
+        draft = (self.proposal or item).get("status") == "draft"
+        for fid in (item.get("formats") or {}).get("available", []):
+            if not fid.startswith(f"{item.get('channel')}/"):
+                self.err(file, path, f"format id {fid!r} is not namespaced by channel")
+            if fid not in specs and not draft:
+                self.err(file, path, f"format id {fid!r} has no format_specs entry")
+        core = re.search(r"what the buyer\s+supplies for the format\. Core terms: (.*?)\. A receiver",
+                         "\n".join(self.spec.lines), re.S).group(1)
+        core = set(re.findall(r"`([^`]+)`", core))
+        for fid, entry in specs.items():
+            asset = (entry.get("spec") or {}).get("asset") if isinstance(entry, dict) else None
+            if asset is not None and asset not in core and not re.fullmatch(rf"{TERM_DOMAIN}{TERM_PART}", str(asset)):
+                self.err(file, path, f"{fid}: spec.asset {asset!r} is neither a core term nor an extension term")
+            ref = entry.get("spec_ref") if isinstance(entry, dict) else None
+            if not ref:
+                continue
+            if self.entry_specs.setdefault(ref, entry.get("spec")) != entry.get("spec"):
+                self.err(file, path, f"spec differs from another copy of {ref!r}")
 
     def check_audiences(self, file, path, value):
         """The keys AudienceSelectable adds to its Selectable (section 5.3)."""
@@ -1230,6 +1259,7 @@ class Checker:
             self.check_mechanisms(file, path or "(root)", doc)
             self.check_measurement(file, path or "(root)", doc)
             self.check_exclusions(file, path or "(root)", doc)
+            self.check_formats(file, path or "(root)", doc)
             if "audiences" in doc:
                 self.check_audiences(file, f"{path}.audiences" if path else "audiences", doc["audiences"])
             if "geo" in doc and "markets" in doc:
