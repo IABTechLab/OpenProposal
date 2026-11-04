@@ -235,6 +235,7 @@ content_detail
 properties.available[].id
 properties.available[].name
 properties.available[].domains[]
+properties.available[].venue_type
 audiences.available[].id
 audiences.available[].name
 formats.included[]
@@ -249,6 +250,8 @@ pricing[].unit_bounds
 commitment_bounds
 addressable_scale
 committed_metrics[]
+delivery_counting.impression_multiplier.impression_type
+delivery_counting.impression_multiplier.source_type
 required_credentials[]
 buyer_requirements.allowed_dsps[]
 transaction_mechanism.available[]
@@ -307,7 +310,7 @@ shared type or changes its form.
 | `Instant` | String: an RFC 3339 `date-time` in whole seconds, ending in `Z` | A point in time. One written form, so one instant has one digest input |
 | `Duration` | String: the ISO 8601 grammar of RFC 3339 Appendix A without its week form (`P14D`, not `P2W`) | A length of time. A comparison names its anchor. A length within the playback of an ad or a placement, such as a play, view, read, loop, slot, or refresh, is instead an Integer whose key ends `_s` or `_ms`, except a key imported from another standard, which keeps its spelling (§ 2.6) |
 | `IanaZone` | String: a name in the [IANA time zone database](https://www.iana.org/time-zones), such as `America/New_York` or `UTC` | A time zone |
-| `ZoneName` | An `IanaZone`, or `viewer_local` | `viewer_local` is where the ad renders |
+| `ZoneName` | An `IanaZone`, or `viewer_local` | `viewer_local` is where the ad renders. On a `dooh` line item that is each screen's own zone, which its `time_zone` names when present |
 | `Url` | String: an absolute `http` or `https` URL ([RFC 3986](https://www.rfc-editor.org/rfc/rfc3986)) | A location a client can fetch |
 | `HttpsUrl` | A `Url` whose scheme is `https` | A location fetched over TLS |
 | `FieldPointer` | String: a JSON Pointer ([RFC 6901](https://www.rfc-editor.org/rfc/rfc6901)) | A location in the object this specification defines |
@@ -550,9 +553,9 @@ every other list is closed, and in a row it opens the Meaning cell.
 another standard and says so; that object keeps the standard's spelling and cites
 it. A key name repeats only where it means the same thing, and each row's Type cell
 states its form there. An array named by a noun is plural, except the mass nouns
-`pricing[]` and `negotiation_history[]`, and a name another standard spells. A name
-that isn't a noun keeps its form, such as `available[]`, `include[]`, `best_for[]`, and
-`all_of[]`. The suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
+`pricing[]`, `evidence[]`, and `negotiation_history[]`, and a name another standard
+spells. A name that isn't a noun keeps its form, such as `available[]`, `include[]`,
+`best_for[]`, and `all_of[]`. The suffix `_ref` is reserved for `DocumentRef` and `EntryRef`. A Boolean flag may end
 `_allowed` or `_required`, and a list never does.
 
 **Values.** Every term compares byte for byte. A list this specification owns is
@@ -740,7 +743,8 @@ Because audiences, properties, formats, and `markets` are `selectable`, and a
 `settable` targeting `value` and buyer `exclusions` (§ 5.5) narrow delivery,
 `addressable_scale` and `availability` MUST be recomputed against the buyer's
 actual selection, values, and exclusions. A single declared figure is correct only
-for the default composition.
+for the default composition. On a `dooh` line item, they recompute on the screens of the
+properties in effect, over hours inside both `operating_hours[]` and `daypart`.
 
 A buyer reads these figures by sending the seller an `AvailabilityRead`. The read changes
 no `status`, writes no history, reserves nothing, and doesn't limit a later decline
@@ -1336,9 +1340,45 @@ General (1), Phone (4), and Tablet (5).
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | Options of `{ id, name, domains[] }` |
+| `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | Options of `{ id, name, domains[], venue_type, allocation, min_screens, screens[], slots_per_loop, sync_groups[] }`. The DOOH keys are below |
 | `content_detail` | Object | OPTIONAL | seller-set | Shows, series, sections, network verticals |
 | `environments` | Selectable[Environment] | OPTIONAL | selectable | The distribution channels and device types the line item runs on. See 5.2.1. Absent: the seller promises no environment |
+
+**DOOH properties.** When `channel` is `dooh`, a property is a set of screens of one
+venue type, and `domains[]` holds the inventory owner's domain, as OpenRTB 2.6
+`dooh.domain`. Each entry in `properties.available[]` carries these keys:
+
+- `venue_type`: REQUIRED. A `TaxonomyCodes` (§ 2.2) whose `taxonomy` is a value of
+  AdCOM 1.0 List: DOOH Venue Taxonomies. `ids[]` holds exactly one id. It covers only
+  itself, not its descendants. The values OpenRTB 2.6 `dooh.venuetypetax` and
+  `dooh.venuetype` carry.
+- `allocation`: OPTIONAL. `all` \| `seller_allocated`. Absent means `all`. With `all`,
+  the line item runs on every listed screen. With `seller_allocated`, the seller picks
+  the screens: `screens[]`, when present, is the pool it picks from and is
+  seller-set, and the proof-of-play log names the screens used.
+- `min_screens`: OPTIONAL. With `seller_allocated`, the fewest screens the seller
+  allocates to the line item.
+- `screens[]`: REQUIRED when `allocation` is `all`. Each screen is
+  `{ screen_id, lat, lon, movable, time_zone, operating_hours[], loop }`. `screen_id`
+  is the seller's id for the screen, as its proof-of-play log carries it. When the bid
+  request's `device.ifa_type` is `ppid`, `device.ifa` carries the same id. `lat` and
+  `lon` are absent when `movable` is true. `time_zone` is an `IanaZone`.
+  `operating_hours[]` holds `ClockWindow` entries (§ 5.5), in the screen's
+  `time_zone`. `loop` is `{ length_s, slot_s }`, in integer seconds: loop length and
+  slot length. It is absent when the screen schedules ads without a loop.
+- `slots_per_loop`: OPTIONAL. The slots per loop the line item buys on each screen of
+  the property that has a `loop`.
+- `sync_groups[]`: OPTIONAL. Screens that show the same ad at the same moment, sold as
+  one. Each group is `{ sync_group_id, screen_ids[], min_screens_per_play }`.
+  `screen_ids[]` holds the `screen_id` of each screen in the group.
+  `min_screens_per_play` is the fewest of the group's screens that must show a display
+  for it to count as one play (§ 5.6.4).
+
+With `seller_allocated`, a buyer value MUST NOT name or exclude individual
+screens.
+
+With a `loop`, a screen delivers `slots_per_loop` × 3,600 ÷ `length_s` plays per
+operating hour.
 
 #### 5.2.1 environments
 
@@ -1586,7 +1626,11 @@ Monday.
 | :--- | :--- | :--- | :--- |
 | `count` | SettableRange[Integer] | REQUIRED | The cap. The buyer's `value` is the count, and `period` and `per` stay the seller's |
 | `period` | TimeUnit | REQUIRED | The bucket the count runs over |
-| `per` | Enum | REQUIRED | `device` \| `household` \| `listener`. Who is capped. It matters: CTV typically caps at household, audio at listener |
+| `per` | VocabularyTerm | REQUIRED | Who is capped. It matters: CTV typically caps at household, audio at listener. Core terms: `device` \| `household` \| `listener` \| `screen` |
+
+`screen` caps plays per DOOH screen, counted by `screen_id`, or by `sync_group_id` for
+a sync group's screens; in the bid stream, the screen is the OpenRTB 2.6 `device`
+with `devicetype` 8.
 
 ### 5.6 Commercial terms
 
@@ -1608,6 +1652,7 @@ Monday.
 | `pricing[].min_rate` | Amount | OPTIONAL | seller-set | A hint: the lowest `list_rate` the seller says it will consider. It grants nothing. Not a term, not the downstream auction floor, and never sent downstream |
 | `pricing[].unit_bounds` | Range[Integer] | OPTIONAL | requestable | Bounds on the units committed under this entry, counted in its unit (§ 5.6.5): `commitment.amount` when `basis` is `units`, otherwise `derived_units`. A buyer MAY request another. Absent on a `FLAT` entry |
 | `availability` | Availability | OPTIONAL | asserted | What the seller says it can deliver, recomputed against the buyer's selection (§ 3.3). See below |
+| `delivery_counting` | DeliveryCounting | REQUIRED when `channel` is `dooh` | seller-set | How the line item counts plays and, when it counts impressions, turns them into impressions. See 5.6.4 |
 | `commitment_bounds` | CommitmentBounds | OPTIONAL | requestable | The envelope inside which a buyer may commit, and a buyer MAY request another. See 5.6.1 |
 | `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
 | `hold_terms` | HoldTerms | OPTIONAL | seller-set | Offers a hold. Absent means `available` is `false`. See 5.6.2 |
@@ -1657,7 +1702,7 @@ can be higher, so a bid at `agreed_rate` is not guaranteed to clear.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `unit` | VocabularyTerm | REQUIRED | What `quantity` counts. Core terms: the `unit` terms of § 5.6.5, and `unit_periods` (one unit for one period, such as a board for a 4-week cycle). A receiver that doesn't know a term can't compare the figure, and still reads the line item |
+| `unit` | VocabularyTerm | REQUIRED | What `quantity` counts. Core terms: the `unit` terms of § 5.6.5, and `slots_per_loop` (as the § 5.2 key) \| `unit_periods` (one unit for one period, such as a board for a 4-week cycle). A receiver that doesn't know a term can't compare the figure, and still reads the line item |
 | `quantity` | Number | REQUIRED | How many. It can be fractional where the unit is, such as `rating_points` per `day` |
 | `computed_at` | Instant | REQUIRED | When the seller computed it |
 | `window` | Interval | REQUIRED | The dates `quantity` covers. On a read (§ 3.3) or a decline (§ 5.6.1), the flight the buyer sent |
@@ -1666,7 +1711,8 @@ can be higher, so a bid at `agreed_rate` is not guaranteed to clear.
 
 An `Availability` compares with a commitment only when it has no `granularity`, its
 `unit` equals the term in the § 5.6.5 `unit` column for the committed entry's
-`cost_method`, and its `window` equals `commitment.flight`.
+`cost_method`, and its `window` equals `commitment.flight`. § 5.6.4 states the committed
+quantity on a `dooh` line item.
 
 #### 5.6.1 commitment
 
@@ -1864,6 +1910,61 @@ self-contained.
   line item becomes non-committable. After `agreed`, cancellation of a referenced
   line item is governed by the dependent line item's `cancellation_policy`.
 
+#### 5.6.4 Plays and impressions
+
+On a `dooh` line item, a **play** is one display of an ad on one screen,
+inside the screen's operating hours, that ends no more than
+`play_tolerance_ms` short of the ad's full duration and that the
+proof-of-play log records. On a sync group (§ 5.2), a display that
+meets those conditions on at least `min_screens_per_play` of its screens is
+one play, not one per screen. An **impression** is a play times the
+multiplier for that screen or sync group at that time. Every impression
+count on the line item (`pricing[]`, `commitment`, `availability`,
+`committed_metrics[]`) counts these. A line item counts impressions when any of those
+counts is in impressions.
+
+The committed quantity is in the committed entry's unit (§ 5.6.5), so
+`PLAY` commits plays and `CPM` commits impressions. Where the committed quantity is
+impressions, plays are informative. Where it is plays, impressions are informative. With
+`properties.available[].allocation: seller_allocated`, or on a screen that schedules
+without a loop, plays are also reported. A `committed_metrics[]` tuple commits its own level either way
+(§ 5.7.1).
+
+**`DeliveryCounting`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `play_tolerance_ms` | Integer | REQUIRED | How far short of its full duration a play may end and still count |
+| `proof_of_performance` | ProofOfPerformance | REQUIRED | Who logs the plays and what the buyer receives |
+| `partial_play_credit` | VocabularyTerm | REQUIRED when a property has `sync_groups[]` | What a display on fewer than `min_screens_per_play` screens counts. Core terms: `none` (no play) \| `pro_rata` (screens played ÷ `min_screens_per_play`) |
+| `impression_multiplier` | ImpressionMultiplier | REQUIRED when the line item counts impressions | What turns a play into impressions. A line item that counts only plays needs none |
+
+**`ProofOfPerformance`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `logged_by` | Measurer | REQUIRED | Who keeps the proof-of-play log |
+| `evidence[]` | Array[VocabularyTerm] | REQUIRED | What the buyer receives. Core terms: `play_log` \| `photo` \| `audit_report` |
+
+**`ImpressionMultiplier`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `impression_type` | Enum | REQUIRED | `gross` \| `viewable` \| `lts` \| `audience`: Gross, Viewable (OTS), Likelihood-to-See, or Audience impressions, as the MRC Out-of-Home Measurement Standards (Phase 1 & 2 Combined, December 2025) define them |
+| `source_type` | Integer | REQUIRED | Who supplies the multiplier. AdCOM 1.0 List: DOOH Multiplier Measurement Source Types: Measurement Vendor Provided (`1`), Publisher Provided (`2`), or Exchange Provided (`3`). The value OpenRTB 2.6 `imp.qty.sourcetype` carries |
+| `vendor` | RegistrableDomain | REQUIRED when `source_type` is not Publisher Provided (`2`) | The domain of the vendor or exchange that supplies the multipliers, as OpenRTB 2.6 `imp.qty.vendor` names a vendor |
+| `dataset` | String | REQUIRED | The source's named data release the multipliers come from. A new release is a new `dataset` |
+| `settles_on` | Enum | REQUIRED | `declared` \| `restated`. `declared`: the value `dataset` gives that screen, or sync group, and hour when the play runs. Under a deal mechanism (§ 5.9), the bid request carries it as OpenRTB 2.6 `imp.qty.multiplier`. `restated`: that value after any reissue of `dataset` by its source before the count is final (§ 5.7.1) |
+
+The multiplier's source controls the count of impressions: `seller` when `source_type`
+is Publisher Provided (`2`) or `vendor` is the proposal's `seller.domain`, and `vendor`
+otherwise. Every impression count that settles or invoices the line item MUST use its
+multipliers, and a committed `impressions` level (§ 5.7.1) settles on that source's
+count.
+
+Impressions MUST be summed unrounded over each invoice period and rounded
+once.
+
 #### 5.6.5 Cost methods
 
 `cost_method` is a `VocabularyTerm` (§ 2.2). Its core terms are `CPM` \| `CPMV` \| `CPC` \|
@@ -2035,13 +2136,15 @@ each `billing.cycle_length` long.
 | `direction` | Enum | REQUIRED | `at_least` \| `at_most` |
 
 A term defines whether its `level` is a rate or a count, and its definition names
-its standard. Core terms: `viewable_rate` \| `completion_rate` \| `ivt_rate`.
+its standard. Core terms: `viewable_rate` \| `completion_rate` \| `ivt_rate` \|
+`impressions`.
 
 | `metric` | Kind | Usual `direction` | Definition |
 | :--- | :--- | :--- | :--- |
 | `viewable_rate` | Rate | `at_least` | Viewable impressions per measured impression, as the MRC Viewable Ad Impression Measurement Guidelines (Desktop, Version 2.0) and the MRC Mobile Viewable Ad Impression Measurement Guidelines (June 2016) define them. Usual on display |
 | `completion_rate` | Rate | `at_least` | Completed views per started ad, as the VAST `complete` and `start` tracking events report them. Usual on video, audio, and CTV |
 | `ivt_rate` | Rate | `at_most` | Impressions identified as invalid traffic per measured impression, with invalid traffic as the MRC Invalid Traffic Detection and Filtration Standards Addendum (IVT 2.0) defines it |
+| `impressions` | Count | `at_least` | Impressions on a `dooh` line item, counted under `delivery_counting` (§ 5.6.4) |
 
 **`MeasurementOption`** keys:
 
@@ -2057,7 +2160,7 @@ its standard. Core terms: `viewable_rate` \| `completion_rate` \| `ivt_rate`.
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `id` | String | REQUIRED | Option id (§ 3.1) |
-| `counted_by` | Measurer | REQUIRED | Who counts. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source` |
+| `counted_by` | Measurer | REQUIRED | Who counts. When `channel` is `dooh` and the line item counts impressions, `counted_by` MUST be the source of the line item's `delivery_counting.impression_multiplier`. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source` |
 | `qualifier` | String | OPTIONAL | A product or method of `counted_by`, such as a named ad server |
 | `discrepancy_threshold` | Fraction | OPTIONAL | A fraction of the controlling count. When the other measurement, a party's own count of the same units, exceeds the controlling count by more than this over an invoice period, reconciliation opens |
 | `final_after` | Duration | OPTIONAL | Such as `P30D` (30 days). A count is final that long after its invoice period ends. Committed values, whichever source measures them, are final that long after `commitment.flight.end` |
@@ -2236,9 +2339,20 @@ priced.
   roadblocks, takeovers, and DOOH loop and rotary buys.
 - `non_guaranteed`: the seller reserves nothing.
 
-Under `impressions`, `sov_share` states the share. Its denominator
+A domination, every screen and static face in a location, is
+`guaranteed` with an included `exclusivity` term of `scope: sole`
+(§ 5.6.7), not `share_of_voice` at 100%.
+
+`sov_basis: loop_time` requires `properties.available[].allocation: all` on every DOOH
+property.
+
+Under `loop_time`, the share derives from `properties.available[].slots_per_loop` and
+each screen's `loop`: `slots_per_loop` × `slot_s` ÷ `length_s`. Under `impressions`, `sov_share` states it. Its denominator
 is impressions; a share counted in plays is a different product and doesn't
-use this basis. Its scope is the line item's flight and `daypart`.
+use this basis. On DOOH, its eligible screens are the line item's screen
+set, the pool the seller allocates from under
+`properties.available[].allocation: seller_allocated`.
+Its scope is the line item's flight and `daypart`.
 
 ### 5.10 External references, agreement, and billing
 
@@ -2337,6 +2451,14 @@ commitment: matching `assent[]` entries over one `record_digest` (§ 4.1.1,
 history that led there (§ 4.3), and `change_requests[]` entries outside the digest,
 one for each line item, the second a deal with no Order (§ 4.4). See
 [`examples/proposal-agreed.yaml`](../examples/proposal-agreed.yaml).
+
+### 6.9 DOOH line item
+
+Shows a buyer's composed record (§ 4.1.1) of a line item issued to it (§ 4.3), before
+its `commit`, with its `commitment`: a CPM
+priced on impressions, with the multiplier's source, data release, and settlement
+rule in `delivery_counting.impression_multiplier` (§ 5.6.4). See
+[`examples/line-item-dooh.yaml`](../examples/line-item-dooh.yaml).
 
 ### 6.12 Issued proposal, partly agreed
 
@@ -2515,6 +2637,7 @@ body is normative.**
 | `pricing[].min_rate` | 5.6 Commercial terms | Amount | OPTIONAL | seller-set |
 | `pricing[].unit_bounds` | 5.6 Commercial terms | Range[Integer] | OPTIONAL | requestable |
 | `availability` | 5.6 Commercial terms | Availability | OPTIONAL | asserted |
+| `delivery_counting` | 5.6 Commercial terms | DeliveryCounting | REQUIRED when `channel` is `dooh` | seller-set |
 | `commitment_bounds` | 5.6 Commercial terms | CommitmentBounds | OPTIONAL | requestable |
 | `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | mixed |
 | `hold_terms` | 5.6 Commercial terms | HoldTerms | OPTIONAL | seller-set |
@@ -2551,7 +2674,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 43 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 14 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -2564,8 +2687,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 93 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 69 are `seller-set`, `immutable`,
+Of 94 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 70 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.

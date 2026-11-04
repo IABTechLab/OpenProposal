@@ -42,7 +42,7 @@ change to this script. It checks:
     cancelled_share is within the max_share of the range holding its effective date, or
     the top-level one, and an option's dated_shares[] windows don't overlap (section 5.6.6).
   - A core metric's level has the kind its row states, and counted_by equals the
-    party section 5.7.1 names, under the Measurer comparison (section 2.2).
+    party sections 5.6.4 and 5.7.1 name, under the Measurer comparison (section 2.2).
 
 KNOWN holds findings that a later change removes. It only shrinks. Run with
 --regen-manifest to rewrite examples/manifest.json from the full examples.
@@ -84,12 +84,14 @@ KNOWN = {
 
 # Selectable fields whose row gives an empty set a meaning (section 3.1).
 EMPTY_ALLOWED = set()
-# The cost methods delta_cpm applies to (section 3.1).
+# The cost methods delta_cpm applies to (section 3.1), and the units they count.
 IMPRESSION_METHODS = set()
+IMPRESSION_UNITS = set()
 # The mechanism table of section 5.9.
 MECHANISMS = {}
-# The cost table of section 5.6.5, as cost_method -> rate per.
+# The cost table of section 5.6.5, as cost_method -> rate per, and -> unit terms.
 RATE_PER = {}
+COST_UNIT = {}
 # The core metric table of section 5.7.1, as term -> Rate or Count.
 METRIC_KIND = {}
 RATE_UNIT_SECONDS = {"hour": 3600, "day": 86400, "week": 604800}
@@ -106,6 +108,22 @@ def _mechanisms(item):
 
 def _is_deal(mechanisms):
     return any(MECHANISMS.get(m, {}).get("deal") for m in mechanisms)
+
+
+def _counts_impressions(item):
+    # Section 5.6.4: any count on the line item is in impressions.
+    if any(p.get("cost_method") in IMPRESSION_METHODS for p in item.get("pricing", [])):
+        return True
+    if any(m.get("metric") == "impressions" for m in item.get("committed_metrics", [])):
+        return True
+    if (item.get("availability") or {}).get("unit") in IMPRESSION_UNITS:
+        return True
+    return False
+
+
+def _has_sync_groups(item):
+    options = (item.get("properties") or {}).get("available", [])
+    return any("sync_groups" in o for o in options)
 
 
 def _committed_entry(item):
@@ -197,6 +215,10 @@ CONDITIONS = {
     "an option's `delivery_type` is `share_of_voice`":
         lambda o, i, p: any(x.get("delivery_type") == "share_of_voice" for x in _options(i)),
     "`sov_basis` is `impressions`": lambda o, i, p: i.get("sov_basis") == "impressions",
+    "`channel` is `dooh`": lambda o, i, p: i.get("channel") == "dooh",
+    "the line item counts impressions": lambda o, i, p: _counts_impressions(i),
+    "`source_type` is not Publisher Provided (`2`)": lambda o, i, p: o.get("source_type") != 2,
+    "a property has `sync_groups[]`": lambda o, i, p: _has_sync_groups(i),
     "the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
         lambda o, i, p: "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
         or any("unit_bounds" in e for e in i.get("pricing", [])),
@@ -364,6 +386,8 @@ class Spec:
             if not c:
                 break
             RATE_PER[clean_key(c[0])] = int(c[3].replace(",", "")) if c[3] else None
+            COST_UNIT[clean_key(c[0])] = re.findall(r"`([^`]+)`", c[1].split(", by")[0])
+        IMPRESSION_UNITS.update(t for method in IMPRESSION_METHODS for t in COST_UNIT.get(method, []))
 
     def _read_metrics(self):
         """The section 5.7.1 table: whether each core metric is a rate or a count."""
@@ -815,7 +839,7 @@ class Checker:
             self.err(file, path, "unit_bounds", f"{units} units are outside unit_bounds")
 
     def check_measurement(self, file, path, item):
-        """Metric kinds, and the counted_by value section 5.7.1 fixes (section 2.2)."""
+        """Metric kinds, and the counted_by values sections 5.6.4 and 5.7.1 fix (section 2.2)."""
         for i, tuple_ in enumerate(item.get("committed_metrics") or []):
             kind, value = METRIC_KIND.get(tuple_.get("metric")), tuple_.get("level")
             if kind == "Rate" and not SCALARS["Fraction"](value):
@@ -825,6 +849,13 @@ class Checker:
         selection = item.get("controlling_measurement") or {}
         counters = selection.get("available", [])
         expected = {}
+        if item.get("channel") == "dooh" and _counts_impressions(item):
+            multiplier = (item.get("delivery_counting") or {}).get("impression_multiplier") or {}
+            seller_domain = ((self.proposal or {}).get("seller") or {}).get("domain")
+            vendor = multiplier.get("vendor")
+            own = multiplier.get("source_type") == 2 or (seller_domain is not None and vendor == seller_domain)
+            source = "seller" if own else vendor
+            expected = {c.get("id"): source for c in counters}
         committed = _committed_entry(item)
         if committed and committed.get("cost_method") == "CPP":
             source = (committed.get("cost_parameters") or {}).get("rating_source")
