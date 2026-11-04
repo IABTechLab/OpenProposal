@@ -67,8 +67,8 @@ EXAMPLES = ROOT / "examples"
 # Object types whose extra keys are allowed.
 OPEN_TYPES = {"DocumentRef", "ErrorObject", "CostParameters"}
 # A named type that holds the keys of another.
-COMPOSES = {"Commitment": ["CommitmentAmount"], "MinCommitment": ["CommitmentAmount"],
-            "ManifestEntry": ["ProposalSummary"]}
+COMPOSES = {"App": ["AppId"], "Commitment": ["CommitmentAmount"],
+            "MinCommitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSummary"]}
 # Named types that hold the keys of BuyerWrites (section 3.4), a path list.
 WRITES_TYPES = {"LineItemWrites"}
 # Named types that hold the keys of a Selectable[T], with their T, and add their own rows.
@@ -219,6 +219,13 @@ CONDITIONS = {
     "the line item counts impressions": lambda o, i, p: _counts_impressions(i),
     "`source_type` is not Publisher Provided (`2`)": lambda o, i, p: o.get("source_type") != 2,
     "a property has `sync_groups[]`": lambda o, i, p: _has_sync_groups(i),
+    "`apps[]` is absent": lambda o, i, p: "apps" not in o,
+    "`domains[]` is absent": lambda o, i, p: "domains" not in o,
+    "`seller_relationship` is `reseller`, or the line item offers a deal mechanism (§ 5.9)":
+        lambda o, i, p: o.get("seller_relationship") == "reseller" or _is_deal(_mechanisms(i)),
+    "`child_audience` is `mixed`": lambda o, i, p: o.get("child_audience") == "mixed",
+    "`channel` is `dooh` and `allocation` is `all`":
+        lambda o, i, p: i.get("channel") == "dooh" and o.get("allocation", "all") == "all",
     "the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
         lambda o, i, p: "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
         or any("unit_bounds" in e for e in i.get("pricing", [])),

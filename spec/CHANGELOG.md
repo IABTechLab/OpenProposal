@@ -5,6 +5,25 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2.1, § 2.6, § 2.7, § 5.2, § 5.2.4 to § 5.2.8, § 5.5, § 5.6, § 5.6.4, examples, checkers —
+  seller relationship and the property option. `PropertyOption` has one key table in § 5.2.4,
+  and a screen has its own in § 5.2.8, with `Loop` and `SyncGroup`. App identity, seller
+  relationship, child-directed status, and DOOH screens each have a numbered section. Each
+  property states the seller's relationship and the accounts a buyer checks against the
+  governing ads.txt or app-ads.txt. An app's governing developer domain comes from the store
+  listing. Properties declare `child_audience` and `child_treatment`, and § 5.2.7 states
+  what follows. `AppId` is `{ store, bundle }` and `App` adds `store_url` and
+  `developer_domain`. `platform` becomes `store`, a `VocabularyTerm` that names the store
+  rather than the device, stated once. A block list's `app_bundle[]` becomes `apps[]` of
+  `AppId`. A summary lists each property's apps, `child_audience`, and `seller_relationship`.
+  Absent `properties` promises no property, and the audio example names one. A key table
+  follows a lead-in that names its type, and an object option's type ends `Option`. Breaking
+  ([#88](https://github.com/IABTechLab/OpenProposal/issues/88),
+  [#15](https://github.com/IABTechLab/OpenProposal/issues/15),
+  [#96](https://github.com/IABTechLab/OpenProposal/issues/96),
+  [#97](https://github.com/IABTechLab/OpenProposal/issues/97),
+  [#71](https://github.com/IABTechLab/OpenProposal/pull/71)).
+
 - § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
   examples, checker — DOOH properties, plays, and impressions. When `channel` is `dooh`, a
   property is a set of screens of one venue type. It carries `venue_type`, `allocation`,

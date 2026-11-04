@@ -20,12 +20,12 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:12da9aebc30cd2b9ed2ca73e866a4e04f93eb1191094efd3a8a6dd72ab5a9d62",
+      record_digest: "sha256:bd58bea747b378a22eba2743a4222c863dba31b4b1980fe63a066e1403df04fe",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:14:03Z",
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:12da9aebc30cd2b9ed2ca73e866a4e04f93eb1191094efd3a8a6dd72ab5a9d62",
+      record_digest: "sha256:bd58bea747b378a22eba2743a4222c863dba31b4b1980fe63a066e1403df04fe",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:31:47Z" }
 
@@ -53,7 +53,9 @@ line_items:
     status:         agreed
     channel:        display
     properties:
-      available:    [{ id: "business-daily", domains: ["business-daily.example"] }]
+      available:    [{ id: "business-daily", domains: ["business-daily.example"],
+                       child_audience: general, seller_relationship: owner,
+                       seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }] }]
       included:     ["business-daily"]
     buyer_supplied:
       suppression_allowed: true
@@ -126,7 +128,13 @@ line_items:
   - line_item_id:   "weather-app-ctv"
     status:         published
     channel:        ctv
-    properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+    properties:
+      available:    [{ id: "weather-app",
+                       apps: [{ store: roku_channel_store, bundle: "000000",
+                                developer_domain: "weather-app.example" }],
+                       child_audience: general, seller_relationship: owner,
+                       seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }] }]
+      included:     ["weather-app"]
     formats:
       available:    ["ctv/instream-15s"]
       included:     ["ctv/instream-15s"]

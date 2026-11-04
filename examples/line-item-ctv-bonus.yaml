@@ -5,7 +5,17 @@
 line_item_id:   "weather-app-ctv-bonus"
 status:         published
 channel:        ctv
-properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+properties:
+  available:
+    - id: "weather-app"
+      apps:
+        - { store: roku_channel_store, bundle: "000000",
+            store_url: "https://channelstore.roku.com/details/000000/weather-app",
+            developer_domain: "weather-app.example" }
+      child_audience: general
+      seller_relationship: owner
+      seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }]
+  included: ["weather-app"]
 environments:   { available: ["ctv"], included: ["ctv"] }
 formats:        { available: ["ctv/instream-15s"], included: ["ctv/instream-15s"] }
 creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }

@@ -6,8 +6,17 @@ status:         published
 channel:        display
 
 properties:
-  available:    [{ id: "business-daily", domains: ["business-daily.example"] },
-                 { id: "markets-weekly", domains: ["markets-weekly.example"] }]
+  available:
+    - id: "business-daily"
+      domains: ["business-daily.example"]
+      child_audience: general
+      seller_relationship: owner
+      seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }]
+    - id: "markets-weekly"
+      domains: ["markets-weekly.example"]
+      child_audience: general
+      seller_relationship: owner
+      seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }]
   included:     ["business-daily"]
   deltas:       { markets-weekly: { delta_cpm: 2.00 } }
   max_select:   2

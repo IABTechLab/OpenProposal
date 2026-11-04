@@ -235,6 +235,10 @@ content_detail
 properties.available[].id
 properties.available[].name
 properties.available[].domains[]
+properties.available[].apps[].store
+properties.available[].apps[].bundle
+properties.available[].child_audience
+properties.available[].seller_relationship
 properties.available[].venue_type
 audiences.available[].id
 audiences.available[].name
@@ -510,7 +514,8 @@ ext:
 Description. A key table has the columns Key, Type, Required, and Meaning, and MAY
 add a last column that names a source standard. The key table of a `mixed` field adds
 Mutability as its last column. A row names one key, and a key that holds an array ends
-`[]`.
+`[]`. A key table follows a lead-in that names its type in bold. The type of an object
+option in a `Selectable[T]` ends `Option`.
 
 A value table has one row per value of a list. Its first header cell is the code name
 of the key that holds the list. Its first column equals the list, so it defines no
@@ -571,7 +576,7 @@ that list.
 required. Otherwise, absence means none.
 
 **Paths.** Prose names a field by its full table path, such as
-`properties.available[].domains[]`. The key alone is enough in the section that
+`properties.available[].apps[].store`. The key alone is enough in the section that
 holds its table, beside the object it belongs to, or beside a reference to that
 section. A value that points into a document is a `FieldPointer`.
 
@@ -588,7 +593,7 @@ model. An agent keeps it apart from its own instructions, and rests a decision t
 assent or spend on the structured fields, not on prose alone.
 
 **URLs.** A document names URLs its author chose: `proposals[].full_url`,
-a `DocumentRef`'s `url`, an `Asset`'s `url`, and a `CreativeDelivery`'s `endpoint`. Fetching one lets the
+a `DocumentRef`'s `url`, an `Asset`'s `url`, a `CreativeDelivery`'s `endpoint`, and an `App`'s `store_url`. Fetching one lets the
 author choose where a client connects. A client uses `https`, bounds the size of a
 response and the number of redirects, and refuses an address inside its own
 network, on every redirect as well. § 5.4.1 covers what inspecting a creative may
@@ -1340,45 +1345,9 @@ General (1), Phone (4), and Tablet (5).
 
 | Field | Type | Required | Mutability | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | Options of `{ id, name, domains[], venue_type, allocation, min_screens, screens[], slots_per_loop, sync_groups[] }`. The DOOH keys are below |
+| `properties` | Selectable[PropertyOption] | OPTIONAL | selectable | What the line item runs on. See 5.2.4. Absent: the seller promises no property |
 | `content_detail` | Object | OPTIONAL | seller-set | Shows, series, sections, network verticals |
 | `environments` | Selectable[Environment] | OPTIONAL | selectable | The distribution channels and device types the line item runs on. See 5.2.1. Absent: the seller promises no environment |
-
-**DOOH properties.** When `channel` is `dooh`, a property is a set of screens of one
-venue type, and `domains[]` holds the inventory owner's domain, as OpenRTB 2.6
-`dooh.domain`. Each entry in `properties.available[]` carries these keys:
-
-- `venue_type`: REQUIRED. A `TaxonomyCodes` (§ 2.2) whose `taxonomy` is a value of
-  AdCOM 1.0 List: DOOH Venue Taxonomies. `ids[]` holds exactly one id. It covers only
-  itself, not its descendants. The values OpenRTB 2.6 `dooh.venuetypetax` and
-  `dooh.venuetype` carry.
-- `allocation`: OPTIONAL. `all` \| `seller_allocated`. Absent means `all`. With `all`,
-  the line item runs on every listed screen. With `seller_allocated`, the seller picks
-  the screens: `screens[]`, when present, is the pool it picks from and is
-  seller-set, and the proof-of-play log names the screens used.
-- `min_screens`: OPTIONAL. With `seller_allocated`, the fewest screens the seller
-  allocates to the line item.
-- `screens[]`: REQUIRED when `allocation` is `all`. Each screen is
-  `{ screen_id, lat, lon, movable, time_zone, operating_hours[], loop }`. `screen_id`
-  is the seller's id for the screen, as its proof-of-play log carries it. When the bid
-  request's `device.ifa_type` is `ppid`, `device.ifa` carries the same id. `lat` and
-  `lon` are absent when `movable` is true. `time_zone` is an `IanaZone`.
-  `operating_hours[]` holds `ClockWindow` entries (§ 5.5), in the screen's
-  `time_zone`. `loop` is `{ length_s, slot_s }`, in integer seconds: loop length and
-  slot length. It is absent when the screen schedules ads without a loop.
-- `slots_per_loop`: OPTIONAL. The slots per loop the line item buys on each screen of
-  the property that has a `loop`.
-- `sync_groups[]`: OPTIONAL. Screens that show the same ad at the same moment, sold as
-  one. Each group is `{ sync_group_id, screen_ids[], min_screens_per_play }`.
-  `screen_ids[]` holds the `screen_id` of each screen in the group.
-  `min_screens_per_play` is the fewest of the group's screens that must show a display
-  for it to count as one play (§ 5.6.4).
-
-With `seller_allocated`, a buyer value MUST NOT name or exclude individual
-screens.
-
-With a `loop`, a screen delivers `slots_per_loop` × 3,600 ÷ `length_s` plays per
-operating hour.
 
 #### 5.2.1 environments
 
@@ -1398,19 +1367,125 @@ row. Device types are as in 5.1.1.
 Each `environments.available[]` value MUST match at least one impression to
 which 5.1.1 gives the line item's `channel`.
 
-**App identity.** `apps[]` identifies the apps behind a property sold in
-`app_mobile` or `ctv`. Keys follow the OpenRTB 2.6 `app` object where one
-exists.
+#### 5.2.4 properties
 
-| Key | Required | Meaning |
-| :--- | :--- | :--- |
-| `platform` | REQUIRED | The app store that issued `bundle`: `ios` (Apple App Store) \| `android` (Google Play) \| `roku` (Roku Channel Store) \| `fire_tv` (Amazon Appstore) \| `samsung_tv` (Samsung Apps TV) and other stores. A `bundle` is unique only within its store. No OpenRTB equivalent |
-| `bundle` | REQUIRED | Store ID. As OpenRTB 2.6 `app.bundle` |
-| `storeurl` | OPTIONAL | Store listing URL. As `app.storeurl` |
-| `developer_domain` | RECOMMENDED | Developer domain from the store listing, against which `app-ads.txt` is checked. No OpenRTB equivalent: not `app.domain`, which is the domain of the app |
+Each option in `available[]`:
 
-Seller authorisation for an app is checked through `app-ads.txt` on its
-developer domain, not through the property's `domains`.
+**`PropertyOption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `id` | String | REQUIRED | Option id (§ 3.1) |
+| `name` | String | OPTIONAL | The property's name, for people |
+| `domains[]` | Array[Domain] | REQUIRED when `apps[]` is absent | The property's domains. On a `dooh` line item, the inventory owner's domain, as OpenRTB 2.6 `dooh.domain` |
+| `apps[]` | Array[App] | REQUIRED when `domains[]` is absent | The apps behind a property sold in `app_mobile` or `ctv` (§ 5.2.5) |
+| `seller_relationship` | Enum | REQUIRED | `owner` \| `manager` \| `inventory_partner` \| `reseller`, checked as § 5.2.6 states |
+| `inventory_partner_domain` | Domain | OPTIONAL | As OpenRTB 2.6 `site.inventorypartnerdomain` and `app.inventorypartnerdomain` |
+| `seller_accounts[]` | Array[SellerAccount] | REQUIRED when `seller_relationship` is `reseller`, or the line item offers a deal mechanism (§ 5.9) | The accounts that sell the property |
+| `child_audience` | Enum | REQUIRED | `directed` \| `mixed` \| `general`. `directed`: children are its primary audience under the law the seller applies, or its app store lists it for children only. `mixed`: directed to children but not as its primary audience, or listed for children and older users. `general`: neither. § 5.2.7 states what follows |
+| `child_treatment` | Enum | REQUIRED when `child_audience` is `mixed` | `excluded` \| `contextual`. `excluded`: users identified as children don't receive the line item. `contextual`: they receive it without personal data |
+| `venue_type` | TaxonomyCodes | REQUIRED when `channel` is `dooh` | `taxonomy` is a value of AdCOM 1.0 List: DOOH Venue Taxonomies. `ids[]` holds exactly one id. It covers only itself, not its descendants. The values OpenRTB 2.6 `dooh.venuetypetax` and `dooh.venuetype` carry |
+| `allocation` | Enum | OPTIONAL | `all` \| `seller_allocated`. Absent means `all`. With `all`, the line item runs on every listed screen. With `seller_allocated`, the seller picks the screens: `screens[]`, when present, is the pool it picks from and is seller-set, and the proof-of-play log names the screens used |
+| `min_screens` | Integer | OPTIONAL | With `seller_allocated`, the fewest screens the seller allocates to the line item |
+| `screens[]` | Array[Screen] | REQUIRED when `channel` is `dooh` and `allocation` is `all` | The property's screens (§ 5.2.8) |
+| `slots_per_loop` | Integer | OPTIONAL | The slots per loop the line item buys on each screen of the property that has a `loop` |
+| `sync_groups[]` | Array[SyncGroup] | OPTIONAL | Screens that show the same ad at the same moment, sold as one (§ 5.2.8) |
+
+#### 5.2.5 App identity
+
+**`AppId`** names an app within its store. A block list (§ 5.5) holds `AppId` entries.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `store` | VocabularyTerm | REQUIRED | The app store that issued `bundle`. Core terms: `apple_app_store` \| `google_play` \| `roku_channel_store` \| `amazon_appstore` \| `samsung_apps_tv`. A `bundle` is unique only within its store. No OpenRTB equivalent |
+| `bundle` | String | REQUIRED | Store ID. As OpenRTB 2.6 `app.bundle` |
+
+**`App`** holds the keys of `AppId` and these:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `store_url` | Url | OPTIONAL | Store listing URL. As OpenRTB 2.6 `app.storeurl` |
+| `developer_domain` | Domain | RECOMMENDED | Developer domain, informative; the governing developer domain comes from the store listing. No OpenRTB equivalent: not `app.domain`, which is the domain of the app |
+
+#### 5.2.6 Seller relationship
+
+Each property states by what right `seller.domain` sells it.
+
+**`SellerAccount`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `asi` | Domain | REQUIRED | As ads.txt field 1, Domain name of the advertising system |
+| `sid` | String | REQUIRED | As ads.txt field 2, Publisher's Account ID |
+
+The governing file is the ads.txt of each `domains[]` entry, or the app-ads.txt
+of the developer domain in the app's store listing (found by `store_url`, or by
+`store` and `bundle`), not `apps[].developer_domain`. For
+`seller_accounts[]`, it is the ads.txt of `inventory_partner_domain` when present,
+or of `seller.domain` when `seller_relationship` is `inventory_partner`.
+
+| `seller_relationship` | The governing file declares |
+| :--- | :--- |
+| `owner` | `OWNERDOMAIN` equal to `seller.domain`. With no `OWNERDOMAIN`: the domain serving the file equal to `seller.domain`, or a `DIRECT` record for a `seller_accounts[]` entry that sellers.json types `PUBLISHER` or `BOTH` |
+| `manager` | `MANAGERDOMAIN` equal to `seller.domain`, global or for every country the line item's `geo` or `markets` allows |
+| `inventory_partner` | `INVENTORYPARTNERDOMAIN` equal to `seller.domain` |
+| `reseller` | A `RESELLER` record for a `seller_accounts[]` entry |
+
+Each `seller_accounts[]` entry MUST be a record in the governing file.
+A seller MUST NOT state a relationship its governing file, where one exists,
+does not support. A consumer that checks MUST use this table, and confirms that
+sellers.json at `asi` lists `sid` as a `seller_id`, with `domain` equal to
+`seller.domain` where the entry carries `domain`. With no governing file, or a
+confidential entry, the claim is unverifiable, not failed. Whether to check, and
+what follows, is buyer policy.
+
+#### 5.2.7 Child-directed status
+
+A line item with a `directed` entry in `properties.available[]` SHOULD NOT carry
+`audiences`, and its `buyer_supplied.segments_allowed` and `suppression_allowed`
+SHOULD be false. Where that property's app store bars behavioral advertising
+(Apple's Kids Category, Google Play's Families policies), the line item MUST NOT
+carry `audiences`, and both flags MUST be false.
+
+Beyond these rules, this specification does not decide where an option or a
+property may lawfully be used.
+
+#### 5.2.8 DOOH screens
+
+When `channel` is `dooh`, a property is a set of screens of one venue type.
+
+**`Screen`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `screen_id` | String | REQUIRED | The seller's id for the screen, as its proof-of-play log carries it. When the bid request's `device.ifa_type` is `ppid`, as the [OpenRTB 2.6 implementation guide](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/implementation.md#7925-key-object-attributes-to-use-for-dooh-device-reference-in-openrtb) (§ 7.9.2.5) uses it, `device.ifa` carries the same id |
+| `lat` | Number | OPTIONAL | Latitude, as OpenRTB 2.6 `geo.lat`. Absent when `movable` is true |
+| `lon` | Number | OPTIONAL | Longitude, as OpenRTB 2.6 `geo.lon`. Absent when `movable` is true |
+| `movable` | Boolean | OPTIONAL | True when the screen has no fixed location, as AdCOM 1.0 `Dooh.fixed` value 2 (movable) |
+| `time_zone` | IanaZone | OPTIONAL | The screen's time zone |
+| `operating_hours[]` | Array[ClockWindow] | OPTIONAL | `ClockWindow` entries (§ 5.5), in the screen's `time_zone` |
+| `loop` | Loop | OPTIONAL | Absent when the screen schedules ads without a loop |
+
+**`Loop`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `length_s` | Integer | REQUIRED | Loop length, in seconds |
+| `slot_s` | Integer | REQUIRED | Slot length, in seconds |
+
+**`SyncGroup`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `sync_group_id` | String | REQUIRED | The group's id |
+| `screen_ids[]` | Array[String] | REQUIRED | The `screen_id` of each screen in the group |
+| `min_screens_per_play` | Integer | REQUIRED | The fewest of the group's screens that must show a display for it to count as one play (§ 5.6.4) |
+
+With `seller_allocated`, a buyer value MUST NOT name or exclude individual
+screens.
+
+With a `loop`, a screen delivers `slots_per_loop` × 3,600 ÷ `length_s` plays per
+operating hour.
 
 ### 5.3 Audience reach
 
@@ -1540,32 +1615,29 @@ buyer supplies its lists.
 | `time_zone` | ZoneName | REQUIRED when `daypart` or `frequency_cap` is present | seller-set | The clock for `daypart` and a calendar `frequency_cap.period` |
 | `frequency_cap` | FrequencyCap | OPTIONAL | settable | See below |
 | `exclusions_accepted` | Object | OPTIONAL | seller-set | What the seller can enforce: `{ types[], max_entries, enforcement, verification[] }`. See below |
-| `exclusions` | Object | OPTIONAL | supplied | The buyer's block lists: `{ domain[], app_bundle[], iab_content_category[], keyword[], list_ref }`. See below |
+| `exclusions` | Object | OPTIONAL | supplied | The buyer's block lists: `{ domain[], apps[], iab_content_category[], keyword[], list_ref }`. See below |
 
 **Block lists.** The seller declares which exclusion types it accepts and how it
 enforces each; the buyer supplies its lists within that declaration.
 
 ```yaml
 exclusions_accepted:
-  types:        [domain, app_bundle, iab_content_category, keyword]
+  types:        [domain, apps, iab_content_category, keyword]
   max_entries:  { domain: 5000, keyword: 500 }
-  enforcement:  { domain: pre_serve, app_bundle: pre_serve,
+  enforcement:  { domain: pre_serve, apps: pre_serve,
                   iab_content_category: pre_serve, keyword: best_effort }
   verification: ["integralads.com", "doubleverify.com"]
 
 exclusions:
   domain:           ["example-gambling.example"]
-  app_bundle:       [{ platform: roku, bundle: "123456" }]
+  apps:             [{ store: roku_channel_store, bundle: "123456" }]
   iab_content_category: ["IAB-CT3.0:<id>"]   # IAB Content Taxonomy ids
   keyword:          ["crypto"]
   list_ref:         { url: "<url>", digest: "<Digest>" }
 ```
 
-- Each `app_bundle[]` entry is `{ platform, bundle }`. `bundle` is the OpenRTB
-  2.6 `app.bundle` value; `platform` names the store (`ios` \| `android` \|
-  `roku` \| `fire_tv` \| `samsung_tv` and other store platforms). A seller MUST
-  reject an entry whose platform it cannot determine, rather than apply it
-  across stores, with `validation`.
+- Each `apps[]` entry is an `AppId` (§ 5.2.5). A seller MUST reject an entry whose
+  `store` it doesn't know, rather than apply it across stores, with `validation`.
 - `iab_content_category[]` entries are IAB Content Taxonomy ids.
 - `enforcement` is `pre_serve` or `best_effort` per type.
 - `verification[]` holds the third parties that can attest the seller enforced these
@@ -1716,7 +1788,7 @@ can be higher, so a bid at `agreed_rate` is not guaranteed to clear.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `unit` | VocabularyTerm | REQUIRED | What `quantity` counts. Core terms: the `unit` terms of § 5.6.5, and `slots_per_loop` (as the § 5.2 key) \| `unit_periods` (one unit for one period, such as a board for a 4-week cycle). A receiver that doesn't know a term can't compare the figure, and still reads the line item |
+| `unit` | VocabularyTerm | REQUIRED | What `quantity` counts. Core terms: the `unit` terms of § 5.6.5, and `slots_per_loop` (as the § 5.2.4 key) \| `unit_periods` (one unit for one period, such as a board for a 4-week cycle). A receiver that doesn't know a term can't compare the figure, and still reads the line item |
 | `quantity` | Number | REQUIRED | How many. It can be fractional where the unit is, such as `rating_points` per `day` |
 | `computed_at` | Instant | REQUIRED | When the seller computed it |
 | `window` | Interval | REQUIRED | The dates `quantity` covers. On a read (§ 3.3) or a decline (§ 5.6.1), the flight the buyer sent |
@@ -1929,7 +2001,7 @@ self-contained.
 On a `dooh` line item, a **play** is one display of an ad on one screen,
 inside the screen's operating hours, that ends no more than
 `play_tolerance_ms` short of the ad's full duration and that the
-proof-of-play log records. On a sync group (§ 5.2), a display that
+proof-of-play log records. On a sync group (§ 5.2.8), a display that
 meets those conditions on at least `min_screens_per_play` of its screens is
 one play, not one per screen. An **impression** is a play times the
 multiplier for that screen or sync group at that time. Every impression

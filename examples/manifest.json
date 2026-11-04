@@ -25,6 +25,25 @@
               "app_mobile"
             ]
           },
+          "properties": {
+            "available": [
+              {
+                "id": "tune-stream",
+                "name": "Tune Stream",
+                "domains": [
+                  "tune-stream.example"
+                ],
+                "apps": [
+                  {
+                    "store": "apple_app_store",
+                    "bundle": "000003"
+                  }
+                ],
+                "child_audience": "general",
+                "seller_relationship": "owner"
+              }
+            ]
+          },
           "formats": {
             "included": [
               "audio/produced-30s"
@@ -91,7 +110,15 @@
           "properties": {
             "available": [
               {
-                "id": "weather-app"
+                "id": "weather-app",
+                "apps": [
+                  {
+                    "store": "roku_channel_store",
+                    "bundle": "000000"
+                  }
+                ],
+                "child_audience": "general",
+                "seller_relationship": "owner"
               }
             ]
           },
