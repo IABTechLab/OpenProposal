@@ -5,7 +5,8 @@
 line_item_id:   "show-x-host-read-baked"
 status:         published
 channel:        audio
-properties:     { available: [{ id: "show-x", name: "Show X", domains: ["show-x.example"] }],
+properties:     { available: [{ id: "show-x", name: "Show X", domains: ["show-x.example"],
+                                child_audience: general, seller_relationship: owner }],
                   included: ["show-x"] }
 placement:      { feed: 3 }                 # Podcast (3) (§ 5.2.2)
 episodes:       new                         # required on a podcast feed (§ 5.2); new under embedded (§ 5.9)

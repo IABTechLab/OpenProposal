@@ -27,6 +27,48 @@ issue that caused it, so the comment record and the spec history line up.
   [#100](https://github.com/IABTechLab/OpenProposal/issues/100),
   [#101](https://github.com/IABTechLab/OpenProposal/issues/101),
   [#89](https://github.com/IABTechLab/OpenProposal/issues/89)).
+- § 2.4, § 2.6, § 2.7, § 3, § 3.4, § 4.1.1, § 4.1.3, § 5.3, § 5.5, § 5.6, § 5.6.1, § 5.8, § 6.3,
+  appendices, examples, checkers — audience and block lists. `AudienceOption`, `AudienceSelectable`,
+  `BuyerSupplied`, `BuyerList`, and `AddressableScale` have key tables. An audience option states its
+  `taxonomy`, its Data Transparency Standard `data_label`, and its `sensitive_categories[]`. `combine` is
+  a `Selectable`, so `included[]` names the operator in effect and the buyer's `selected[]` changes it.
+  A buyer names the options it excludes in `excluded[]`, and their deltas count. The option-level
+  `addressable_scale` is removed: `data_label.audience_size` states the segment's size, and the line
+  item's figure is the recomputed one. `activation_route` names `seller_side` for the seller's systems.
+  `match_rate_expected` becomes `expected_match_rate`, which changes without a new version.
+  `exclusions_accepted` becomes `accepted_exclusions`, with one map from exclusion type to `enforcement`
+  and `max_entries`. An exclusion type is a `VocabularyTerm`, with core terms `domains`, `apps`,
+  `categories`, and `keywords`. `exclusions` is keyed by type, and each value is an array of entries or
+  a `DocumentRef`, which replaces `list_ref`. A category entry is a `TaxonomyCodes`, and a `domains` or
+  `categories` entry covers only itself. Exclusions added after `agreed` are a delivery. A seller
+  discloses a buyer's `exclusions` only to that buyer and the systems and vendors that enforce or
+  verify them for this line item, and § 5.5 states the rule. The CTV example shows `keywords` accepted
+  only as `best_effort`.
+  Breaking
+  ([#91](https://github.com/IABTechLab/OpenProposal/issues/91),
+  [#97](https://github.com/IABTechLab/OpenProposal/issues/97),
+  [#39](https://github.com/IABTechLab/OpenProposal/issues/39),
+  [#25](https://github.com/IABTechLab/OpenProposal/issues/25),
+  [#71](https://github.com/IABTechLab/OpenProposal/pull/71)).
+
+- § 2.1, § 2.6, § 2.7, § 5.2, § 5.2.4 to § 5.2.8, § 5.5, § 5.6, § 5.6.4, examples, checkers —
+  seller relationship and the property option. `PropertyOption` has one key table in § 5.2.4,
+  and a screen has its own in § 5.2.8, with `Loop` and `SyncGroup`. App identity, seller
+  relationship, child-directed status, and DOOH screens each have a numbered section. Each
+  property states the seller's relationship and the accounts a buyer checks against the
+  governing ads.txt or app-ads.txt. An app's governing developer domain comes from the store
+  listing. Properties declare `child_audience` and `child_treatment`, and § 5.2.7 states
+  what follows. `AppId` is `{ store, bundle }` and `App` adds `store_url` and
+  `developer_domain`. `platform` becomes `store`, a `VocabularyTerm` that names the store
+  rather than the device, stated once. A block list's `app_bundle[]` becomes `apps[]` of
+  `AppId`. A summary lists each property's apps, `child_audience`, and `seller_relationship`.
+  Absent `properties` promises no property, and the audio example names one. A key table
+  follows a lead-in that names its type, and an object option's type ends `Option`. Breaking
+  ([#88](https://github.com/IABTechLab/OpenProposal/issues/88),
+  [#15](https://github.com/IABTechLab/OpenProposal/issues/15),
+  [#96](https://github.com/IABTechLab/OpenProposal/issues/96),
+  [#97](https://github.com/IABTechLab/OpenProposal/issues/97),
+  [#71](https://github.com/IABTechLab/OpenProposal/pull/71)).
 
 - § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
   examples, checker — DOOH properties, plays, and impressions. When `channel` is `dooh`, a
@@ -366,6 +408,9 @@ issue that caused it, so the comment record and the spec history line up.
   placement subtype, skippability, playback, API frameworks and refresh.
   `plcmt` is REQUIRED for video ads. Breaking
   ([#89](https://github.com/IABTechLab/OpenProposal/issues/89)).
+- § 5.2 — Properties can carry `apps[]` for app and CTV inventory, keyed as
+  OpenRTB 2.6 `app`, and the Summary Representation lists the app identifier
+  ([#15](https://github.com/IABTechLab/OpenProposal/issues/15)).
 
 ## [3.0-draft-1] — 2026-09-22
 

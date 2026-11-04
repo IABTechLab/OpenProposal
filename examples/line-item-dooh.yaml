@@ -9,6 +9,9 @@ properties:
     - id: "metro-platforms-north"
       name: "Metro platforms, north line"
       domains: ["metro-media.example"]
+      child_audience: general
+      seller_relationship: owner
+      seller_accounts: [{ asi: "ssp-a.example", sid: "pub-3001" }]
       venue_type: { taxonomy: 5, ids: ["10502"] }   # 5: OpenOOH Venue Taxonomy 1.1; 10502: transit.subway.platform
       screens:                                      # abridged: 200 screens with these keys
         - screen_id: "np-001"

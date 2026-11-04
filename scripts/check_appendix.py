@@ -14,7 +14,8 @@ presence, and marker. It also enforces the table grammar of section 2.6:
   - A Type cell parses, a generic in it takes no bare Enum, and each name in it is a
     base type, a shared type, or a named key table. Names and Object rows waiting on another change are in
     PENDING_TYPES and PENDING_OBJECTS. Both lists only shrink.
-  - A key table follows a bold lead-in that names its type.
+  - A key table follows a bold lead-in that names its type, and the type of an
+    object option in a Selectable ends Option.
   - The key table of a mixed field, and only that table, has a Mutability column of
     markers. pricing[] has no key table: its rows carry the markers.
     A lead-in's "each `<marker>`" names a marker of section 3 too.
@@ -48,9 +49,11 @@ LAYOUTS = {
     ("`transaction_mechanism`", "Downstream standard", "`reference_type` (§ 5.10)", "Change path"),
     ("`transaction_mechanism`", "Deal mechanism", "`delivery_type`"),
     ("`metric`", "Kind", "Usual `direction`", "Definition"),
+    ("`exclusions`", "Entry", "Meaning"),
     ("`method`", "Who hosts the creative", "What reaches the seller"),
     ("`code`", "Returned when"),
     ("`channel`", "Condition"),
+    ("`seller_relationship`", "The governing file declares"),
     ("`environments`", "Distribution channel", "Device types"),
     ("`cost_method`", "`unit`", "One unit", "Rate per", "`cost_parameters`"),
     # Other tables state rules as prose does (section 2.6).
@@ -72,22 +75,17 @@ BASE_TYPES = {
 
 # Named in a Type cell before the change that gives them a key table. Remove a
 # name when its table lands. This list only shrinks.
-PENDING_TYPES = {
-    "PropertyOption": "the property option",
-    "AudienceOption": "the audience option",
-    "BuyerSupplied": "the buyer-supplied audience data",
-}
+PENDING_TYPES = {}
 
 # Objects typed Object: open by definition, small and inline, or waiting on the
 # change that names them. Remove an entry when its table lands. Only shrinks.
 PENDING_OBJECTS = {
     "`specs`": "waiting: the format spec",
     "`approval`": "waiting: the review policy",
-    "`exclusions_accepted`": "waiting: the accepted exclusion terms",
-    "`exclusions`": "waiting: the exclusion lists",
     "`creative_policy`": "waiting: the creative policy",
     "`contacts[]`": "imported: OpenDirect 2.1 Contact",
     "`content`": "imported: AdCOM 1.0 Content",
+    "`data_label`": "imported: Data Transparency Standard 1.1",
     "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
 }
 
@@ -100,6 +98,9 @@ PRESENCE = re.compile(r"^(REQUIRED|OPTIONAL|RECOMMENDED|REQUIRED when .+)$")
 ONE_KEY = re.compile(r"^`[^`]+`$")
 LEAD_IN = re.compile(r"^\*\*`([A-Z][A-Za-z]+)`")
 SHARED_TYPE = re.compile(r"`([A-Z][A-Za-z]+)`")
+SELECTABLE_OBJECT = re.compile(r"^Selectable\[([A-Z][A-Za-z]+)\]$")
+SELECTABLE_HOLDER = re.compile(r"^\*\*`[A-Za-z]+`\*\* holds the keys of `Selectable\[([A-Z][A-Za-z]+)\]`")
+STRING_OPTIONS = {"String", "VocabularyTerm", "GeoCode", "Environment", "CombineOperator"}
 ISSUE_CITE = re.compile(r"(?<![\w/&])#\d+\b|/issues/\d+")
 
 
@@ -156,6 +157,9 @@ def lint_tables(lines, markers, errors):
     objects_seen = set()
     mixed_types, key_tables = set(), {}
     for n, line in enumerate(lines):
+        holder = SELECTABLE_HOLDER.match(line)
+        if holder and holder.group(1) not in STRING_OPTIONS and not holder.group(1).endswith("Option"):
+            errors.append(f"line {n + 1}: the type of an object option ends Option: {holder.group(1)}")
         for marker in re.findall(r"^\*\*`[A-Za-z]+`\*\* holds the keys of `[^`]+`, each `([^`]+)`", line):
             if marker not in markers:
                 errors.append(f"line {n + 1}: marker not defined in section 3: {marker}")
@@ -192,6 +196,9 @@ def lint_tables(lines, markers, errors):
                     errors.append(f"{where}: a key ends [] exactly when it holds an Array: {key} {typ}")
                 if not PRESENCE.match(required):
                     errors.append(f"{where}: Required cell is not in the grammar: {required}")
+                option = SELECTABLE_OBJECT.match(typ)
+                if option and option.group(1) not in STRING_OPTIONS and not option.group(1).endswith("Option"):
+                    errors.append(f"{where}: the type of an object option ends Option: {typ}")
                 names = type_names(typ)
                 if names is None:
                     errors.append(f"{where}: Type cell does not parse: {typ}")

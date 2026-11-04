@@ -11,6 +11,10 @@ change to this script. It checks:
     Type: Instant, Duration, Digest, Domain, VocabularyTerm, the other shared types,
     and the base types. An Enum value is on the list its row opens with.
   - Option names are unique, and included[], selected[], and deltas name options.
+  - excluded[] names excludable options outside the set in effect, and combine holds
+    the operators section 5.3 lists, with one in effect and no deltas.
+  - An exclusions entry is an array of its type's entries or a DocumentRef, and its
+    type is one accepted_exclusions accepts. A Map key has the Map's key type.
   - selected[] or included[] fits max_select, and an empty set has a stated meaning
     (section 3.1).
   - A settable field holds its form, and each buyer value is within its bounds
@@ -31,7 +35,7 @@ change to this script. It checks:
   - The manifest is a strict path subset of the full objects (section 2.1), and lists
     each public, published line item (section 2.3).
   - seller and buyer on a proposal hold legal_name (section 4.1).
-  - Each section 4.1.1 removal path resolves to a table row.
+  - Each section 4.1.1 removal path resolves to a table row, below a typed field too.
   - An array whose row says MUST be non-empty holds an entry.
   - record_digest in examples/proposal-agreed.yaml and examples/proposal-issued.yaml
     recomputes under section 4.1.1, over the line items each entry names, and a
@@ -69,12 +73,12 @@ EXAMPLES = ROOT / "examples"
 # Object types whose extra keys are allowed.
 OPEN_TYPES = {"DocumentRef", "ErrorObject", "CostParameters"}
 # A named type that holds the keys of another.
-COMPOSES = {"Commitment": ["CommitmentAmount"], "MinCommitment": ["CommitmentAmount"],
-            "ManifestEntry": ["ProposalSummary"]}
+COMPOSES = {"App": ["AppId"], "Commitment": ["CommitmentAmount"],
+            "MinCommitment": ["CommitmentAmount"], "ManifestEntry": ["ProposalSummary"]}
 # Named types that hold the keys of BuyerWrites (section 3.4), a path list.
 WRITES_TYPES = {"LineItemWrites"}
 # Named types that hold the keys of a Selectable[T], with their T, and add their own rows.
-SELECTABLE_HOLDERS = {"ShortfallRemedy": "VocabularyTerm"}
+SELECTABLE_HOLDERS = {"ShortfallRemedy": "VocabularyTerm", "AudienceSelectable": "AudienceOption"}
 
 # (file, path, finding): removed by the change named in the comment.
 KNOWN = {
@@ -98,6 +102,8 @@ COST_UNIT = {}
 METRIC_KIND = {}
 # Fields absent when embedded (section 5.9).
 EMBEDDED_ABSENT = []
+# The exclusion type table of section 5.5, as term -> entry type.
+EXCLUSION_ENTRY = {}
 RATE_UNIT_SECONDS = {"hour": 3600, "day": 86400, "week": 604800}
 
 
@@ -123,6 +129,12 @@ def _counts_impressions(item):
     if (item.get("availability") or {}).get("unit") in IMPRESSION_UNITS:
         return True
     return False
+
+
+def _audiences_can_combine(audiences):
+    """Whether more than one seller audience can be in effect (section 5.3)."""
+    options = audiences.get("available", [])
+    return len(options) > 1 and audiences.get("max_select", len(options)) > 1
 
 
 def _has_sync_groups(item):
@@ -229,6 +241,14 @@ CONDITIONS = {
     "the line item counts impressions": lambda o, i, p: _counts_impressions(i),
     "`source_type` is not Publisher Provided (`2`)": lambda o, i, p: o.get("source_type") != 2,
     "a property has `sync_groups[]`": lambda o, i, p: _has_sync_groups(i),
+    "`apps[]` is absent": lambda o, i, p: "apps" not in o,
+    "`domains[]` is absent": lambda o, i, p: "domains" not in o,
+    "`seller_relationship` is `reseller`, or the line item offers a deal mechanism (§ 5.9)":
+        lambda o, i, p: o.get("seller_relationship") == "reseller" or _is_deal(_mechanisms(i)),
+    "`child_audience` is `mixed`": lambda o, i, p: o.get("child_audience") == "mixed",
+    "more than one seller audience can be in effect": lambda o, i, p: _audiences_can_combine(o),
+    "`channel` is `dooh` and `allocation` is `all`":
+        lambda o, i, p: i.get("channel") == "dooh" and o.get("allocation", "all") == "all",
     "`serving_mode` is `embedded` or the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds`":
         lambda o, i, p: i.get("serving_mode") == "embedded"
         or "committed_metrics" in i or "spend" in (i.get("commitment_bounds") or {})
@@ -264,6 +284,7 @@ SCALARS = {
     "RegistrableDomain": (lambda v: isinstance(v, str) and DOMAIN.match(v)),
     "Measurer": (lambda v: v in SIDE or (isinstance(v, str) and DOMAIN.match(v))),
     "VocabularyTerm": (lambda v: isinstance(v, str) and TERM.match(v)),
+    "ExclusionType": (lambda v: isinstance(v, str) and TERM.match(v)),
     "GeoCode": (lambda v: isinstance(v, str) and GEO_CODE.match(v)),
     "ClockTime": (lambda v: isinstance(v, str) and CLOCK_TIME.match(v)),
     "DayOfWeek": (lambda v: v in ("monday", "tuesday", "wednesday", "thursday", "friday",
@@ -376,6 +397,25 @@ class Spec:
         self._read_mechanisms()
         self._read_cost_methods()
         self._read_metrics()
+        self._read_exclusion_types()
+        self._read_closed_types()
+
+    def _read_exclusion_types(self):
+        """The section 5.5 table: the entry type of each core exclusion type."""
+        start = self.lines.index("| `exclusions` | Entry | Meaning |")
+        for line in self.lines[start + 2:]:
+            c = cells(line)
+            if not c:
+                break
+            EXCLUSION_ENTRY[clean_key(c[0])] = clean_key(c[1])
+
+    def _read_closed_types(self):
+        """Closed lists the body names as a type, such as section 5.3's CombineOperator."""
+        for line in self.lines:
+            m = re.match(r"^\*\*`(\w+)`\*\* is ((?:`[^`]+`(?: \\\| )?)+)\.$", line)
+            if m:
+                values = re.findall(r"`([^`]+)`", m.group(2))
+                SCALARS.setdefault(m.group(1), lambda v, values=values: v in values)
 
     def _read_mechanisms(self):
         """The section 5.9 table: deal or not, and the allowed delivery types."""
@@ -422,6 +462,8 @@ class Spec:
                 continue
             if re.search(r"[Nn]othing in effect", row["description"]):
                 EMPTY_ALLOWED.add(key)
+        # Section 5.3 states this one in its numbered conditions, not in the row.
+        EMPTY_ALLOWED.add("audiences")
         IMPRESSION_METHODS.update(re.findall(r"`([A-Z]+)`", self.tables["Delta"]["delta_cpm"]["meaning"]))
 
     def _read_fields(self):
@@ -553,7 +595,12 @@ class Checker:
                 self.err(file, path, "map", f"expected a map, found {type(value).__name__}")
                 return
             for k, item in value.items():
+                if args[0] in SCALARS and not SCALARS[args[0]](k):
+                    self.err(file, f"{path}.{k}", "key", f"key {k!r} is not a {args[0]}")
                 self.check_type(file, f"{path}.{k}", item, args[1])
+            return
+        if base == "ExclusionList":
+            self.check_exclusion_list(file, path, value)
             return
         if base == "Selectable":
             self.check_selectable(file, path, value, args[0])
@@ -649,6 +696,8 @@ class Checker:
             if key not in known:
                 self.err(file, path, key, f"key {key!r} is not a Selectable key")
         for key, row in extra.items():
+            if key not in value and self.required(file, path, row["required"], value):
+                self.err(file, path, key, f"REQUIRED key {key!r} is missing")
             if key in value:
                 self.check_value(file, f"{path}.{key}", value[key], row)
         names = []
@@ -764,6 +813,7 @@ class Checker:
                 continue
             included = value.get("included", [])
             names = [n for n in value.get("selected", included) if n not in included]
+            names += value.get("excluded", [])
             for name in names:
                 delta = (value.get("deltas") or {}).get(name, {})
                 if committed.get("cost_method") in IMPRESSION_METHODS:
@@ -873,6 +923,53 @@ class Checker:
         if units is not None and (units < unit_limits.get("min", units) or units > unit_limits.get("max", units)):
             self.err(file, path, "unit_bounds", f"{units} units are outside unit_bounds")
 
+    def check_exclusion_list(self, file, path, value):
+        """An array of the type's entries, or a DocumentRef (section 5.5)."""
+        if isinstance(value, dict):
+            self.check_object(file, path, value, "DocumentRef")
+        elif not isinstance(value, list):
+            self.err(file, path, "list", "an ExclusionList is an array or a DocumentRef")
+        else:
+            entry = EXCLUSION_ENTRY.get(path.rsplit(".", 1)[-1])
+            for i, item in enumerate(value):
+                if entry:
+                    self.check_type(file, f"{path}[{i}]", item, entry)
+
+    def check_exclusions(self, file, path, item):
+        """A buyer supplies only the types the seller accepts (section 5.5)."""
+        accepted = (item.get("accepted_exclusions") or {}).get("types", {})
+        for term in accepted:
+            if ":" not in term and term not in EXCLUSION_ENTRY:
+                self.err(file, f"{path}.accepted_exclusions", term, f"{term!r} is not a core exclusion type")
+        for term, entries in (item.get("exclusions") or {}).items():
+            if term not in accepted:
+                self.err(file, f"{path}.exclusions", term, f"{term!r} is not an accepted exclusion type")
+            elif isinstance(entries, list) and len(entries) > accepted[term].get("max_entries", len(entries)):
+                self.err(file, f"{path}.exclusions", term, f"{term!r} holds more than max_entries")
+
+    def check_audiences(self, file, path, value):
+        """The keys AudienceSelectable adds to its Selectable (section 5.3)."""
+        combine = value.get("combine") or {}
+        if combine.get("deltas"):
+            self.err(file, f"{path}.combine", "deltas", "combine carries no deltas")
+        if combine and (combine.get("max_select") != 1 or len(combine.get("included", [])) != 1):
+            self.err(file, f"{path}.combine", "one", "combine needs max_select 1 and one included option")
+        options = {o.get("id"): o for o in value.get("available", []) if isinstance(o, dict)}
+        in_effect = value.get("selected", value.get("included", []))
+        meaning = self.spec.tables["AudienceOption"]["taxonomy"]["meaning"]
+        codes = {int(n) for n in re.findall(r"`(\d+)`", meaning)}
+        vendor_from = int(re.search(r"\((\d+) and up\)", meaning).group(1))
+        for name, option in options.items():
+            taxonomy = option.get("taxonomy")
+            if isinstance(taxonomy, int) and taxonomy not in codes and taxonomy < vendor_from:
+                self.err(file, f"{path}.available", name,
+                         f"{name!r} has taxonomy {taxonomy}, which section 5.3 does not allow")
+        for name in value.get("excluded", []):
+            if not options.get(name, {}).get("excludable"):
+                self.err(file, f"{path}.excluded", name, f"{name!r} is not an excludable option")
+            if name in in_effect:
+                self.err(file, f"{path}.excluded", name, f"{name!r} is also in effect")
+
     def check_measurement(self, file, path, item):
         """Metric kinds, and the counted_by values sections 5.6.4 and 5.7.1 fix (section 2.2)."""
         for i, tuple_ in enumerate(item.get("committed_metrics") or []):
@@ -955,6 +1052,9 @@ class Checker:
             self.check_measurement(file, path or "(root)", doc)
             self.check_pricing_entries(file, path or "(root)", doc)
             self.check_dated_shares(file, path or "(root)", doc)
+            self.check_exclusions(file, path or "(root)", doc)
+            if "audiences" in doc:
+                self.check_audiences(file, f"{path}.audiences" if path else "audiences", doc["audiences"])
             if "geo" in doc and "markets" in doc:
                 self.err(file, path or "(root)", "markets", "a line item declares geo or markets")
 
@@ -978,8 +1078,14 @@ class Checker:
             if parts[0] == "line_items":
                 fields, parts = self.spec.line_item, parts[1:]
             ok = parts[0] in {bare(k) for k in fields}
-            if ok and len(parts) > 1 and parts[0] == "pricing":
-                ok = f"pricing[].{parts[1]}" in fields
+            if ok and len(parts) > 1:
+                if parts[0] == "pricing":
+                    ok = f"pricing[].{parts[1]}" in fields
+                else:
+                    # Below a typed field, a path names a key of that type's table.
+                    row = fields.get(parts[0]) or fields.get(f"{parts[0]}[]")
+                    rows = self.rows_of(row["type"])
+                    ok = not rows or parts[1] in {bare(k) for k in rows}
             if not ok:
                 self.err("spec", "removal path", path, f"{path} resolves to no row")
 
@@ -1044,8 +1150,8 @@ def check_digest_ignores_empty_buyer_supplied(checker, doc, removal):
     forms = [
         None,
         {},
-        {"match_rate_expected": 0.65},
-        {"segments": [], "suppression_list": {}, "match_rate_expected": 0.65},
+        {"expected_match_rate": 0.65},
+        {"segments": [], "suppression_list": {}, "expected_match_rate": 0.65},
     ]
     digests = set()
     for form in forms:

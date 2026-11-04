@@ -5,7 +5,17 @@
 line_item_id:   "playoffs-2026-ctv"
 status:         published
 channel:        ctv
-properties:     { available: [{ id: "sports-app" }], included: ["sports-app"] }
+properties:
+  available:
+    - id: "sports-app"
+      apps:
+        - { store: roku_channel_store, bundle: "000001",
+            store_url: "https://channelstore.roku.com/details/000001/sports-app",
+            developer_domain: "sports-app.example" }
+      child_audience: general
+      seller_relationship: owner
+      seller_accounts: [{ asi: "ssp-a.example", sid: "pub-2001" }]
+  included: ["sports-app"]
 programs:                     # the content the line item serves within (§ 5.2.9)
   available:
     - id: "series-g1"

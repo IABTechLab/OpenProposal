@@ -28,6 +28,25 @@
           "placement": {
             "feed": 1
           },
+          "properties": {
+            "available": [
+              {
+                "id": "tune-stream",
+                "name": "Tune Stream",
+                "domains": [
+                  "tune-stream.example"
+                ],
+                "apps": [
+                  {
+                    "store": "apple_app_store",
+                    "bundle": "000003"
+                  }
+                ],
+                "child_audience": "general",
+                "seller_relationship": "owner"
+              }
+            ]
+          },
           "formats": {
             "included": [
               "audio/produced-30s"
@@ -150,7 +169,15 @@
           "properties": {
             "available": [
               {
-                "id": "sports-app"
+                "id": "sports-app",
+                "apps": [
+                  {
+                    "store": "roku_channel_store",
+                    "bundle": "000001"
+                  }
+                ],
+                "child_audience": "general",
+                "seller_relationship": "owner"
               }
             ]
           },
@@ -216,7 +243,15 @@
           "properties": {
             "available": [
               {
-                "id": "weather-app"
+                "id": "weather-app",
+                "apps": [
+                  {
+                    "store": "roku_channel_store",
+                    "bundle": "000000"
+                  }
+                ],
+                "child_audience": "general",
+                "seller_relationship": "owner"
               }
             ]
           },
@@ -274,7 +309,15 @@
             "available": [
               {
                 "id": "puzzle-pack",
-                "name": "Puzzle game pack"
+                "name": "Puzzle game pack",
+                "apps": [
+                  {
+                    "store": "apple_app_store",
+                    "bundle": "000002"
+                  }
+                ],
+                "child_audience": "general",
+                "seller_relationship": "owner"
               }
             ]
           },

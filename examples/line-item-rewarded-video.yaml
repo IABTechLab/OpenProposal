@@ -3,7 +3,11 @@
 line_item_id:   "puzzle-games-rewarded"
 status:         published
 channel:        video
-properties:     { available: [{ id: "puzzle-pack", name: "Puzzle game pack" }],
+properties:     { available: [{ id: "puzzle-pack", name: "Puzzle game pack",
+                                apps: [{ store: apple_app_store, bundle: "000002",
+                                         developer_domain: "puzzle-games.example" }],
+                                child_audience: general, seller_relationship: owner,
+                                seller_accounts: [{ asi: "ssp-a.example", sid: "pub-4001" }] }],
                   included: ["puzzle-pack"] }
 environments:   { available: ["app_mobile"], included: ["app_mobile"] }
 placement:                             # every impression of this line item (§ 5.2)

@@ -20,12 +20,12 @@ description: >
 
 assent:
   - { role: commitment, version: 1,
-      record_digest: "sha256:7e73bd909e58c26626174ab2942a3e858f3b1c83c6d30e3c0fa16ca4ec34b720",
+      record_digest: "sha256:0e83c1fe45a13b16e06d0958785b4d0ce7be28bf32e05b466930b275ebc70bd8",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:14:03Z",
       idempotency_key: "agency-a-camp1-business-daily-display-8f42c1a9" }
   - { role: acceptance, version: 1,
-      record_digest: "sha256:7e73bd909e58c26626174ab2942a3e858f3b1c83c6d30e3c0fa16ca4ec34b720",
+      record_digest: "sha256:0e83c1fe45a13b16e06d0958785b4d0ce7be28bf32e05b466930b275ebc70bd8",
       line_item_ids: ["business-daily-display"],
       at: "2026-10-05T10:31:47Z" }
 
@@ -53,24 +53,28 @@ line_items:
     status:         agreed
     channel:        display
     properties:
-      available:    [{ id: "business-daily", domains: ["business-daily.example"] }]
+      available:    [{ id: "business-daily", domains: ["business-daily.example"],
+                       child_audience: general, seller_relationship: owner,
+                       seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }] }]
       included:     ["business-daily"]
     buyer_supplied:
       suppression_allowed: true
-      suppression_list:    { source: "advertiser_crm", size: 340000, match_method: "ramp_id" }
+      suppression_list:    { list_id: "agency-a-suppress-q4", source: "advertiser_crm", size: 340000,
+                             match_method: hashed_email }
+    accepted_exclusions:
+      types:
+        domains:  { enforcement: pre_serve, max_entries: 5000 }
+        keywords: { enforcement: best_effort, max_entries: 500 }
+    exclusions:                        # supplied by the buyer
+      domains:  ["example-gambling.example"]
+      keywords: { url: "https://agency-a.example/lists/keywords-2026-10.json",
+                  digest: "sha256:ca833e169e39bcaae9fc5b74f8dd3cfddf5b1c4158b6bc19bb3ae9112a347b06" }
     formats:
       available:    ["display/300x250", "display/970x250"]
       included:     ["display/300x250"]
       deltas:       { "display/970x250": { delta_cpm: 3.00 } }
       selected:     ["display/300x250", "display/970x250"]   # the buyer's write
     creative_delivery: { method: buyer_hosted, other_protocols: [javascript_tag], secure_required: true }
-    exclusions_accepted:
-      types:        [domain, keyword]
-      max_entries:  { domain: 5000, keyword: 500 }
-      enforcement:  { domain: pre_serve, keyword: best_effort }
-    exclusions:                        # supplied by the buyer
-      domain:       ["example-gambling.example"]
-      keyword:      ["crypto"]
     geo:
       allowed:      ["US"]
       default:      { include: ["US"] }
@@ -126,7 +130,13 @@ line_items:
   - line_item_id:   "weather-app-ctv"
     status:         published
     channel:        ctv
-    properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+    properties:
+      available:    [{ id: "weather-app",
+                       apps: [{ store: roku_channel_store, bundle: "000000",
+                                developer_domain: "weather-app.example" }],
+                       child_audience: general, seller_relationship: owner,
+                       seller_accounts: [{ asi: "ssp-a.example", sid: "pub-1001" }] }]
+      included:     ["weather-app"]
     placement:      { plcmt: 1 }          # Instream (1) (§ 5.2)
     formats:
       available:    ["ctv/instream-15s"]

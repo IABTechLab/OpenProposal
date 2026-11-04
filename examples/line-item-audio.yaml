@@ -2,6 +2,13 @@
 line_item_id:   "streaming-audio"
 status:         published
 channel:        audio
+properties:     { available: [{ id: "tune-stream", name: "Tune Stream",
+                                domains: ["tune-stream.example"],
+                                apps: [{ store: apple_app_store, bundle: "000003",
+                                         developer_domain: "tune-stream.example" }],
+                                child_audience: general, seller_relationship: owner,
+                                seller_accounts: [{ asi: "ssp-a.example", sid: "pub-5001" }] }],
+                  included: ["tune-stream"] }
 placement:      { feed: 1 }                 # Music streaming service (1) (§ 5.2.2)
 environments:   { available: ["web_mobile", "app_mobile"],
                   included:  ["web_mobile", "app_mobile"] }
