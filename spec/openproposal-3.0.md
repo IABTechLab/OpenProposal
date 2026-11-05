@@ -77,6 +77,7 @@ values from the agreed line item:
 | `terms.guar` | `Deal.guar` | `1` when the mechanism in effect is `programmatic_guaranteed`, `0` otherwise |
 | `terms.units` | | `commitment.amount` when `basis` is `units`, otherwise `derived_units` (§ 5.6.5) |
 | `terms.totalcost` | | The seller total (§ 5.6.5) |
+| `ext.baseline` | | The agreed baseline `VersionRef` (§ 2.2), with `seller_domain`, so a DSP can join the deal to its record. OPTIONAL. The Deals API 1.0 doesn't define this key |
 
 `commitment.flight.end` and `terms.enddate` are the flight's last second,
 inclusive. The Deals API 1.0 doesn't say whether `enddate` is inclusive, so this mapping
@@ -343,14 +344,15 @@ retrievable, and the counterparty stores a copy.
 
 **`VersionRef`** locates an offer at a version. It carries no digest. A `proposal_id`
 is unique only within a `seller.domain` (§ 4.1): a `VersionRef` inside a proposal
-resolves against that proposal's `seller`, and a system that holds one outside a
-proposal keeps the `seller.domain` beside it.
+resolves against that proposal's `seller`, and one outside a proposal carries
+`seller_domain`.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `proposal_id` | String | REQUIRED | The proposal |
 | `version` | Integer | REQUIRED | The proposal's `version` |
 | `line_item_id` | String | OPTIONAL | A line item in that version |
+| `seller_domain` | RegistrableDomain | REQUIRED when the `VersionRef` is outside its proposal | The proposal's `seller.domain` |
 
 **`Party`** names a legal party. `domain` is the identifier, and `registry_id` is
 an attestation. An absent or unresolvable `registry_id` MUST NOT make a document
@@ -984,7 +986,7 @@ decides whether a line item is agreed.
 | `line_item_ids[]` | Array[String] | REQUIRED | The line items the entry names. MUST be non-empty |
 | `at` | Instant | REQUIRED | When the party wrote the entry, by its own statement. No rule reads order from it |
 | `idempotency_key` | String | REQUIRED when `role` is `commitment` | Buyer-generated, unique per `commit`, opaque, and scoped to one buyer and seller pair. The seller MUST NOT interpret it (§ 5.6.1) |
-| `ground` | VocabularyTerm | OPTIONAL | On a `decline` entry only, why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. No rule reads it, and a receiver that doesn't know a term still reads the entry as a `decline` |
+| `ground` | VocabularyTerm | REQUIRED when `role` is `decline` | Why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. Absent on any other entry. A receiver that doesn't know a term still reads the entry as a `decline` |
 
 Two entries *match* when their `version`, `record_digest`, and `line_item_ids[]` are
 equal. `line_item_ids[]` compare as sets, so an acceptance cannot cover part of a
@@ -1164,7 +1166,7 @@ are one ask while that ask is open, and an equal `request` after it ends is a ne
 | availability read | buyer | an `AvailabilityRead` (§ 3.3), answered with the figures § 3.3 names, with no change of state; no entry |
 | `request` | buyer | asks a `requestable` value on one line item against a named `version`, stated as a `HistoryPath` (§ 4.1) with `requested_value`; `requested` |
 | `grant` | seller | of a `request`: new `version` with the requested value in force as an offered term; `granted` |
-| `counter` | seller | of a `request`: new `version` with another value; `countered` |
+| `counter` | seller | of a `request`: new `version` with another value; `countered`. A `counter` of `pricing[].list_rate` MAY also change `included[]`, with `paths[]` naming both |
 | `decline` | seller | no new `version`. Of a `request`: `declined`. Of a `commit`: the seller's `assent[]` entry; no entry |
 | `commit` | buyer | a `Commit` (§ 5.6.1): the buyer's `assent[]` entry, which pins the `version`, and its writes (§ 3.4); no entry |
 | `accept` | seller | of a `commit`: the seller's `assent[]` entry, no new `version`; no entry |
@@ -1212,7 +1214,8 @@ a resolved `commit` under it that arrives while the entry holds, on or after
 `offer_window.start`, and passes the checks of § 5.6.1 and any authority check the seller applies (§ 5.8):
 accept it, or decline it on an allowed ground. The allowed grounds are lack of
 availability, an exclusivity conflict (§ 5.6.7), and a ground stated in the
-`terms_refs[]` in force when the entry was first offered.
+`terms_refs[]` in force when the entry was first offered. The answer MUST come before the entry stops holding: otherwise silence
+works as a decline on no ground.
 `sold_out` is lack of availability: a `commit` that arrives while the line item is
 `sold_out` returns `not_committable` (§ 2.4).
 
@@ -1743,6 +1746,7 @@ with `devicetype` 8.
 | `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
 | `hold_terms` | HoldTerms | OPTIONAL | seller-set | Offers a hold. Absent means `available` is `false`. See 5.6.2 |
 | `hold` | Hold | OPTIONAL | lifecycle | The buyer's hold. Absent until the buyer first asks. See 5.6.2 |
+| `renewal_right` | VocabularyTerm | OPTIONAL | seller-set | The current advertiser's right to the next cycle. Core term: `first_refusal`, the right to buy the next cycle before it opens up. Absent: no such right. It is not a place in a hold queue (`hold.position`) |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | See § 5.6.6. Absent: this field states no right to cancel, and `terms_refs[]` (§ 5.8) may state one |
 | `exclusivity` | Selectable[ExclusivityOption] | OPTIONAL | selectable | See § 5.6.7. Nothing in effect: no exclusivity |
 | `creative_policy` | Object | OPTIONAL | seller-set | Content and category restrictions on creative |
@@ -1837,7 +1841,7 @@ is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 | :--- | :--- | :--- | :--- | :--- |
 | `pricing_id` | String | REQUIRED when `pricing[]` has more than one entry | The entry the buyer commits under | settable |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** | settable |
-| `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for | settable |
+| `advertisers[]` | Array[Party] | REQUIRED | Whom the spend is for. It holds at least one entry | settable |
 | `derived_units` | Integer | OPTIONAL | The committed units, as § 5.6.5 derives them, whether or not this key is written. A written value is a copy, outside the record (§ 4.1.1); where it differs, the § 5.6.5 result applies | derived |
 
 The buyer's `assent[]` entry (§ 4.1.2) pins the `version` of a `commit` and carries its
@@ -1900,6 +1904,8 @@ against a new `version` is a new `commit`, with a new `idempotency_key`.
 `hold_terms` offers a hold. It is `seller-set`, and it is inside the binding record.
 `hold` is live state, outside the record (§ 4.1.1), and is absent on a shared
 proposal (§ 4.3).
+`held` means the seller has reserved inventory. A seller that only honors terms sets
+`hold_terms.available` to `false` and uses `price_valid_until`.
 
 **`HoldTerms`** keys:
 
@@ -1917,6 +1923,7 @@ proposal (§ 4.3).
 | `requested_terms` | LineItemWrites | OPTIONAL | The composition the buyer asks to hold, which is not a `commit`. A field it doesn't name reads as § 3.1 and § 3.2 put in effect |
 | `held_availability` | Availability | OPTIONAL | What the hold reserves, as the seller states it on a grant or a re-offer. It can be less than `requested_terms` asks |
 | `position` | Integer | OPTIONAL | Seller-set, 1 for first in line, in the order granted. A later hold moves up only when the one ahead expires, is released or converts. Holds on the same inventory reserve it in that order, so a later hold reserves only what the holds granted ahead of it leave (§ 5.6.1) |
+| `reference` | String | OPTIONAL | Seller-set. The seller's id for the reservation, so a buyer can reconcile a hold against the seller's systems |
 | `valid_until` | Instant | REQUIRED when `status` is `held` | The grant time plus `hold_terms.duration`, or the § 4.3.4 cap if that comes first. With no `duration`, the seller sets it within the cap. It MAY remain on `expired` and `released` |
 
 **`HoldStatus`** is `requested` \| `held` \| `declined` \| `expired` \| `released` \|
@@ -1935,7 +1942,9 @@ These transitions are exhaustive:
 - `held` → `held`: the seller re-offers a hold its revision makes stale, moving
   `version` to the new one, writing any `held_availability`, and lowering `valid_until`
   to the new version's cap (§ 4.3.4) where that comes first (§ 4.3.2, rule 2).
-- `held` → `expired`: `valid_until` passes.
+- `held` → `expired`: `valid_until` passes and no `commit` the buyer made while the hold
+  ran is open (§ 4.3). The hold stays `held` while that `commit` is open. Otherwise a seller
+  could leave it unanswered until the hold lapses, then decline it for lack of availability.
 - `held` → `released`: the buyer releases, or the seller releases a hold its
   revision makes stale (§ 4.3.2, rule 2).
 - `requested` | `held` → `converted`: the line item reaches `agreed`.
@@ -2085,7 +2094,7 @@ open: the term sets its keys.
 | `viewability_standard` | VocabularyTerm | REQUIRED when `cost_method` is `CPMV` | The viewability standard that counts a unit. Core term: `mrc`, the MRC guidelines that `viewable_rate` cites (§ 5.7.1) |
 | `view_s` | Integer | REQUIRED when `cost_method` is `CPV` and `view_fraction` is absent | Seconds played that make a view. Absent when `view_fraction` is present |
 | `view_fraction` | Fraction | REQUIRED when `cost_method` is `CPV` and `view_s` is absent | The fraction of the creative played that makes a view. Absent when `view_s` is present |
-| `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. This version lists no core terms |
+| `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. Its definition states whether co-viewers and impressions of unknown age count, or says `unknown`. This version lists no core terms |
 | `rating_source` | Measurer | REQUIRED when `cost_method` is `CPP` | Who supplies the ratings |
 | `action_type` | VocabularyTerm | REQUIRED when `cost_method` is `CPA` | The kind of action counted, such as `shop.example:purchase`. This version lists no core terms |
 | `attribution_window` | Duration | REQUIRED when `cost_method` is `CPA` | How long after exposure an action counts |
@@ -2095,12 +2104,14 @@ open: the term sets its keys.
 A seller's own extension terms MUST use its `seller.domain` as the `<domain>`. The host
 of `cost_definition.url` MUST be the term's `<domain>` or a subdomain of it.
 
+`agreed_rate` MUST NOT be negative. When `commitment.basis` is `spend`, on an entry
+other than `FLAT` or `TIME`, `agreed_rate` MUST be greater than 0.
+
 When `commitment.basis` is `spend`, `amount` is the seller total, on the same
 terms as `agreed_rate`, including `delta_flat` charges in effect (§ 3.1), which
 MUST NOT exceed it. `derived_units` = (`amount` − those charges) ÷ `agreed_rate` × rate
 per, rounded down to a whole unit, where rate per comes from the table for a core term
-and from `rate_per` for an extension term. At an `agreed_rate` of 0 or below, this
-formula gives no figure, and `derived_units` is absent.
+and from `rate_per` for an extension term.
 
 When `commitment.basis` is `units`, `derived_units` is `amount`, and the seller
 total is `amount` ÷ rate per × `agreed_rate` plus those charges.
@@ -2187,7 +2198,7 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 | `scope` | Enum | REQUIRED | `category` \| `sole`. `category`: no other advertiser in `categories`. `sole`: no other advertiser |
 | `categories` | TaxonomyCodes | REQUIRED when `scope` is `category` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers its descendants |
 | `competitors[]` | Array[RegistrableDomain] | OPTIONAL | Advertiser domains also excluded |
-| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) |
+| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) |
 | `window` | Interval | OPTIONAL | The dates the term holds, only where they fall inside `commitment.flight`. Default: the whole flight. With no overlap, the term holds on no date and the option's deltas still count (§ 5.6) |
 
 A seller MUST decline a `commitment` whose term in effect conflicts with an
@@ -2728,6 +2739,7 @@ body is normative.**
 | `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | mixed |
 | `hold_terms` | 5.6 Commercial terms | HoldTerms | OPTIONAL | seller-set |
 | `hold` | 5.6 Commercial terms | Hold | OPTIONAL | lifecycle |
+| `renewal_right` | 5.6 Commercial terms | VocabularyTerm | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
 | `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityOption] | OPTIONAL | selectable |
 | `creative_policy` | 5.6 Commercial terms | Object | OPTIONAL | seller-set |
@@ -2760,7 +2772,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `renewal_right`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 14 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -2773,8 +2785,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 94 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 70 are `seller-set`, `immutable`,
+Of 95 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 71 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.
