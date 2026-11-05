@@ -110,6 +110,7 @@ CONDITIONS = {
         lambda o, i, p: o.get("type") == "custom" or "assent" in o,
     "the current `version` is frozen (§ 4.1.3)": lambda o, i, p: o.get("status") != "draft",
     "`requested_value` is present": lambda o, i, p: "requested_value" in o,
+    "`role` is `decline`": lambda o, i, p: o.get("role") == "decline",
     "the entry's `action` is `requested`":
         lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
                             for e in (p or {}).get("negotiation_history", [])),
