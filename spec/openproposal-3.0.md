@@ -853,7 +853,7 @@ decides whether a line item is agreed.
 | `line_item_ids[]` | Array[String] | REQUIRED | The line items the entry names. MUST be non-empty |
 | `at` | Instant | REQUIRED | When the party wrote the entry, by its own statement. No rule reads order from it |
 | `idempotency_key` | String | REQUIRED when `role` is `commitment` | Buyer-generated, unique per `commit`, opaque, and scoped to one buyer and seller pair. The seller MUST NOT interpret it (§ 5.6.1) |
-| `ground` | VocabularyTerm | OPTIONAL | On a `decline` entry only, why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. No rule reads it, and a receiver that doesn't know a term still reads the entry as a `decline` |
+| `ground` | VocabularyTerm | REQUIRED when `role` is `decline` | Why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. Absent on any other entry. A receiver that doesn't know a term still reads the entry as a `decline` |
 
 Two entries *match* when their `version`, `record_digest`, and `line_item_ids[]` are
 equal. `line_item_ids[]` compare as sets, so an acceptance cannot cover part of a
@@ -1082,7 +1082,8 @@ while the entry holds, on or after `offer_window.start`, and passes the checks o
 § 5.6.1 and any authority check the seller applies (§ 5.8): accept it, or decline it
 on an allowed ground. The allowed grounds are lack of availability, an exclusivity
 conflict (§ 5.6), and a ground stated in the `terms_refs[]` in force when the entry was
-first offered. `sold_out` is lack of availability: a `commit` that arrives while the
+first offered. The answer MUST come before the entry stops holding: otherwise silence
+works as a decline on no ground. `sold_out` is lack of availability: a `commit` that arrives while the
 line item is `sold_out` returns `not_committable` (§ 2.4).
 
 Two rules apply:
@@ -1486,7 +1487,7 @@ is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 | :--- | :--- | :--- | :--- | :--- |
 | `currency` | String | REQUIRED when `basis` is `spend` | ISO-4217 | settable |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** | settable |
-| `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for | settable |
+| `advertisers[]` | Array[Party] | REQUIRED | Whom the spend is for. It holds at least one entry | settable |
 | `derived_units` | Integer | OPTIONAL | Computed from `amount`, `agreed_rate` and `cost_method`. Informative, not binding | derived |
 
 The buyer's `assent[]` entry (§ 4.1.2) pins the `version` of a `commit` and carries its
