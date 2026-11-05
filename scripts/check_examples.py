@@ -58,8 +58,9 @@ change to this script. It checks:
     a currency, and a mechanism (section 5.6).
   - A tentative event is outside included[] and priced only by delta_flat (section
     5.2.9), an embedded line item follows section 5.9, deal_origin is on a deal line
-    item only, a deal reference names deal_origin, and requires names line items of
-    the same proposal.
+    item only, and a deal reference names deal_origin.
+  - A proposal holds line_items[] or packages[], ids are unique across it, and a
+    package's min_commitments[] name its own line_items[] (section 4.1.4).
   - An availability figure is forecast under non_guaranteed, a hold ends within the
     section 4.3.4 cap, and a venue_type holds one id.
   - Each yaml block in the body of the specification holds keys and types its tables
@@ -160,10 +161,17 @@ def _has_sync_groups(item):
     return any("sync_groups" in o for o in options)
 
 
+def line_items_of(doc):
+    """Every line item of a proposal: its line_items[], or each package's line_items[] and add_ons[]."""
+    if "packages" in (doc or {}):
+        return [i for p in doc["packages"] for i in p.get("line_items", []) + p.get("add_ons", [])]
+    return (doc or {}).get("line_items", [])
+
+
 def _has_order_reference(entry, proposal):
     """Whether the line item a change_requests[] entry names has an order id."""
     named = (entry.get("baseline") or {}).get("line_item_id")
-    for item in (proposal or {}).get("line_items", []):
+    for item in line_items_of(proposal):
         if item.get("line_item_id") == named:
             refs = item.get("external_references", [])
             return any(r.get("reference_type") == "order" for r in refs)
@@ -190,6 +198,10 @@ CONDITIONS = {
     # Every VersionRef in the examples sits inside its proposal.
     "the `VersionRef` is outside its proposal": lambda o, i, p: False,
     "`role` is `decline`": lambda o, i, p: o.get("role") == "decline",
+    "`packages[]` is absent": lambda o, i, p: "packages" not in o,
+    "`line_items[]` is absent": lambda o, i, p: "line_items" not in o,
+    "the full form holds `line_items[]`": lambda o, i, p: "packages" not in o,
+    "the full form holds `packages[]`": lambda o, i, p: "line_items" not in o,
     # No example holds a CommitResult. A ground of availability is the one sign of it.
     "`entries[]` holds a `decline` for lack of availability":
         lambda o, i, p: any(e.get("role") == "decline" and e.get("ground") == "availability"
@@ -668,11 +680,11 @@ class Spec:
 
     def _read_lists(self):
         text = "\n".join(self.lines)
-        m = re.search(r"`LineItemSummary` lists these paths[^\n]*\n\n```text\n(.*?)```", text, re.S)
+        m = re.search(r"(?:\*\*)?`LineItemSummary`(?:\*\*)? lists these paths[^\n]*\n\n```text\n(.*?)```", text, re.S)
         self.summary_paths = m.group(1).split()
         m = re.search(r"`ProposalSummary` lists these paths.*?```text\n(.*?)```", text, re.S)
         self.proposal_paths = m.group(1).split()
-        PATH_LISTS.update(re.findall(r"^`(\w+)` lists these paths", text, re.M))
+        PATH_LISTS.update(re.findall(r"^(?:\*\*)?`(\w+)`(?:\*\*)? lists these paths", text, re.M))
         m = re.search(r"`BuyerWrites` lists these paths.*?```text\n(.*?)```", text, re.S)
         self.write_paths = m.group(1).split()
         m = re.search(r"#### 4\.1\.1.*?```\n(.*?)```", text, re.S)
@@ -779,7 +791,7 @@ class Checker:
             base, args = split_generic(typ)
             return [base] + [n for arg in args for n in names(arg)]
 
-        known = BASE | GENERIC | set(SCALARS) | set(self.spec.tables)
+        known = BASE | GENERIC | set(SCALARS) | set(self.spec.tables) | PATH_LISTS
         rows = [("proposal", self.spec.proposal), ("line item", self.spec.line_item), *self.spec.tables.items()]
         for owner, table in rows:
             for key, row in table.items():
@@ -1265,7 +1277,7 @@ class Checker:
         for key, row in known.items():
             if key not in doc and self.required(file, path, row["required"], doc):
                 self.err(file, path or "(root)", f"REQUIRED field {key!r} is missing")
-            if key in doc and key != "line_items":
+            if key in doc and key not in ("line_items", "packages"):
                 sub = f"{path}.{key}" if path else key
                 self.check_type(file, sub, doc[key], row["type"])
                 self.check_values(file, sub, doc[key], row)
@@ -1477,12 +1489,24 @@ def remove_path(node, parts):
 
 def record_digest(doc, removal, line_item_ids=None):
     copy = json.loads(json.dumps(doc))
-    if line_item_ids is not None:
+    if line_item_ids is not None and "packages" in copy:
+        for package in copy["packages"]:
+            for key in ("line_items", "add_ons"):
+                if key in package:
+                    package[key] = [i for i in package[key] if i["line_item_id"] in line_item_ids]
+        copy["packages"] = [p for p in copy["packages"] if p.get("line_items") or p.get("add_ons")]
+    elif line_item_ids is not None:
         copy["line_items"] = [i for i in copy["line_items"] if i["line_item_id"] in line_item_ids]
     for path in removal:
-        remove_path(copy, path[2:].split("."))
+        parts = path[2:].split(".")
+        remove_path(copy, parts)
+        # Section 4.1.1: each $.line_items[*] path also selects the same path in a package.
+        if parts[0] == "line_items[*]":
+            for package in copy.get("packages", []):
+                for key in ("line_items", "add_ons"):
+                    remove_path(package, [f"{key}[*]"] + parts[1:])
     # Section 4.1.1: the one object the removals don't leave in place when it is empty.
-    for item in copy.get("line_items", []):
+    for item in line_items_of(copy):
         if item.get("buyer_supplied") == {}:
             del item["buyer_supplied"]
     return "sha256:" + hashlib.sha256(jcs(copy).encode("utf-8")).hexdigest()
@@ -1550,7 +1574,12 @@ def full_examples():
 
 def check_extracts(checker):
     """Section 6.1: the line item files with no commitment are extracts of proposal.yaml."""
-    held = {i["line_item_id"]: i for i in load_yaml(EXAMPLES / "proposal.yaml").get("line_items", [])}
+    held = {}
+    for name in ("proposal.yaml", "proposal-package.yaml"):
+        for i in line_items_of(load_yaml(EXAMPLES / name)):
+            if i["line_item_id"] in held and held[i["line_item_id"]] != i:
+                checker.errors.append(f"{name}: line item {i['line_item_id']} differs from proposal.yaml's")
+            held[i["line_item_id"]] = i
     # A line item example that carries a commitment is one issued to a buyer (section 4.3).
     extracts = {k: i for k, i in full_examples().items() if "commitment" not in i}
     for name in held.keys() ^ extracts.keys():
@@ -1561,9 +1590,7 @@ def check_extracts(checker):
 
 
 def line_item_summary(item, spec):
-    out = project(item, spec.summary_paths)
-    out["has_requires"] = "requires" in item
-    return out
+    return project(item, spec.summary_paths)
 
 
 def proposal_summary(proposal, spec):
@@ -1575,10 +1602,22 @@ def build_manifest(spec):
     proposal = load_yaml(EXAMPLES / "proposal.yaml")
     entry = proposal_summary(proposal, spec)
     entry["full_url"] = f"https://{proposal['seller']['domain']}/openproposal/{proposal['proposal_id']}"
-    entry["line_items"] = [
-        line_item_summary(item, spec) for item in proposal["line_items"]
-        if item.get("visibility") == "public" and item.get("status") == "published"
-    ]
+    listed = lambda item: item.get("visibility") == "public" and item.get("status") == "published"
+    if "packages" not in proposal:
+        entry["line_items"] = [line_item_summary(item, spec) for item in proposal["line_items"] if listed(item)]
+    else:
+        entry["packages"] = []
+        for package in proposal["packages"]:
+            if not all(listed(i) for i in package["line_items"]):
+                continue
+            summary = {"package_id": package["package_id"],
+                       "line_items": [line_item_summary(i, spec) for i in package["line_items"]]}
+            add_ons = [line_item_summary(i, spec) for i in package.get("add_ons", []) if listed(i)]
+            if add_ons:
+                summary["add_ons"] = add_ons
+            if "min_commitments" in package:
+                summary["min_commitments"] = package["min_commitments"]
+            entry["packages"].append(summary)
     return {
         "generated_at": "2026-10-03T15:00:00Z",
         "spec_version": proposal["spec_version"],
@@ -1591,7 +1630,7 @@ def check_assent(checker, file, doc):
     def key(entry):
         return entry["version"], entry["record_digest"], frozenset(entry["line_item_ids"])
 
-    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    items = {i["line_item_id"]: i for i in line_items_of(doc)}
     commitments, live, matched, agreed = [], set(), set(), set()
     for entry in doc.get("assent", []):
         role = entry["role"]
@@ -1640,7 +1679,7 @@ def check_eligible(checker, file, doc, item):
 
 def check_status(checker, file, doc):
     """Section 4.3.3: a proposal's status is the first rule that applies."""
-    statuses = [i.get("status") for i in doc.get("line_items", [])]
+    statuses = [i.get("status") for i in line_items_of(doc)]
     if all(s == "draft" for s in statuses):
         status = "draft"
     elif "under_review" in statuses:
@@ -1663,7 +1702,7 @@ def check_history(checker, file, doc):
         checker.errors.append(f"{file}: negotiation_history has no single seller entry for each version")
     if made and made[0]["action"] != "published":
         checker.errors.append(f"{file}: negotiation_history starts with {made[0]['action']!r}, not published")
-    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    items = {i["line_item_id"]: i for i in line_items_of(doc)}
     for n, entry in enumerate(history):
         for path in entry["paths"]:
             requested_value = path.get("requested_value")
@@ -1683,17 +1722,33 @@ def check_history(checker, file, doc):
                 checker.errors.append(f"{file}: negotiation_history[{n}]: {path['pointer']} resolves to nothing")
 
 
-def check_requires(checker, file, doc):
-    """Section 5.6.3: requires points at line items of the same proposal."""
-    names = {i["line_item_id"] for i in doc.get("line_items", [])}
-    for item in doc.get("line_items", []):
-        requires = item.get("requires") or {}
-        named = requires.get("all_of", []) + requires.get("any_of", [])
-        named += [m["line_item_id"] for m in requires.get("min_commitments", [])]
-        for name in named:
-            if name not in names:
-                checker.errors.append(f"{file}: {item['line_item_id']}.requires names {name}, "
-                                      "which is not a line item of this proposal")
+def check_packages(checker, spec, file, doc):
+    """Section 4.1.4: one shape per proposal, unique ids, and thresholds on the package's own line items."""
+    if "packages" in doc and "line_items" in doc:
+        checker.errors.append(f"{file}: a proposal holds line_items[] or packages[], not both")
+    ids = [i["line_item_id"] for i in line_items_of(doc)]
+    for name in {n for n in ids if ids.count(n) > 1}:
+        checker.errors.append(f"{file}: line_item_id {name} appears more than once")
+    package_ids = [p.get("package_id") for p in doc.get("packages", [])]
+    for name in {n for n in package_ids if package_ids.count(n) > 1}:
+        checker.errors.append(f"{file}: package_id {name} appears more than once")
+    rows = spec.tables["Package"]
+    for n, package in enumerate(doc.get("packages", [])):
+        where = f"packages[{n}]"
+        for key in package:
+            if f"{key}[]" not in rows and key not in rows:
+                checker.err(file, where, f"key {key!r} is not in the Package table")
+        if not package.get("line_items"):
+            checker.err(file, where, "line_items[] holds at least one entry")
+        if "min_commitments" in package:
+            checker.check_type(file, f"{where}.min_commitments", package["min_commitments"], "Array[MinCommitment]")
+        core = {i["line_item_id"] for i in package.get("line_items", [])}
+        for m in package.get("min_commitments", []):
+            if m.get("line_item_id") not in core:
+                checker.err(file, f"{where}.min_commitments", f"{m.get('line_item_id')} is not in this package's line_items[]")
+        for key in ("line_items", "add_ons"):
+            for i, item in enumerate(package.get(key, [])):
+                checker.check_fields(file, f"{where}.{key}[{i}]", item, spec.line_item)
 
 
 def check_shared(checker, file, doc):
@@ -1701,7 +1756,7 @@ def check_shared(checker, file, doc):
     for key in ("buyer", "assent", "change_requests"):
         if key in doc:
             checker.errors.append(f"{file}: a shared proposal carries no {key}")
-    for item in doc["line_items"]:
+    for item in line_items_of(doc):
         name = item["line_item_id"]
         if item.get("status") in ("under_review", "agreed"):
             checker.errors.append(f"{file}: {name}: a shared proposal has no line item {item['status']}")
@@ -1748,7 +1803,7 @@ def applicable_max_share(terms, notice):
 
 def check_change_requests(checker, file, doc):
     """Section 4.4: each entry names an agreed line item at its agreed version."""
-    items = {i["line_item_id"]: i for i in doc.get("line_items", [])}
+    items = {i["line_item_id"]: i for i in line_items_of(doc)}
     for n, entry in enumerate(doc.get("change_requests", [])):
         where = f"{file}: change_requests[{n}].baseline"
         baseline = entry.get("baseline", {})
@@ -1825,11 +1880,11 @@ def main():
         checker.check_fields(path.name, "", doc, spec.proposal)
         for i, item in enumerate(doc.get("line_items", [])):
             checker.check_fields(path.name, f"line_items[{i}]", item, spec.line_item)
-        if path.name == "proposal.yaml":
+        check_packages(checker, spec, path.name, doc)
+        if path.name in ("proposal.yaml", "proposal-package.yaml"):
             check_shared(checker, path.name, doc)
         check_status(checker, path.name, doc)
         check_history(checker, path.name, doc)
-        check_requires(checker, path.name, doc)
     try:
         check_manifest(checker, spec)
     except (ValueError, KeyError) as e:

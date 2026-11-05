@@ -69,15 +69,16 @@ proposed fallback behaviour, and which registry a `spec_ref` can name.
 
 ---
 
-### OQ-5 — Do `linked_execution` and `requires` cover bundle purchases?
+### OQ-5 — Do packages cover bundle purchases?
 
-**Issue:** [#6](https://github.com/IABTechLab/OpenProposal/issues/6)  ·  **Spec:** § 2, § 4
+**Issue:** [#6](https://github.com/IABTechLab/OpenProposal/issues/6)  ·  **Spec:** § 2, § 4.1.4
 
-The draft makes proposals subsettable unless `linked_execution` is `all`, and a line
-item can state `requires`. Does the proposal also need a `min_line_items` field?
+A package (§ 4.1.4) is sold only whole, and its add-ons only with it, so the draft
+needs no `min_line_items` count. It doesn't say what cancelling one line item of an
+agreed package does to the rest.
 
-**What would settle it:** whether sellers merchandise a bundle these two fields
-can't express.
+**What would settle it:** whether sellers merchandise a bundle a package can't express,
+and how a cancellation inside an agreed package works in practice.
 
 ---
 

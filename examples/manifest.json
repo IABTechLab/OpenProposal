@@ -99,8 +99,7 @@
                 "delivery_type": "non_guaranteed"
               }
             ]
-          },
-          "has_requires": false
+          }
         },
         {
           "line_item_id": "playoffs-2026-ctv",
@@ -207,8 +206,7 @@
                 "delivery_type": "guaranteed"
               }
             ]
-          },
-          "has_requires": false
+          }
         },
         {
           "line_item_id": "weather-app-ctv",
@@ -288,8 +286,7 @@
                 "delivery_type": "non_guaranteed"
               }
             ]
-          },
-          "has_requires": false
+          }
         },
         {
           "line_item_id": "puzzle-games-rewarded",
@@ -359,8 +356,7 @@
                 "delivery_type": "non_guaranteed"
               }
             ]
-          },
-          "has_requires": false
+          }
         }
       ]
     }

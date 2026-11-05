@@ -5,6 +5,17 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 2, § 2.1, § 2.3, § 2.4, § 4.1, § 4.1.1 to § 4.1.4, § 5.6, § 5.6.2, § 5.6.3, § 5.8, § 6.1,
+  § 6.5, § 6.6, § 8, appendices, examples, docs, checker — packages. A proposal holds
+  `line_items[]` or `packages[]`. A package holds `line_items[]`, sold only together, and
+  `add_ons[]`, sold only with all of them once its `min_commitments[]` are met. `requires` and
+  `linked_execution` are removed, so no line item names another, and a proposal sold only
+  whole is one package. `ProposalSummary` lists packages in place of `has_requires`, and holds
+  move as a unit within a package. The bonus line item becomes an add-on in a new example.
+  § 8 question 5 asks what cancelling one line item of an agreed package does to the rest.
+  Breaking ([#23](https://github.com/IABTechLab/OpenProposal/issues/23),
+  [#6](https://github.com/IABTechLab/OpenProposal/issues/6),
+  [#50](https://github.com/IABTechLab/OpenProposal/issues/50)).
 - § 2.5, § 2.6, § 2.7, § 4.1.1, § 4.2, § 5.4, § 5.6, § 6.1, § 6.3, § 6.6, § 7, § 8, appendices,
   examples, docs, checkers — formats. `specs` becomes `format_specs` and `specifications` becomes
   `media_kit_detail`, so the two names no longer look alike. `format_specs` maps each `FormatId` to

@@ -195,6 +195,7 @@ Defining that reference is a matter for that repository.
 
 ```
 Proposal          → the merchandising pitch, identity, lifecycle state and assent
+packages[]        → optional: sets of line items sold only together
 line_items[]      → buyable units, each in exactly one channel
 ```
 
@@ -202,31 +203,30 @@ line_items[]      → buyable units, each in exactly one channel
 the proposal or from a sibling line item. There is no "overridable unless
 restated" semantics anywhere in this specification. Every term of a line item is
 on the line item. The proposal supplies only identity, `spec_version`, the offer
-window, `version`, and linked execution.
+window, `version`, and its packages. No line item names another line item: what
+applies to several line items is on the package that holds them (§ 4.1.4).
 
-**Subsettable proposals.** A buyer MAY select and commit a subset of a
-proposal's line items, unless the proposal sets `linked_execution` to `all`
-(§ 4.1). A line item that declares `requires` (§ 5.6.3) may be committed only
-when its conditions are met.
+**Subsettable proposals.** A buyer MAY select and commit any subset of a
+proposal's `line_items[]`. A package is sold only whole, and its add-ons only with
+it (§ 4.1.4).
 
 ### 2.1 Summary and full representations
 
 Every proposal and every line item has two representations.
 
-**Full Representation:** every field the object holds, with a proposal's line items
-in their Full Representation. A full fetch MUST return it, except for line items the
-requester may not read (§ 5.8).
+**Full Representation:** every field the object holds, with a proposal's line items,
+in packages or not, in their Full Representation. A full fetch MUST return it, except
+for line items and packages the requester may not read (§ 5.8).
 
 **Summary Representation:** what a buying agent reads when screening many
 sellers' shelves. A manifest entry holds it (§ 2.3), and a response over the message binding
 (§ 1.2) MAY carry it. A summary is a strict path
 subset of the full object: a listed path has the type and value it has in the
 Full Representation, it appears when the full form has it, and no other path
-appears. A summary's own table adds keys beside these paths: `has_requires`, which the
-full object doesn't hold, and the `line_items[]` of `ProposalSummary`, whose entries are
-line item summaries.
+appears. A summary's own table adds keys beside these paths: the `line_items[]` and
+`packages[]` of `ProposalSummary`, whose entries are summaries.
 
-`LineItemSummary` lists these paths of a line item (§ 5):
+**`LineItemSummary`** lists these paths of a line item (§ 5):
 
 ```text
 line_item_id
@@ -273,12 +273,6 @@ buyer_requirements.allowed_dsps[]
 transaction_mechanism.available[]
 ```
 
-**`LineItemSummary`** adds this key:
-
-| Key | Type | Required | Meaning |
-| :--- | :--- | :--- | :--- |
-| `has_requires` | Boolean | REQUIRED | Derived: `true` when the line item declares `requires` (§ 5.6.3), so a screening agent does not recommend a line item that cannot be bought on its own |
-
 `ProposalSummary` lists these paths of a proposal (§ 4):
 
 ```text
@@ -288,14 +282,23 @@ seller.domain
 seller.legal_name
 description
 offer_window
-linked_execution
 ```
 
 **`ProposalSummary`** adds this key:
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `line_items[]` | Array[LineItemSummary] | REQUIRED | The full form's line items, each as a summary. In a manifest entry, only those § 2.3 lists |
+| `line_items[]` | Array[LineItemSummary] | REQUIRED when the full form holds `line_items[]` | The full form's line items, each as a summary. In a manifest entry, only those § 2.3 lists |
+| `packages[]` | Array[PackageSummary] | REQUIRED when the full form holds `packages[]` | The full form's packages, each as a summary. In a manifest entry, only those § 2.3 lists |
+
+**`PackageSummary`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `package_id` | String | REQUIRED | The package's `package_id` (§ 4.1.4) |
+| `line_items[]` | Array[LineItemSummary] | REQUIRED | Its `line_items[]`, each as a summary |
+| `add_ons[]` | Array[LineItemSummary] | OPTIONAL | Its `add_ons[]`, each as a summary. In a manifest entry, only those § 2.3 lists |
+| `min_commitments[]` | Array[MinCommitment] | OPTIONAL | Its `min_commitments[]` |
 
 ### 2.2 Shared types
 
@@ -430,7 +433,8 @@ A seller MAY publish `https://<seller.domain>/.well-known/openproposal.json`, a
   § 8 asks whether both are.
 - Only shared proposals (§ 4.3) appear, and within them only line items whose
   `visibility` (§ 5.8) is `public` and whose `status` is `published`.
-  `registry_gated` and `named` line items do not.
+  `registry_gated` and `named` line items do not. A package appears only when
+  every line item in its `line_items[]` does, with only the add-ons that do.
 - A buyer discards an entry whose `seller.domain` differs from the domain in the
   URL it requested, before any redirect.
 - `full_url` returns only what the requester may read (§ 5.8), so a request with
@@ -476,7 +480,7 @@ Core codes: `validation` \| `not_found` \| `not_offered` \| `unresolved_referenc
 | `not_found` | A named proposal or line item does not exist, or the requester may not read it (§ 5.8) |
 | `not_offered` | A buyer value is outside what the seller declared (§ 3.1, § 3.2, § 4.3.2, § 5.3, § 5.5, § 5.6, § 5.6.1), or a buyer asks for a hold where `hold_terms` offers none (§ 5.6.2) |
 | `unresolved_reference` | A `DocumentRef` (§ 2.2) does not resolve, or its content does not match its `digest` |
-| `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `requires` that is unmet rules out a `commit` (§ 5.6.3), a live `commitment` entry already names a line item (§ 4.1.2), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
+| `not_committable` | A line item's `status` rules out an ask (§ 4.3.2), a `commit` names part of a package or an add-on without its package (§ 4.1.4), a live `commitment` entry already names a line item (§ 4.1.2), or a seller rejects a `commit` before `offer_window.start` (§ 5.6.1) |
 | `stale_version` | An ask is stale (§ 4.1.3) |
 | `expired` | `offer_window.end` or `price_valid_until` has passed |
 | `idempotency_conflict` | An `idempotency_key` is reused with a different `Commit` (§ 5.6.1) |
@@ -833,8 +837,8 @@ channel-specific live on the line items.
 | `offer_window` | Interval | OPTIONAL | seller-set | The window the offer holds: it does not hold before `start` or after `end`. **This is the offer window, not the campaign flight** |
 | `brief_id` | String | REQUIRED when `type` is `custom` | immutable | The buyer's brief this proposal answers |
 | `negotiation_history[]` | Array[HistoryEntry] | REQUIRED when the current `version` is frozen (§ 4.1.3) | recorded | Ordered, append-only. Entries MUST NOT be edited or removed. A commit and its answers are in `assent[]`, not here, and an entry here voids nothing |
-| `line_items[]` | Array[LineItem] | REQUIRED | seller-set | The line items (§ 5), in the order the seller wrote them |
-| `linked_execution` | Enum | OPTIONAL | seller-set | `all`. Every `line_item_id` the version carries is committed together, as though each line item's `requires.all_of[]` named the others (§ 5.6.3). Absent, the proposal is subsettable (§ 2) |
+| `line_items[]` | Array[LineItem] | REQUIRED when `packages[]` is absent | seller-set | The line items (§ 5), in the order the seller wrote them. A proposal holds `line_items[]` or `packages[]`, not both |
+| `packages[]` | Array[Package] | REQUIRED when `line_items[]` is absent | seller-set | The line items in packages (§ 4.1.4), in the order the seller wrote them |
 | `ext` | Ext | OPTIONAL | seller-set | See Extensions (§ 2.5) |
 
 **`HistoryEntry`** keys:
@@ -914,9 +918,11 @@ $.line_items[*].external_references
 ```
 
 Restricting to S leaves `line_items[]` an array of the line items in S, in document
-order however S is named. Nothing else narrows: a proposal-level value such as
-`description`, and a value that names a line item outside S such as
-`requires.all_of[]`, stay as they are. Removing a path takes out the member it selects
+order however S is named. In a proposal with `packages[]`, it leaves each package that
+holds a line item in S, with only the line items and add-ons in S, and each
+`$.line_items[*]` path above also selects that path under `$.packages[*].line_items[*]`
+and `$.packages[*].add_ons[*]`. Nothing else narrows: a proposal-level value such as
+`description` stays as it is. Removing a path takes out the member it selects
 and nothing else: a path that selects nothing removes nothing, and an object left empty
 stays. The one exception is `buyer_supplied`: if it holds no key after these removals, it
 is removed too, whether the removals emptied it or it was written empty.
@@ -934,7 +940,8 @@ permission to deliver a list (`segments_allowed`, `suppression_allowed`,
 
 Every other value is inside the record, named here or not: `proposal_id`,
 `spec_version`, `seller`, `buyer`, `type`, `proposal_template_id`, `brief_id`,
-`issued_from`, `offer_window`, `linked_execution`, and `ext`; every
+`issued_from`, `offer_window`, `ext`, and each package's `package_id` and
+`min_commitments[]`; every
 `seller-set` field, including `hold_terms` and prose (`description`, `media_kit_detail`,
 `creative_policy`, `format_specs`); the seller's value of a `requestable` field, such as
 `pricing[].list_rate`, including one a `grant` or `counter` put in force; every option
@@ -1012,7 +1019,7 @@ commitment.
 
 - `role: commitment` is written by the buyer. Its `line_item_ids[]` MUST name line
   items whose `commitment` object (§ 5.6.1) is populated in the record, and on their
-  own MUST meet linked execution and each named line item's `requires` (§ 5.6.3). The
+  own MUST meet the package rules (§ 4.1.4). The
   entry accepts every `terms_refs[]` entry (§ 5.8) of the line items it names, at the
   bytes each `digest` pins, so a buyer compares each document with its `digest` first.
 - `role: acceptance` is written by the seller, only while a `commitment` entry it
@@ -1101,7 +1108,8 @@ every `derived` value computed from a buyer's writes (`pricing[].agreed_rate`,
 version is not yet frozen (§ 4.1). Two representations of the same
 `(proposal_id, version)` whose offered terms differ, compared on the fields and line
 items both carry, are non-conformant. A line item that
-appears in a frozen version MUST NOT be removed from the proposal; it leaves the
+appears in a frozen version MUST NOT be removed from the proposal or moved to another
+package; it leaves the
 shelf by its `status` (§ 5.1), which is a lifecycle change. Adding a line item
 changes the offered terms.
 
@@ -1126,8 +1134,8 @@ refers to.
 record (§ 4.1.1) for the line items it names, with any buyer writes applied,
 differs between that `version` and the current one. `version` is outside the
 record, so a revision that touches only another line item does not make it stale,
-and a change to a proposal-level term does. Under `linked_execution: all`, a change
-to the set of `line_item_id`s also makes it stale. The seller computes the test
+and a change to a proposal-level term does. A change to the `line_item_id`s of a
+package that holds a line item it names also makes it stale. The seller computes the test
 from the versions it retains, and no digest is published for it. § 5.6.1 states the
 test for a `commit`.
 
@@ -1135,6 +1143,44 @@ test for a `commit`.
 or `assent[]` entry names retrievable by
 `(proposal_id, version)` for as long as the proposal is retrievable. This
 specification does not define how a party fetches a version.
+
+#### 4.1.4 Packages
+
+A package is a set of line items the seller sells only together, with the line items
+that can be added to it. A proposal that holds `packages[]` holds each of its line
+items in a package, so a line item the seller sells alone is a package of one. A line
+item sold both alone and in a package appears twice, under two `line_item_id`s, as two
+offers. A proposal sold only whole holds one package.
+
+**`Package`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `package_id` | String | REQUIRED | Identity within the proposal |
+| `line_items[]` | Array[LineItem] | REQUIRED | The line items sold only together. It holds at least one entry |
+| `add_ons[]` | Array[LineItem] | OPTIONAL | Line items sold only with all of `line_items[]`, such as a bonus line item (§ 5.6.3) |
+| `min_commitments[]` | Array[MinCommitment] | OPTIONAL | Thresholds a `commit` meets to include an add-on |
+
+**`MinCommitment`** holds the keys of `CommitmentAmount` and this one. Whatever
+`basis` the commitment on `line_item_id` uses, a `spend` threshold reads against its
+seller total (§ 5.6.5), in the currency of the entry committed (§ 5.6), and a `units`
+threshold reads against the units that entry commits, as `pricing[].unit_bounds` counts
+them.
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `line_item_id` | String | REQUIRED | A line item in the package's `line_items[]` |
+
+- `package_id` values are unique within the proposal, and so are `line_item_id` values.
+- A `commit` that names a line item in a package's `line_items[]` MUST name all of them.
+- A `commit` that names an add-on MUST name every line item in its package's
+  `line_items[]` and meet each of the package's `min_commitments[]`.
+- A seller MUST reject a `commit` that breaks either rule with `not_committable`
+  (§ 2.4). This check MUST be deterministic.
+
+A package can't be bought while a line item in its `line_items[]` is `sold_out` or
+`withdrawn`, since that line item can't be committed. Each line item keeps its own
+`status` (§ 5.1). The holds on a package's line items move as a unit (§ 5.6.2).
 
 ### 4.2 Agent comprehension
 
@@ -2037,7 +2083,6 @@ with `devicetype` 8.
 | `renewal_right` | VocabularyTerm | OPTIONAL | seller-set | The current advertiser's right to the next cycle. Core term: `first_refusal`, the right to buy the next cycle before it opens up. Absent: no such right. It is not a place in a hold queue (`hold.position`) |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | See § 5.6.6. Absent: this field states no right to cancel, and `terms_refs[]` (§ 5.8) may state one |
 | `exclusivity` | Selectable[ExclusivityOption] | OPTIONAL | selectable | See § 5.6.7. Nothing in effect: no exclusivity |
-| `requires` | Requires | OPTIONAL | seller-set | Conditions that must hold in the same `commit` for this line item to be committable. See 5.6.3 |
 
 `pricing[]` entries are alternatives. The buyer commits under exactly one, the
 *committed entry*, named by `commitment.pricing_id`, or the only entry when that key is absent; it MUST cover the mechanism in effect. Only that
@@ -2099,7 +2144,7 @@ its `settable` keys itself, and they have no `default` (§ 3.2). A
 `commitment` resolves under § 3 when the buyer is eligible (§ 5.8), every `selected[]`,
 `excluded[]`, and `value` on the line item is within what the seller declared (§ 3.1,
 § 3.2, § 5.3), and the commitment fits `commitment_bounds.spend` and the committed entry's `unit_bounds`, is not
-stale (§ 4.1.3), and meets `requires` (§ 5.6.3). A resolved `commitment` is an offer to buy. It
+stale (§ 4.1.3), and meets the package rules (§ 4.1.4). A resolved `commitment` is an offer to buy. It
 binds only when the seller accepts it;
 `assent[]` (§ 4.1.2) records that acceptance for the binding `version`. A seller
 MAY decline a resolved `commitment` with a `decline` entry; the buyer MAY recompose.
@@ -2241,56 +2286,21 @@ While `status` is `held`, the held terms are the offered terms of `hold.version`
 which § 4.1.3 freezes; a seller change is a new `version` under § 4.3.2, rule 2.
 
 A seller's answer MUST set `status` to `held` or `declined`. A repeated request
-while `requested` or `held` MUST NOT start a second hold. Under
-`linked_execution: all`, the holds on the proposal's line items move as a unit: each
+while `requested` or `held` MUST NOT start a second hold. The holds on the line items
+of one package (§ 4.1.4) move as a unit: each
 transition applies to all of them, and `valid_until` is the earliest any of them
 allows.
 
 Hold transitions do not change the line item's `status` (§ 5.1) and do not
 append to `negotiation_history[]` (§ 4.1).
 
-#### 5.6.3 requires
+#### 5.6.3 Add-ons
 
-**`Requires`** keys:
-
-| Key | Type | Required | Meaning |
-| :--- | :--- | :--- | :--- |
-| `all_of[]` | Array[String] | OPTIONAL | Line items that MUST all be in the same `commit` |
-| `any_of[]` | Array[String] | OPTIONAL | Line items of which at least one MUST be in the same `commit` |
-| `min_commitments[]` | Array[MinCommitment] | OPTIONAL | Purchase-level thresholds |
-
-```yaml
-requires:
-  all_of:  ["business-daily-display", "weather-app-ctv"]
-  min_commitments:
-    - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00 }
-```
-
-**`MinCommitment`** holds the keys of `CommitmentAmount` and this one. Whatever
-`basis` the commitment on `line_item_id` uses, a `spend` threshold reads against its
-seller total (§ 5.6.5), in the currency of the entry committed (§ 5.6), and a `units`
-threshold reads against the units that entry commits, as `pricing[].unit_bounds` counts
-them.
-
-| Key | Type | Required | Meaning |
-| :--- | :--- | :--- | :--- |
-| `line_item_id` | String | REQUIRED | The line item the threshold applies to |
-
-A bonus line item is a line item with `requires` and its own pricing, such as
-a discounted `list_rate` or `cost_method: FLAT` at 0. A conditional discount
-is modelled as a separate line item that `requires` unlocks, not as a price
-that changes according to the other line items selected. Every price remains
-self-contained.
-
-- References in `requires` MUST point to line items in the same proposal and
-  version.
-- A seller MUST reject a `commit` that includes a line item whose `requires`
-  is unmet. An unmet `requires` returns `not_committable`. This check MUST be
-  deterministic.
-- If a line item referenced in `requires` becomes `sold_out` or `withdrawn`
-  before a `commit`, and the line items left can't meet `requires`, the dependent
-  line item becomes non-committable. After `agreed`, cancellation of a referenced
-  line item is governed by the dependent line item's `cancellation_policy`.
+An add-on is a line item a package holds in `add_ons[]` (§ 4.1.4). It has its own
+pricing, such as a discounted `list_rate` or `cost_method: FLAT` at 0. A conditional
+discount is an add-on, not a price that changes with the other line items selected,
+so every price stays self-contained. A bonus that more than one package unlocks is an
+add-on in each, under its own `line_item_id`.
 
 #### 5.6.4 Plays and impressions
 
@@ -2636,10 +2646,11 @@ authorization (§ 1.2), and the object doesn't carry it.
 An authenticated requester acting for the party a proposal's `buyer` names may read all
 of it, whatever `visibility` says. Any other requester may read a proposal's own fields
 only when it may read one of its line items. A response carries only the line items the
-requester may read, and a request for any other line item, or for a proposal the
+requester may read, and a package only when the requester may read every line item
+in its `line_items[]`. A request for any other line item, or for a proposal the
 requester may not read, returns `not_found` (§ 2.4). A full fetch leaves out only line
 items (§ 2.1), so a value it returns can name a line item the requester may not read,
-such as a line item's `requires` (§ 4.1.1) or a `negotiation_history[]` path.
+such as a `negotiation_history[]` path.
 
 **Who may commit.** A buyer is eligible when each of these that is present holds:
 
@@ -2813,7 +2824,7 @@ Runnable copies of every example below live in [`examples/`](../examples/).
 Shows version 2 after one seller revision (§ 4.1.3). See
 [`examples/proposal.yaml`](../examples/proposal.yaml).
 
-Its `line_items[]` holds the line items of §§ 6.2 to 6.5, 6.7, and 6.11, which are
+Its `line_items[]` holds the line items of §§ 6.2 to 6.4, 6.7, and 6.11, which are
 extracts of it. §§ 6.9 and 6.10 show a buyer's composed record (§ 4.1.1) of a line item
 issued to it (§ 4.3), before its `commit`.
 
@@ -2842,16 +2853,18 @@ cancellation fee that steps with notice before the start, and priced exclusivity
 terms. See
 [`examples/line-item-audio.yaml`](../examples/line-item-audio.yaml).
 
-### 6.5 Bonus line item
+### 6.5 Package with an add-on
 
-A CTV line item unlocked by buying the display and CTV line items together,
-priced on its own. See
-[`examples/line-item-ctv-bonus.yaml`](../examples/line-item-ctv-bonus.yaml).
+The CTV and audio line items of § 6.1, sold only together, with a CTV bonus line item
+as an add-on (§ 5.6.3). The bonus is priced on its own and unlocked by 50,000 of
+spend on the CTV line item. See
+[`examples/proposal-package.yaml`](../examples/proposal-package.yaml), and the bonus
+alone in [`examples/line-item-ctv-bonus.yaml`](../examples/line-item-ctv-bonus.yaml).
 
 ### 6.6 Publication manifest
 
-A manifest (§ 2.3) listing the public line items of the example proposal. The
-display and bonus line items are `registry_gated`, so they are not listed. See
+A manifest (§ 2.3) listing the public line items of the example proposal. The display
+line item is `registry_gated`, so it is not listed. See
 [`examples/manifest.json`](../examples/manifest.json).
 
 ### 6.7 Rewarded video line item
@@ -2966,8 +2979,10 @@ see [docs/open-questions.md](../docs/open-questions.md).
    (§ 5.4), so half the declared channels have only seller-defined specs today. A
    `spec_ref` names a registry by domain alone: this draft doesn't say which
    registry that is or how to fetch an entry.
-5. **Do `linked_execution` and `requires` cover bundle purchases**, or does the
-   proposal also need a `min_line_items` field?
+5. **What does cancelling one line item of an agreed package do to the rest?** A
+   package (§ 4.1.4) covers bundle purchases without a `min_line_items` count. Each
+   line item's `cancellation_policy` governs only that line item (§ 5.6.6), and this
+   draft doesn't say whether the package or its add-ons survive it.
 6. **Should `billing.payment_terms` and `billing.invoicing_party` be repeated on
    every line item,** given they are usually identical across a seller's shelf?
 7. **`environments.available[]` needs validation against real inventory.** The
@@ -3017,8 +3032,8 @@ body is normative.**
 | `offer_window` | 4.1 Identity and lifecycle | Interval | OPTIONAL | seller-set |
 | `brief_id` | 4.1 Identity and lifecycle | String | REQUIRED when `type` is `custom` | immutable |
 | `negotiation_history[]` | 4.1 Identity and lifecycle | Array[HistoryEntry] | REQUIRED when the current `version` is frozen (§ 4.1.3) | recorded |
-| `line_items[]` | 4.1 Identity and lifecycle | Array[LineItem] | REQUIRED | seller-set |
-| `linked_execution` | 4.1 Identity and lifecycle | Enum | OPTIONAL | seller-set |
+| `line_items[]` | 4.1 Identity and lifecycle | Array[LineItem] | REQUIRED when `packages[]` is absent | seller-set |
+| `packages[]` | 4.1 Identity and lifecycle | Array[Package] | REQUIRED when `line_items[]` is absent | seller-set |
 | `ext` | 4.1 Identity and lifecycle | Ext | OPTIONAL | seller-set |
 | `description` | 4.2 Agent comprehension | String | REQUIRED | seller-set |
 | `media_kit_detail` | 4.2 Agent comprehension | String | OPTIONAL | seller-set |
@@ -3080,7 +3095,6 @@ body is normative.**
 | `renewal_right` | 5.6 Commercial terms | VocabularyTerm | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
 | `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityOption] | OPTIONAL | selectable |
-| `requires` | 5.6 Commercial terms | Requires | OPTIONAL | seller-set |
 | `committed_metrics[]` | 5.7 Guarantees | Array[CommittedMetric] | OPTIONAL | requestable |
 | `measurement_source` | 5.7 Guarantees | Selectable[MeasurementOption] | OPTIONAL | selectable |
 | `controlling_measurement` | 5.7 Guarantees | Selectable[ControllingMeasurementOption] | REQUIRED when `serving_mode` is `embedded` or the line item has `committed_metrics[]`, `commitment_bounds.spend`, or a `pricing[].unit_bounds` | selectable |
@@ -3110,7 +3124,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 46 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `media_kit_detail`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `episodes`, `placement`, `format_specs`, `creative_delivery`, `approval`, `creative_policy`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `renewal_right`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `retention`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `packages[]`, `ext` (proposal), `description`, `media_kit_detail`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `episodes`, `placement`, `format_specs`, `creative_delivery`, `approval`, `creative_policy`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `renewal_right`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `retention`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 16 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `programs`, `environments`, `break_position`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -3123,8 +3137,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 98 fields, **26 are touched by the buyer** — 16 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 72 are `seller-set`, `immutable`,
+Of 97 fields, **26 are touched by the buyer** — 16 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 71 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.
