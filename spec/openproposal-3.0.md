@@ -77,6 +77,7 @@ values from the agreed line item:
 | `terms.guar` | `Deal.guar` | `1` when the mechanism in effect is `programmatic_guaranteed`, `0` otherwise |
 | `terms.units` | | `commitment.amount` when `basis` is `units`, otherwise `derived_units` (§ 5.6.5) |
 | `terms.totalcost` | | The seller total (§ 5.6.5) |
+| `ext.baseline` | | The agreed baseline `VersionRef` (§ 2.2), with `seller_domain`, so a DSP can join the deal to its record. OPTIONAL. The Deals API 1.0 doesn't define this key |
 
 `commitment.flight.end` and `terms.enddate` are the flight's last second,
 inclusive. The Deals API 1.0 doesn't say whether `enddate` is inclusive, so this mapping
@@ -336,14 +337,15 @@ retrievable, and the counterparty stores a copy.
 
 **`VersionRef`** locates an offer at a version. It carries no digest. A `proposal_id`
 is unique only within a `seller.domain` (§ 4.1): a `VersionRef` inside a proposal
-resolves against that proposal's `seller`, and a system that holds one outside a
-proposal keeps the `seller.domain` beside it.
+resolves against that proposal's `seller`, and one outside a proposal carries
+`seller_domain`.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `proposal_id` | String | REQUIRED | The proposal |
 | `version` | Integer | REQUIRED | The proposal's `version` |
 | `line_item_id` | String | OPTIONAL | A line item in that version |
+| `seller_domain` | RegistrableDomain | REQUIRED when the `VersionRef` is outside its proposal | The proposal's `seller.domain` |
 
 **`Party`** names a legal party. `domain` is the identifier, and `registry_id` is
 an attestation. An absent or unresolvable `registry_id` MUST NOT make a document
@@ -974,7 +976,7 @@ decides whether a line item is agreed.
 | `line_item_ids[]` | Array[String] | REQUIRED | The line items the entry names. MUST be non-empty |
 | `at` | Instant | REQUIRED | When the party wrote the entry, by its own statement. No rule reads order from it |
 | `idempotency_key` | String | REQUIRED when `role` is `commitment` | Buyer-generated, unique per `commit`, opaque, and scoped to one buyer and seller pair. The seller MUST NOT interpret it (§ 5.6.1) |
-| `ground` | VocabularyTerm | OPTIONAL | On a `decline` entry only, why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. No rule reads it, and a receiver that doesn't know a term still reads the entry as a `decline` |
+| `ground` | VocabularyTerm | REQUIRED when `role` is `decline` | Why the seller declined. Core terms: `availability` \| `exclusivity` \| `terms`, the grounds of § 4.3.2. Absent on any other entry. A receiver that doesn't know a term still reads the entry as a `decline` |
 
 Two entries *match* when their `version`, `record_digest`, and `line_item_ids[]` are
 equal. `line_item_ids[]` compare as sets, so an acceptance cannot cover part of a
@@ -1202,7 +1204,8 @@ a resolved `commit` under it that arrives while the entry holds, on or after
 `offer_window.start`, and passes the checks of § 5.6.1 and any authority check the seller applies (§ 5.8):
 accept it, or decline it on an allowed ground. The allowed grounds are lack of
 availability, an exclusivity conflict (§ 5.6.7), and a ground stated in the
-`terms_refs[]` in force when the entry was first offered.
+`terms_refs[]` in force when the entry was first offered. The answer MUST come before the entry stops holding: otherwise silence
+works as a decline on no ground.
 `sold_out` is lack of availability: a `commit` that arrives while the line item is
 `sold_out` returns `not_committable` (§ 2.4).
 
@@ -1703,7 +1706,7 @@ is downstream (§ 1.1). Frozen when the line item's `status` becomes `agreed`.
 | :--- | :--- | :--- | :--- | :--- |
 | `pricing_id` | String | REQUIRED when `pricing[]` has more than one entry | The entry the buyer commits under | settable |
 | `flight` | Interval | REQUIRED | The buyer's campaign. **Distinct from `offer_window`** | settable |
-| `advertisers[]` | Array[Party] | OPTIONAL | Whom the spend is for | settable |
+| `advertisers[]` | Array[Party] | REQUIRED | Whom the spend is for. It holds at least one entry | settable |
 | `derived_units` | Integer | OPTIONAL | The committed units, as § 5.6.5 derives them, whether or not this key is written. A written value is a copy, outside the record (§ 4.1.1); where it differs, the § 5.6.5 result applies | derived |
 
 The buyer's `assent[]` entry (§ 4.1.2) pins the `version` of a `commit` and carries its

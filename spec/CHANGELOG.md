@@ -67,7 +67,7 @@ issue that caused it, so the comment record and the spec history line up.
   `creative_delivery.method` is defined, and it routes the creative under any mechanism:
   `assets[]` and `materials_due` read only where creative reaches the seller. `buying_route`
   and `supported_order_systems[]` are removed, and `serving_platform` is a `Domain`. The bonus
-  example sells as `direct_io`. Breaking
+  example sells as `direct_io`. Breaking A `VersionRef` outside its proposal carries `seller_domain`, and a Deals API push may carry the agreed baseline in `ext.baseline`.
   ([#132](https://github.com/IABTechLab/OpenProposal/issues/132),
   [#133](https://github.com/IABTechLab/OpenProposal/issues/133),
   [#93](https://github.com/IABTechLab/OpenProposal/issues/93),
@@ -117,7 +117,7 @@ issue that caused it, so the comment record and the spec history line up.
   `terms_acceptance_required` become `terms_refs[]` of `DocumentRef`, and a `commitment` entry
   accepts them all. An absent list accepts no document. A `DocumentRef`'s `url` is an `HttpsUrl`,
   a new type, and `list_ref` is a `DocumentRef`. `commitment.proposal_id` and
-  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking
+  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking A `commitment` names at least one advertiser, a `decline` states its `ground`, and a seller answers a `commit` under a firm entry while the entry holds.
   ([#63](https://github.com/IABTechLab/OpenProposal/issues/63),
   [#27](https://github.com/IABTechLab/OpenProposal/issues/27),
   [#24](https://github.com/IABTechLab/OpenProposal/issues/24),
