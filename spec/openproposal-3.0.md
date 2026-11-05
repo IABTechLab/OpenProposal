@@ -1156,7 +1156,7 @@ are one ask while that ask is open, and an equal `request` after it ends is a ne
 | availability read | buyer | an `AvailabilityRead` (§ 3.3), answered with the figures § 3.3 names, with no change of state; no entry |
 | `request` | buyer | asks a `requestable` value on one line item against a named `version`, stated as a `HistoryPath` (§ 4.1) with `requested_value`; `requested` |
 | `grant` | seller | of a `request`: new `version` with the requested value in force as an offered term; `granted` |
-| `counter` | seller | of a `request`: new `version` with another value; `countered` |
+| `counter` | seller | of a `request`: new `version` with another value; `countered`. A `counter` of `pricing[].list_rate` MAY also change `included[]`, with `paths[]` naming both |
 | `decline` | seller | no new `version`. Of a `request`: `declined`. Of a `commit`: the seller's `assent[]` entry; no entry |
 | `commit` | buyer | a `Commit` (§ 5.6.1): the buyer's `assent[]` entry, which pins the `version`, and its writes (§ 3.4); no entry |
 | `accept` | seller | of a `commit`: the seller's `assent[]` entry, no new `version`; no entry |
@@ -1904,7 +1904,7 @@ open: the term sets its keys.
 | `viewability_standard` | VocabularyTerm | REQUIRED when `cost_method` is `CPMV` | The viewability standard that counts a unit |
 | `view_s` | Integer | REQUIRED when `cost_method` is `CPV` and `view_fraction` is absent | Seconds played that make a view. Absent when `view_fraction` is present |
 | `view_fraction` | Fraction | REQUIRED when `cost_method` is `CPV` and `view_s` is absent | The fraction of the creative played that makes a view. Absent when `view_s` is present |
-| `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. This version lists no core terms |
+| `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. Its definition states whether co-viewers and impressions of unknown age count, or says `unknown`. This version lists no core terms |
 | `rating_source` | Measurer | REQUIRED when `cost_method` is `CPP` | Who supplies the ratings |
 | `action_type` | VocabularyTerm | REQUIRED when `cost_method` is `CPA` | The kind of action counted, such as `shop.example:purchase`. This version lists no core terms |
 | `attribution_window` | Duration | REQUIRED when `cost_method` is `CPA` | How long after exposure an action counts |
@@ -1914,12 +1914,14 @@ open: the term sets its keys.
 A seller's own extension terms MUST use its `seller.domain` as the `<domain>`. The host
 of `cost_definition.url` MUST be the term's `<domain>` or a subdomain of it.
 
+`agreed_rate` MUST NOT be negative. When `commitment.basis` is `spend`, on an entry
+other than `FLAT` or `TIME`, `agreed_rate` MUST be greater than 0.
+
 When `commitment.basis` is `spend`, `amount` is the seller total, on the same
 terms as `agreed_rate`, including `delta_flat` charges in effect (§ 3.1), which
 MUST NOT exceed it. `derived_units` = (`amount` − those charges) ÷ `agreed_rate` × rate
 per, rounded down to a whole unit, where rate per comes from the table for a core term
-and from `rate_per` for an extension term. At an `agreed_rate` of 0 or below, this
-formula gives no figure, and `derived_units` is absent.
+and from `rate_per` for an extension term.
 
 When `commitment.basis` is `units`, `derived_units` is `amount`, and the seller
 total is `amount` ÷ rate per × `agreed_rate` plus those charges.
@@ -2006,7 +2008,7 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 | `scope` | Enum | REQUIRED | `category` \| `sole`. `category`: no other advertiser in `categories`. `sole`: no other advertiser |
 | `categories` | TaxonomyCodes | REQUIRED when `scope` is `category` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers its descendants |
 | `competitors[]` | Array[RegistrableDomain] | OPTIONAL | Advertiser domains also excluded |
-| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) |
+| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) |
 | `window` | Interval | OPTIONAL | The dates the term holds, only where they fall inside `commitment.flight`. Default: the whole flight. With no overlap, the term holds on no date and the option's deltas still count (§ 5.6) |
 
 A seller MUST decline a `commitment` whose term in effect conflicts with an

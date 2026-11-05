@@ -759,6 +759,8 @@ class Checker:
         flight = commitment.get("flight") or {}
         starts, ends = flight.get("start"), flight.get("end")
         total, units, elapsed = amount, None, None
+        if rate < 0:
+            self.err(file, path, "agreed_rate", "agreed_rate is negative")
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
         size = RATE_UNIT_SECONDS.get((committed.get("cost_parameters") or {}).get("rate_unit"))
         if method == "TIME" and starts and ends and size:
@@ -780,6 +782,8 @@ class Checker:
                 self.err(file, path, "amount", "delta_flat charges exceed the amount")
             if rate > 0:
                 units = int((amount - charges) / rate * rate_per)
+            else:
+                self.err(file, path, "agreed_rate", "a spend commitment on this entry needs an agreed_rate above 0")
         else:
             total, units = amount / rate_per * rate + charges, amount
         if units is not None and "derived_units" in commitment and commitment["derived_units"] != units:

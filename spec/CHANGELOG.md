@@ -22,7 +22,7 @@ issue that caused it, so the comment record and the spec history line up.
   `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
   exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
   names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
-  `version`, so `accepted_counter` and `selection_key` are removed. Breaking
+  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location`, and a `demographic` term states how it treats co-viewers and unknown age.
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -256,7 +256,7 @@ issue that caused it, so the comment record and the spec history line up.
   the summary carries `environments.available[]`
   ([#90](https://github.com/IABTechLab/OpenProposal/issues/90)).
 - Define the boundary between creative inspection and production notifications
-  in section 5.4, with an informative CTV example note
+  in section 5.4.1, with an informative CTV example note
   ([#42](https://github.com/IABTechLab/OpenProposal/issues/42)).
 - § 2, § 4.1, § 5.6 — `linked_execution` on the proposal and `requires` on
   line items, for linked execution and bonus line items
