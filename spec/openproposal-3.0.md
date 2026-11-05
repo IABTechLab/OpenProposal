@@ -1609,6 +1609,7 @@ Monday.
 | `commitment` | Commitment | OPTIONAL | mixed | **The buyer's actual commitment.** See 5.6.1 |
 | `hold_terms` | HoldTerms | OPTIONAL | seller-set | Offers a hold. Absent means `available` is `false`. See 5.6.2 |
 | `hold` | Hold | OPTIONAL | lifecycle | The buyer's hold. Absent until the buyer first asks. See 5.6.2 |
+| `renewal_right` | VocabularyTerm | OPTIONAL | seller-set | The current advertiser's right to the next cycle. Core term: `first_refusal`, the right to buy the next cycle before it opens up. Absent: no such right. It is not a place in a hold queue (`hold.position`) |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | See § 5.6.6. Absent: this field states no right to cancel, and `terms_refs[]` (§ 5.8) may state one |
 | `exclusivity` | Selectable[ExclusivityOption] | OPTIONAL | selectable | See § 5.6.7. Nothing in effect: no exclusivity |
 | `creative_policy` | Object | OPTIONAL | seller-set | Content and category restrictions on creative |
@@ -1765,6 +1766,8 @@ against a new `version` is a new `commit`, with a new `idempotency_key`.
 `hold_terms` offers a hold. It is `seller-set`, and it is inside the binding record.
 `hold` is live state, outside the record (§ 4.1.1), and is absent on a shared
 proposal (§ 4.3).
+`held` means the seller has reserved inventory. A seller that only honors terms sets
+`hold_terms.available` to `false` and uses `price_valid_until`.
 
 **`HoldTerms`** keys:
 
@@ -1782,6 +1785,7 @@ proposal (§ 4.3).
 | `requested_terms` | LineItemWrites | OPTIONAL | The composition the buyer asks to hold, which is not a `commit`. A field it doesn't name reads as § 3.1 and § 3.2 put in effect |
 | `held_availability` | Availability | OPTIONAL | What the hold reserves, as the seller states it on a grant or a re-offer. It can be less than `requested_terms` asks |
 | `position` | Integer | OPTIONAL | Seller-set, 1 for first in line, in the order granted. A later hold moves up only when the one ahead expires, is released or converts. Holds on the same inventory reserve it in that order, so a later hold reserves only what the holds granted ahead of it leave (§ 5.6.1) |
+| `reference` | String | OPTIONAL | Seller-set. The seller's id for the reservation, so a buyer can reconcile a hold against the seller's systems |
 | `valid_until` | Instant | REQUIRED when `status` is `held` | The grant time plus `hold_terms.duration`, or the § 4.3.4 cap if that comes first. With no `duration`, the seller sets it within the cap. It MAY remain on `expired` and `released` |
 
 **`HoldStatus`** is `requested` \| `held` \| `declined` \| `expired` \| `released` \|
@@ -1800,7 +1804,9 @@ These transitions are exhaustive:
 - `held` → `held`: the seller re-offers a hold its revision makes stale, moving
   `version` to the new one, writing any `held_availability`, and lowering `valid_until`
   to the new version's cap (§ 4.3.4) where that comes first (§ 4.3.2, rule 2).
-- `held` → `expired`: `valid_until` passes.
+- `held` → `expired`: `valid_until` passes and no `commit` the buyer made while the hold
+  ran is open (§ 4.3). The hold stays `held` while that `commit` is open. Otherwise a seller
+  could leave it unanswered until the hold lapses, then decline it for lack of availability.
 - `held` → `released`: the buyer releases, or the seller releases a hold its
   revision makes stale (§ 4.3.2, rule 2).
 - `requested` | `held` → `converted`: the line item reaches `agreed`.
@@ -2430,6 +2436,7 @@ body is normative.**
 | `commitment` | 5.6 Commercial terms | Commitment | OPTIONAL | mixed |
 | `hold_terms` | 5.6 Commercial terms | HoldTerms | OPTIONAL | seller-set |
 | `hold` | 5.6 Commercial terms | Hold | OPTIONAL | lifecycle |
+| `renewal_right` | 5.6 Commercial terms | VocabularyTerm | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
 | `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityOption] | OPTIONAL | selectable |
 | `creative_policy` | 5.6 Commercial terms | Object | OPTIONAL | seller-set |
@@ -2461,7 +2468,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 43 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `renewal_right`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 13 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -2474,8 +2481,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 92 fields, **23 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 69 are `seller-set`, `immutable`,
+Of 93 fields, **23 are touched by the buyer** — 13 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 70 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.

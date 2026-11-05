@@ -47,7 +47,7 @@ issue that caused it, so the comment record and the spec history line up.
   `Availability`, whose keys the `availability` row lists until its key table lands.
   `hold_scope` is removed: under `linked_execution: all`, holds move as a unit. The re-offer
   is a listed transition, and `valid_until` states its cap. The CTV example no longer offers
-  a hold on a `private_auction` line item. Breaking
+  a hold on a `private_auction` line item. Breaking `held` means reserved inventory, and a hold stays `held` while a `commit` made during it is open. `hold.reference` holds the seller's id for the reservation, and `renewal_right` offers a right to the next cycle.
   ([#66](https://github.com/IABTechLab/OpenProposal/issues/66),
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134)).
 - § 1.1, § 2.1, § 2.6, § 5.4, § 5.5, § 5.6, § 5.9, § 5.10, § 6.2, § 8, appendices, examples,
