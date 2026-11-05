@@ -28,6 +28,7 @@ commitment:
   basis:           units
   amount:          400000                   # ad deliveries
   flight: { start: "2026-11-02T00:00:00Z", end: "2026-11-30T23:59:59Z" }  # first episode released to last episode released
+  advertisers: [{ domain: "brand-a.example" }]
 
 visibility:            named
 eligible_buyers:       ["agency-a.example"]
