@@ -953,10 +953,20 @@ class Checker:
         core = re.search(r"what the buyer\s+supplies for the format\. Core terms: (.*?)\. A receiver",
                          "\n".join(self.spec.lines), re.S).group(1)
         core = set(re.findall(r"`([^`]+)`", core))
+        voices = re.search(r"whether a synthesized\s+voice may read the ad\. Core terms: (.*?)\. A receiver",
+                           "\n".join(self.spec.lines), re.S).group(1)
+        voices = set(re.findall(r"`([^`]+)`", voices))
+        for i, a in enumerate(item.get("assets") or []):
+            spec = (specs.get(a.get("format_id")) or {}).get("spec") or {} if isinstance(a, dict) else {}
+            if ((a.get("provenance") or {}).get("synthetic") is True) and spec.get("voice") == "human_only":
+                self.err(file, f"{path}.assets[{i}]", "a synthetic asset doesn't conform to a spec whose voice is human_only")
         for fid, entry in specs.items():
             asset = (entry.get("spec") or {}).get("asset") if isinstance(entry, dict) else None
             if asset is not None and asset not in core and not re.fullmatch(rf"{TERM_DOMAIN}{TERM_PART}", str(asset)):
                 self.err(file, path, f"{fid}: spec.asset {asset!r} is neither a core term nor an extension term")
+            voice = (entry.get("spec") or {}).get("voice") if isinstance(entry, dict) else None
+            if voice is not None and voice not in voices and not re.fullmatch(rf"{TERM_DOMAIN}{TERM_PART}", str(voice)):
+                self.err(file, path, f"{fid}: spec.voice {voice!r} is neither a core term nor an extension term")
             ref = entry.get("spec_ref") if isinstance(entry, dict) else None
             if not ref:
                 continue

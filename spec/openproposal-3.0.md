@@ -1747,6 +1747,12 @@ supplies for the format. Core terms: `audio_file` \| `video_file` \| `image_file
 `markup` \| `script`. A receiver that doesn't know a term treats that format as
 unavailable.
 
+A `spec` MAY also hold `voice`, a `VocabularyTerm` that says whether a synthesized
+voice may read the ad. Core terms: `human_only` \| `synthetic_permitted`. A receiver
+that doesn't know a term treats that format as unavailable. An asset whose
+`provenance.synthetic` is true doesn't conform to a spec whose `voice` is
+`human_only`.
+
 **`MaterialsDue`** holds exactly one key:
 
 | Key | Type | Required | Meaning |
