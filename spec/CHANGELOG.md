@@ -22,7 +22,7 @@ issue that caused it, so the comment record and the spec history line up.
   `creative_delivery.method` is defined, and it routes the creative under any mechanism:
   `assets[]` and `materials_due` read only where creative reaches the seller. `buying_route`
   and `supported_order_systems[]` are removed, and `serving_platform` is a `Domain`. The bonus
-  example sells as `direct_io`. Breaking
+  example sells as `direct_io`. Breaking A `VersionRef` outside its proposal carries `seller_domain`, and a Deals API push may carry the agreed baseline in `ext.baseline`.
   ([#132](https://github.com/IABTechLab/OpenProposal/issues/132),
   [#133](https://github.com/IABTechLab/OpenProposal/issues/133),
   [#93](https://github.com/IABTechLab/OpenProposal/issues/93),

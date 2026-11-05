@@ -77,6 +77,7 @@ values from the agreed line item:
 | `terms.guar` | `Deal.guar` | `1` when the mechanism in effect is `programmatic_guaranteed`, `0` otherwise |
 | `terms.units` | | `commitment.amount` when `basis` is `units`, otherwise `derived_units` |
 | `terms.totalcost` | | `commitment.amount` when `basis` is `spend`, otherwise `amount` × `agreed_rate` ÷ 1,000, plus any `delta_flat` charges in effect |
+| `ext.baseline` | | The agreed baseline `VersionRef` (§ 2.2), with `seller_domain`, so a DSP can join the deal to its record. OPTIONAL. The Deals API 1.0 doesn't define this key |
 
 `commitment.flight.end` and `terms.enddate` are the flight's last second,
 inclusive. The Deals API 1.0 doesn't say whether `enddate` is inclusive, so this mapping
@@ -335,14 +336,15 @@ retrievable, and the counterparty stores a copy.
 
 **`VersionRef`** locates an offer at a version. It carries no digest. A `proposal_id`
 is unique only within a `seller.domain` (§ 4.1): a `VersionRef` inside a proposal
-resolves against that proposal's `seller`, and a system that holds one outside a
-proposal keeps the `seller.domain` beside it.
+resolves against that proposal's `seller`, and one outside a proposal carries
+`seller_domain`.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `proposal_id` | String | REQUIRED | The proposal |
 | `version` | Integer | REQUIRED | The proposal's `version` |
 | `line_item_id` | String | OPTIONAL | A line item in that version |
+| `seller_domain` | RegistrableDomain | REQUIRED when the `VersionRef` is outside its proposal | The proposal's `seller.domain` |
 
 **`Party`** names a legal party. `domain` is the identifier, and `registry_id` is
 an attestation. An absent or unresolvable `registry_id` MUST NOT make a document
