@@ -93,7 +93,7 @@ issue that caused it, so the comment record and the spec history line up.
   `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
   exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
   names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
-  `version`, so `accepted_counter` and `selection_key` are removed. Breaking
+  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location`, and a `demographic` term states how it treats co-viewers and unknown age.
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -118,7 +118,7 @@ issue that caused it, so the comment record and the spec history line up.
   `Availability`, whose keys the `availability` row lists until its key table lands.
   `hold_scope` is removed: under `linked_execution: all`, holds move as a unit. The re-offer
   is a listed transition, and `valid_until` states its cap. The CTV example no longer offers
-  a hold on a `private_auction` line item. Breaking
+  a hold on a `private_auction` line item. Breaking `held` means reserved inventory, and a hold stays `held` while a `commit` made during it is open. `hold.reference` holds the seller's id for the reservation, and `renewal_right` offers a right to the next cycle.
   ([#66](https://github.com/IABTechLab/OpenProposal/issues/66),
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134)).
 - § 1.1, § 2.1, § 2.6, § 5.4, § 5.5, § 5.6, § 5.9, § 5.10, § 6.2, § 8, appendices, examples,
@@ -138,7 +138,7 @@ issue that caused it, so the comment record and the spec history line up.
   `creative_delivery.method` is defined, and it routes the creative under any mechanism:
   `assets[]` and `materials_due` read only where creative reaches the seller. `buying_route`
   and `supported_order_systems[]` are removed, and `serving_platform` is a `Domain`. The bonus
-  example sells as `direct_io`. Breaking
+  example sells as `direct_io`. Breaking A `VersionRef` outside its proposal carries `seller_domain`, and a Deals API push may carry the agreed baseline in `ext.baseline`.
   ([#132](https://github.com/IABTechLab/OpenProposal/issues/132),
   [#133](https://github.com/IABTechLab/OpenProposal/issues/133),
   [#93](https://github.com/IABTechLab/OpenProposal/issues/93),
@@ -188,7 +188,7 @@ issue that caused it, so the comment record and the spec history line up.
   `terms_acceptance_required` become `terms_refs[]` of `DocumentRef`, and a `commitment` entry
   accepts them all. An absent list accepts no document. A `DocumentRef`'s `url` is an `HttpsUrl`,
   a new type, and `list_ref` is a `DocumentRef`. `commitment.proposal_id` and
-  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking
+  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking A `commitment` names at least one advertiser, a `decline` states its `ground`, and a seller answers a `commit` under a firm entry while the entry holds.
   ([#63](https://github.com/IABTechLab/OpenProposal/issues/63),
   [#27](https://github.com/IABTechLab/OpenProposal/issues/27),
   [#24](https://github.com/IABTechLab/OpenProposal/issues/24),
@@ -327,7 +327,7 @@ issue that caused it, so the comment record and the spec history line up.
   the summary carries `environments.available[]`
   ([#90](https://github.com/IABTechLab/OpenProposal/issues/90)).
 - Define the boundary between creative inspection and production notifications
-  in section 5.4, with an informative CTV example note
+  in section 5.4.1, with an informative CTV example note
   ([#42](https://github.com/IABTechLab/OpenProposal/issues/42)).
 - § 2, § 4.1, § 5.6 — `linked_execution` on the proposal and `requires` on
   line items, for linked execution and bonus line items

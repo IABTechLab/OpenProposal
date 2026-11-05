@@ -43,6 +43,7 @@ commitment:
   amount: 70156.80
   flight: { start: "2026-11-02T00:00:00Z", end: "2026-11-15T23:59:59Z" }
   derived_units: 8769600       # impressions: 3,024,000 plays × 2.9 average
+  advertisers: [{ domain: "brand-a.example" }]
 
 controlling_measurement:
   available:    [{ id: vendor-count, counted_by: "audience-vendor.example",   # MUST be the multiplier's source

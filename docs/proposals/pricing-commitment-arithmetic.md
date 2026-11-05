@@ -51,12 +51,12 @@ not choose gross or net commission treatment, or decide the tax question in
 ```
 flat_charges  = sum of applicable one-time seller charges
 media_spend   = commitment.amount - flat_charges
-derived_units = media_spend / agreed_rate * rate_per
+derived_units = floor(media_spend / agreed_rate * rate_per)
 ```
 
 `rate_per` is 1,000 for CPM and CPMV, and 1 for CPC. For `basis = spend`, the
 agreed rate MUST be positive. Flat charges MUST NOT exceed the spend commitment.
-Zero remaining media spend yields zero informative units and still has to satisfy any
+Zero remaining media spend yields zero units and still has to satisfy any
 applicable minimum-unit requirement.
 
 For `basis = units`, the committed units remain binding. The agreed rate MAY
@@ -70,8 +70,8 @@ seller_total  = media_spend + flat_charges
 `commitment_bounds.spend` applies to the seller total on the same basis as
 `agreed_rate`. The selected entry's currency applies to rates, flat charges and
 spend bounds. No currency conversion is implied. `pricing[].unit_bounds` counts the
-selected entry's own unit. Informative unit estimates MUST NOT be rounded in a way
-that changes the committed amount or authorizes extra spend.
+selected entry's own unit. Rounding `derived_units` down MUST NOT change the committed
+amount or authorize extra spend.
 
 ## Arithmetic inputs do not establish acceptance
 

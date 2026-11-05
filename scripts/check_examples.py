@@ -181,6 +181,9 @@ CONDITIONS = {
         lambda o, i, p: o.get("type") == "custom" or "assent" in o,
     "the current `version` is frozen (§ 4.1.3)": lambda o, i, p: o.get("status") != "draft",
     "`requested_value` is present": lambda o, i, p: "requested_value" in o,
+    # Every VersionRef in the examples sits inside its proposal.
+    "the `VersionRef` is outside its proposal": lambda o, i, p: False,
+    "`role` is `decline`": lambda o, i, p: o.get("role") == "decline",
     "the entry's `action` is `requested`":
         lambda o, i, p: any(e.get("action") == "requested" and any(x is o for x in e.get("paths", []))
                             for e in (p or {}).get("negotiation_history", [])),
@@ -841,6 +844,8 @@ class Checker:
         flight = commitment.get("flight") or {}
         starts, ends = flight.get("start"), flight.get("end")
         total, units, elapsed = amount, None, None
+        if rate < 0:
+            self.err(file, path, "agreed_rate", "agreed_rate is negative")
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
         size = RATE_UNIT_SECONDS.get((committed.get("cost_parameters") or {}).get("rate_unit"))
         if method == "TIME" and starts and ends and size:
@@ -862,6 +867,8 @@ class Checker:
                 self.err(file, path, "amount", "delta_flat charges exceed the amount")
             if rate > 0:
                 units = int((amount - charges) / rate * rate_per)
+            else:
+                self.err(file, path, "agreed_rate", "a spend commitment on this entry needs an agreed_rate above 0")
         else:
             total, units = amount / rate_per * rate + charges, amount
         if units is not None and "derived_units" in commitment and commitment["derived_units"] != units:
