@@ -1766,10 +1766,12 @@ checks again. Reusing an `idempotency_key` with a different `Commit` MUST return
 against a new `version` is a new `commit`, with a new `idempotency_key`.
 
 A buyer's `commitment` entry carries its `idempotency_key`, and `assent[]` keeps every
-entry (§ 4.1.2). So a seller finds an accepted `commit` by its key for as long as it
-keeps the proposal. A rejection writes no entry. The seller keeps it at least until
-`offer_window.end`. Once the seller no longer keeps a rejection, a replay is a new
-`commit`.
+entry (§ 4.1.2). So a seller finds a `commit` that wrote an entry by its key for as long
+as it keeps the proposal. A rejection writes no entry. The seller MUST keep a rejection
+whose `retry` is not `same` at least until `offer_window.end`, or, on a proposal with no
+`offer_window.end`, for as long as it keeps the proposal. Once the seller no longer keeps
+a rejection, it processes a replay as a new `commit`: it runs the checks above, and a
+`commit` that passes writes an entry with that key.
 
 #### 5.6.2 Holds
 
