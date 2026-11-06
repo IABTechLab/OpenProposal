@@ -1618,6 +1618,7 @@ Monday.
 | `renewal_right` | VocabularyTerm | OPTIONAL | seller-set | The current advertiser's right to the next cycle. Core term: `first_refusal`, the right to buy the next cycle before it opens up. Absent: no such right. It is not a place in a hold queue (`hold.position`) |
 | `cancellation_policy` | Selectable[CancellationOption] | OPTIONAL | selectable | See § 5.6.6. Absent: this field states no right to cancel, and `terms_refs[]` (§ 5.8) may state one |
 | `exclusivity` | Selectable[ExclusivityOption] | OPTIONAL | selectable | See § 5.6.7. Nothing in effect: no exclusivity |
+| `preemption` | Preemption | OPTIONAL | seller-set | See § 5.6.7. Absent: no later sale preempts this line item |
 | `creative_policy` | Object | OPTIONAL | seller-set | Content and category restrictions on creative |
 | `requires` | Requires | OPTIONAL | seller-set | Conditions that must hold in the same `commit` for this line item to be committable. See 5.6.3 |
 
@@ -1766,6 +1767,12 @@ result. An error whose `retry` is `same` is not a stored result, so the retry ru
 checks again. Reusing an `idempotency_key` with a different `Commit` MUST return
 `idempotency_conflict` and MUST NOT write an entry or change a `commitment`. A retry
 against a new `version` is a new `commit`, with a new `idempotency_key`.
+
+A buyer's `commitment` entry carries its `idempotency_key`, and `assent[]` keeps every
+entry (§ 4.1.2). So a seller finds an accepted `commit` by its key for as long as it
+keeps the proposal. A rejection writes no entry. The seller keeps it at least until
+`offer_window.end`. Once the seller no longer keeps a rejection, a replay is a new
+`commit`.
 
 #### 5.6.2 Holds
 
@@ -2011,11 +2018,25 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 | `scope` | Enum | REQUIRED | `category` \| `sole`. `category`: no other advertiser in `categories`. `sole`: no other advertiser |
 | `categories` | TaxonomyCodes | REQUIRED when `scope` is `category` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers its descendants |
 | `competitors[]` | Array[RegistrableDomain] | OPTIONAL | Advertiser domains also excluded |
-| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) |
+| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) \| `paid_zone` (the faces inside each such venue's paid entry, such as a station's fare gates) |
 | `window` | Interval | OPTIONAL | The dates the term holds, only where they fall inside `commitment.flight`. Default: the whole flight. With no overlap, the term holds on no date and the option's deltas still count (§ 5.6) |
 
 A seller MUST decline a `commitment` whose term in effect conflicts with an
 accepted term on the same inventory and dates.
+
+A line item states `preemption` when a later sale can preempt its delivery, such as
+the faces in a station that another buyer can dominate. Its buyer reads that before
+committing.
+
+**`Preemption`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later on the same inventory and dates |
+| `notice` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery |
+
+A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
+its `preemption` doesn't name.
 
 ### 5.7 Guarantees
 
@@ -2533,6 +2554,7 @@ body is normative.**
 | `renewal_right` | 5.6 Commercial terms | VocabularyTerm | OPTIONAL | seller-set |
 | `cancellation_policy` | 5.6 Commercial terms | Selectable[CancellationOption] | OPTIONAL | selectable |
 | `exclusivity` | 5.6 Commercial terms | Selectable[ExclusivityOption] | OPTIONAL | selectable |
+| `preemption` | 5.6 Commercial terms | Preemption | OPTIONAL | seller-set |
 | `creative_policy` | 5.6 Commercial terms | Object | OPTIONAL | seller-set |
 | `requires` | 5.6 Commercial terms | Requires | OPTIONAL | seller-set |
 | `committed_metrics[]` | 5.7 Guarantees | Array[CommittedMetric] | OPTIONAL | requestable |
@@ -2563,7 +2585,7 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 44 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `renewal_right`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `linked_execution`, `ext` (proposal), `description`, `specifications`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `content_detail`, `specs`, `third_party_tags`, `creative_delivery`, `approval`, `time_zone`, `exclusions_accepted`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `hold_terms`, `renewal_right`, `preemption`, `creative_policy`, `requires`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 14 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `environments`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
@@ -2576,8 +2598,8 @@ body is normative.**
 
 ### What the distribution says
 
-Of 94 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 70 are `seller-set`, `immutable`,
+Of 95 fields, **24 are touched by the buyer** — 14 `selectable`, 4 `settable`, 1
+`supplied` and 5 `requestable`. The remaining 71 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.
