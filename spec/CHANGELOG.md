@@ -167,8 +167,8 @@ issue that caused it, so the comment record and the spec history line up.
 - § 1.2, § 2.1, § 2.4, § 2.5, § 2.7, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 4.4, § 5.6.1, § 5.10,
   § 6.8, § 8, appendices, examples, docs, issue templates, checkers — after `agreed`. § 1.2 separates what a
   request or response carries, which this document states, from the envelope and binding of the
-  message. "Message binding" names that layer. The contract has a provisional name, the hub is
-  named, and the contract governs only once it is published on a standards track. The baseline
+  message. "Message binding" names that layer. The contract has a provisional name, `iab-agentic-primitives` is named as its
+  nearest artifact, the hub is named, and the contract governs only once it is published on a standards track. The baseline
   is the `VersionRef` that names the agreed line item, at the `version` of its agreed record.
   § 4.4 adds `change_requests[]`, outside the record, with the OpenDirect 2.1 ChangeRequest
   fields except `webhook`, plus `baseline`, `actor`, `at`, and `cancellation`. `cancellation` is typed `CancellationNotice`, whose key table lands with the pricing change. `orderid` is
