@@ -2015,11 +2015,13 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 | `scope` | Enum | REQUIRED | `category` \| `sole`. `category`: no other advertiser in `categories`. `sole`: no other advertiser |
 | `categories` | TaxonomyCodes | REQUIRED when `scope` is `category` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers its descendants |
 | `competitors[]` | Array[RegistrableDomain] | OPTIONAL | Advertiser domains also excluded |
-| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) \| `paid_zone` (the faces inside each such venue's paid entry, such as a station's fare gates) |
+| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) \| `paid_zone` (the part of each venue or site of this line item's properties past its paid entry, such as inside a station's fare gates) |
 | `window` | Interval | OPTIONAL | The dates the term holds, only where they fall inside `commitment.flight`. Default: the whole flight. With no overlap, the term holds on no date and the option's deltas still count (§ 5.6) |
 
 A seller MUST decline a `commitment` whose term in effect conflicts with an
-accepted term on the same inventory and dates.
+accepted term on the same inventory and dates. A line item whose `preemption` names
+`exclusivity` doesn't count against a later exclusivity term: the seller preempts it
+instead.
 
 A line item states `preemption` when a later sale can preempt its delivery, such as
 the faces in a station that another buyer can dominate. Its buyer reads that before
@@ -2029,11 +2031,11 @@ committing.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later on the same inventory and dates |
-| `notice` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery |
+| `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later that holds, under its `separation` and `window`, where and when this line item delivers |
+| `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice |
 
 A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
-its `preemption` doesn't name.
+its `preemption` doesn't name. Preempted delivery is a shortfall, which `shortfall_remedy` (§ 5.7) settles.
 
 ### 5.7 Guarantees
 
