@@ -1537,6 +1537,12 @@ checks again. Reusing an `idempotency_key` with a different `Commit` MUST return
 `idempotency_conflict` and MUST NOT write an entry or change a `commitment`. A retry
 against a new `version` is a new `commit`, with a new `idempotency_key`.
 
+A buyer's `commitment` entry carries its `idempotency_key`, and `assent[]` keeps every
+entry (§ 4.1.2). So a seller finds an accepted `commit` by its key for as long as it
+keeps the proposal. A rejection writes no entry. The seller keeps it at least until
+`offer_window.end`. Once the seller no longer keeps a rejection, a replay is a new
+`commit`.
+
 #### 5.6.2 hold_status
 
 **`HoldStatus`** keys:
