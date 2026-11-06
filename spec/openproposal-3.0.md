@@ -1998,10 +1998,12 @@ checks again. Reusing an `idempotency_key` with a different `Commit` MUST return
 against a new `version` is a new `commit`, with a new `idempotency_key`.
 
 A buyer's `commitment` entry carries its `idempotency_key`, and `assent[]` keeps every
-entry (§ 4.1.2). So a seller finds an accepted `commit` by its key for as long as it
-keeps the proposal. A rejection writes no entry. The seller keeps it at least until
-`offer_window.end`. Once the seller no longer keeps a rejection, a replay is a new
-`commit`.
+entry (§ 4.1.2). So a seller finds a `commit` that wrote an entry by its key for as long
+as it keeps the proposal. A rejection writes no entry. The seller MUST keep a rejection
+whose `retry` is not `same` at least until `offer_window.end`, or, on a proposal with no
+`offer_window.end`, for as long as it keeps the proposal. Once the seller no longer keeps
+a rejection, it processes a replay as a new `commit`: it runs the checks above, and a
+`commit` that passes writes an entry with that key.
 
 #### 5.6.2 Holds
 
@@ -2302,11 +2304,13 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 | `scope` | Enum | REQUIRED | `category` \| `sole`. `category`: no other advertiser in `categories`. `sole`: no other advertiser |
 | `categories` | TaxonomyCodes | REQUIRED when `scope` is `category` | `taxonomy` per AdCOM 1.0 List: Category Taxonomies. An id covers its descendants |
 | `competitors[]` | Array[RegistrableDomain] | OPTIONAL | Advertiser domains also excluded |
-| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) \| `paid_zone` (the faces inside each such venue's paid entry, such as a station's fare gates) |
+| `separation` | VocabularyTerm | REQUIRED | Where the term holds. Core terms: `inventory` (all of this line item) \| `page` (each page) \| `pod` (each ad pod) \| `stream` (each content stream an ad server fills) \| `episode` (each podcast episode) \| `loop` (each DOOH screen's loop) \| `location` (each venue or site of this line item's properties, static or digital) \| `paid_zone` (the part of each venue or site of this line item's properties past its paid entry, such as inside a station's fare gates) |
 | `window` | Interval | OPTIONAL | The dates the term holds, only where they fall inside `commitment.flight`. Default: the whole flight. With no overlap, the term holds on no date and the option's deltas still count (§ 5.6) |
 
 A seller MUST decline a `commitment` whose term in effect conflicts with an
-accepted term on the same inventory and dates.
+accepted term on the same inventory and dates. A line item whose `preemption` names
+`exclusivity` doesn't count against a later exclusivity term: the seller preempts it
+instead.
 
 A line item states `preemption` when a later sale can preempt its delivery, such as
 the faces in a station that another buyer can dominate. Its buyer reads that before
@@ -2316,11 +2320,11 @@ committing.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later on the same inventory and dates |
-| `notice` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery |
+| `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later that holds, under its `separation` and `window`, where and when this line item delivers |
+| `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice |
 
 A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
-its `preemption` doesn't name.
+its `preemption` doesn't name. Preempted delivery is a shortfall, which `shortfall_remedy` (§ 5.7) settles.
 
 ### 5.7 Guarantees
 
@@ -2551,9 +2555,9 @@ priced.
   roadblocks, takeovers, and DOOH loop and rotary buys.
 - `non_guaranteed`: the seller reserves nothing.
 
-A domination, every screen and static face in a location, is
-`guaranteed` with an included `exclusivity` term of `scope: sole`
-(§ 5.6.7), not `share_of_voice` at 100%.
+A domination, every screen and static face in a location or in its paid zone, is
+`guaranteed` with an included `exclusivity` term of `scope: sole` and the matching
+`separation`, `location` or `paid_zone` (§ 5.6.7), not `share_of_voice` at 100%.
 
 `sov_basis: loop_time` requires `properties.available[].allocation: all` on every DOOH
 property.
