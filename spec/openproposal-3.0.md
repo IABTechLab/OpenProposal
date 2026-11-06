@@ -2371,9 +2371,9 @@ priced.
   roadblocks, takeovers, and DOOH loop and rotary buys.
 - `non_guaranteed`: the seller reserves nothing.
 
-A domination, every screen and static face in a location, is
-`guaranteed` with an included `exclusivity` term of `scope: sole`
-(§ 5.6.7), not `share_of_voice` at 100%.
+A domination, every screen and static face in a location or in its paid zone, is
+`guaranteed` with an included `exclusivity` term of `scope: sole` and the matching
+`separation`, `location` or `paid_zone` (§ 5.6.7), not `share_of_voice` at 100%.
 
 `sov_basis: loop_time` requires `properties.available[].allocation: all` on every DOOH
 property.
