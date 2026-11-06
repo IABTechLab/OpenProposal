@@ -2023,8 +2023,8 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 A seller MUST decline a `commitment` whose term in effect conflicts with an
 accepted term on the same inventory and dates. A line item whose `preemption` names
 `exclusivity` doesn't count against a later exclusivity term on dates at least its
-`notice_duration` after the seller's notice: the seller preempts it on those dates
-instead.
+`notice_duration` after the seller's notice, or on every date when it has no
+`notice_duration`: the seller preempts it on those dates instead.
 
 A line item states `preemption` when a later sale can preempt its delivery, such as
 the faces in a station that another buyer can dominate. Its buyer reads that before
@@ -2035,11 +2035,10 @@ committing.
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later that holds, under its `separation` and `window`, where and when this line item delivers |
-| `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice |
+| `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice is owed |
 
 A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
-its `preemption` doesn't name. Preemption doesn't excuse a shortfall: delivery it removes still counts as undelivered,
-and `shortfall_remedy` (§ 5.7) settles any shortfall.
+its `preemption` doesn't name. Preemption doesn't excuse a shortfall, which `shortfall_remedy` (§ 5.7) settles.
 
 ### 5.7 Guarantees
 
