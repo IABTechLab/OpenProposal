@@ -70,12 +70,14 @@ semantics beyond the rule in § 5.6.1, for any lifecycle after `agreed`, or for 
 message states the buyer's `Party`, the form of a brief, or how an issued proposal
 reaches the buyer. These belong to that contract.
 
-No IAB Tech Lab document defines that contract yet. The nearest artifact is the
-pre-release [`iab-agentic-primitives`](https://github.com/IABTechLab/iab-agentic-primitives/blob/ee9ea3c1c612b1be6ae00b75e0ab1b81435f62cc/README.md) library, version 0.5.1.
-Its [OpenAPI 3.1 file](https://github.com/IABTechLab/iab-agentic-primitives/blob/ee9ea3c1c612b1be6ae00b75e0ab1b81435f62cc/spec/openapi/iab-agentic-api.yaml) and JSON Schemas
-define the quote, deal, change request, and negotiation messages that the IAB Tech Lab
-reference buyer and seller agents exchange. Until the contract is published, an
-implementer can use those messages as the binding.
+That contract is not yet published on an IAB Tech Lab standards track. The nearest
+artifact is the pre-release [`iab-agentic-primitives`](https://github.com/IABTechLab/iab-agentic-primitives/blob/ee9ea3c1c612b1be6ae00b75e0ab1b81435f62cc/README.md) library,
+version 0.5.1. Its [OpenAPI 3.1 file](https://github.com/IABTechLab/iab-agentic-primitives/blob/ee9ea3c1c612b1be6ae00b75e0ab1b81435f62cc/spec/openapi/iab-agentic-api.yaml) and
+JSON Schemas define quote, deal, negotiation, and change request messages, and the
+IAB Tech Lab reference buyer and seller agents exchange the first three. Those
+messages carry no proposal, `Commit`, or `errors[]`, so they are a model for the
+binding, not the binding itself. Where they differ from this document, such as money
+in integer micros or the replay rule in § 5.6.1, this document governs.
 
 The correspondence between values defined in this document and the values of that
 contract (status, negotiation actions, transaction mechanism, money, hold status) is for the
