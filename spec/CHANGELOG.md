@@ -64,7 +64,8 @@ issue that caused it, so the comment record and the spec history line up.
   `availability` figures a `decline` states. The seller's check on `version` becomes a recomputed
   digest. Its rejections come in order: `expired`, `stale_version`, `not_committable`, then
   `record_mismatch`. A `commit` writes an entry only on an issued proposal, and a replay returns
-  the result as it stands. A seller keeps a rejection at least until `offer_window.end`. An entry travels in the body of an HTTP message signed under the
+  the result as it stands. A seller keeps a rejection whose `retry` is not `same` at least
+  until `offer_window.end`. An entry travels in the body of an HTTP message signed under the
   OpenProposal profile of Web Bot Auth (§ 2.8). `Content-Digest` covers the body, and requests
   and responses are both signed. Which signing origins a party accepts is its own configuration,
   and any signed copy of an entry is evidence of it. The evidence is OPTIONAL, and `agreed`
