@@ -50,7 +50,7 @@ issue that caused it, so the comment record and the spec history line up.
   `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
   exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
   names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
-  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A preemptible line item doesn't block a later exclusivity term, and preempted delivery is a shortfall.
+  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall.
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -137,8 +137,8 @@ issue that caused it, so the comment record and the spec history line up.
   `availability` figures a `decline` states. The seller's check on `version` becomes a recomputed
   digest. Its rejections come in order: `expired`, `stale_version`, `not_committable`, then
   `record_mismatch`. A `commit` writes an entry only on an issued proposal, and a replay returns
-  the result as it stands. A seller keeps a rejection whose `retry` is not `same` at least
-  until `offer_window.end`. An entry travels in the body of an HTTP message signed under the
+  the result as it stands. A seller MUST keep a rejection whose `retry` is not `same` until
+  `offer_window.end`, or, with no end, as long as it keeps the proposal. An entry travels in the body of an HTTP message signed under the
   OpenProposal profile of Web Bot Auth (§ 2.8). `Content-Digest` covers the body, and requests
   and responses are both signed. Which signing origins a party accepts is its own configuration,
   and any signed copy of an entry is evidence of it. The evidence is OPTIONAL, and `agreed`

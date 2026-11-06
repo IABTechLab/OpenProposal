@@ -1773,8 +1773,8 @@ entry (§ 4.1.2). So a seller finds a `commit` that wrote an entry by its key fo
 as it keeps the proposal. A rejection writes no entry. The seller MUST keep a rejection
 whose `retry` is not `same` at least until `offer_window.end`, or, on a proposal with no
 `offer_window.end`, for as long as it keeps the proposal. Once the seller no longer keeps
-a rejection, it processes a replay as a new `commit`: it runs the checks above, and a
-`commit` that passes writes an entry with that key.
+a rejection, it runs the checks above on a replay as on a first `commit`, and a replay
+that passes writes the entry with its `idempotency_key`.
 
 #### 5.6.2 Holds
 
@@ -2025,7 +2025,8 @@ Exercise happens downstream (§ 1.1), against the option in effect. An entry's
 
 A seller MUST decline a `commitment` whose term in effect conflicts with an
 accepted term on the same inventory and dates. A line item whose `preemption` names
-`exclusivity` doesn't count against a later exclusivity term: the seller preempts it
+`exclusivity` doesn't count against a later exclusivity term on dates at least its
+`notice_duration` after the seller's notice: the seller preempts it on those dates
 instead.
 
 A line item states `preemption` when a later sale can preempt its delivery, such as
@@ -2040,7 +2041,8 @@ committing.
 | `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice |
 
 A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
-its `preemption` doesn't name. Preempted delivery is a shortfall, which `shortfall_remedy` (§ 5.7) settles.
+its `preemption` doesn't name. Preemption doesn't excuse a shortfall: delivery it removes still counts as undelivered,
+and `shortfall_remedy` (§ 5.7) settles any shortfall.
 
 ### 5.7 Guarantees
 
