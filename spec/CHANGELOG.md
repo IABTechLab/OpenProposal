@@ -89,7 +89,7 @@ issue that caused it, so the comment record and the spec history line up.
   `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
   exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
   names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
-  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall.
+  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall. A `remedy` on `preemption` states what the buyer gets for the delivery a preemption takes.
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -193,6 +193,10 @@ issue that caused it, so the comment record and the spec history line up.
   [#45](https://github.com/IABTechLab/OpenProposal/issues/45),
   [#73](https://github.com/IABTechLab/OpenProposal/issues/73),
   [#75](https://github.com/IABTechLab/OpenProposal/issues/75)).
+  Where a `String` value in the binding record conflicts with a typed field of the same
+  `version`, the typed field governs ([#155](https://github.com/IABTechLab/OpenProposal/issues/155)).
+  The manifest's `hold_limits` declares the most holds a seller grants at once, per buyer and
+  per advertiser ([#156](https://github.com/IABTechLab/OpenProposal/issues/156)).
 - § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
