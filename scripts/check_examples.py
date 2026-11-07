@@ -1835,7 +1835,8 @@ def check_manifest(checker, spec):
     manifest = load_json(EXAMPLES / "manifest.json")
     rows = spec.tables["ProposalManifest"]
     keys = {k.removesuffix("[]") for k in rows}
-    for key in keys ^ manifest.keys():
+    required = {k.removesuffix("[]") for k, row in rows.items() if row["required"] == "REQUIRED"}
+    for key in sorted((required - manifest.keys()) | (manifest.keys() - keys)):
         checker.err("manifest.json", "(root)", f"key {key!r} differs from the ProposalManifest table")
     for key, row in rows.items():
         if key.removesuffix("[]") in manifest:
