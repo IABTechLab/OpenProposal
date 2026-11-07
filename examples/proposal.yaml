@@ -1,13 +1,24 @@
 # OpenProposal 3.0 — Example: Proposal (spec § 6.1)
 # Illustrative only. Seller names and rates are fictional.
 proposal_id:       "examplepub-us-q4-2026-omni"
-version:           1
-seller_id:         "reg:examplepub-digital"
-seller_name:       "Example Publisher US"
+version:           2
+spec_version:      "3.0"
+seller:            { domain: "examplepub.example", legal_name: "Example Publisher US",
+                     registry_id: "reg:examplepub-digital" }   # OPTIONAL: an attestation (§ 2.2)
 type:              standard
+proposal_template_id: "examplepub-q4-omni-template"   # seller-side; buyers never resolve it
 status:            published
-valid_from:        "2026-10-01T00:00:00Z"
-valid_until:       "2026-12-31T23:59:59Z"
+offer_window:      { start: "2026-10-01T00:00:00Z", end: "2026-12-31T23:59:59Z" }
+
+# The line_items of this proposal are shown in their own files (examples/line-item-*.yaml).
+# Version 1 stays retrievable, unchanged (§ 4.1.3).
+negotiation_history:
+  - { version: 1, actor: seller, action: published, paths: [],
+      at: "2026-09-22T09:00:00Z" }
+  - { version: 2, actor: seller, action: published,
+      paths: [{ line_item_id: "business-daily-display", pointer: "/creative_delivery" },
+              { pointer: "/seasonality_notes" }],
+      at: "2026-10-03T14:12:40Z" }
 
 description: >
   Cross-channel Example Publisher US package spanning display, in-stream video
@@ -19,3 +30,6 @@ specifications: >
 best_for:          ["B2B", "financial services", "high-income reach"]
 not_suitable_for:  ["youth", "endemic gaming"]
 seasonality_notes: "Earnings weeks carry materially higher engagement."
+
+ext:
+  examplepub.example: { package_code: "OMNI-Q4-2026" }
