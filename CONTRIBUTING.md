@@ -16,7 +16,7 @@ GitHub account may file an issue or a pull request.
   thread rather than opening a duplicate, so the disposition covers one
   discussion, not five.
 - Check [docs/open-questions.md](docs/open-questions.md). If your point lands on
-  one of the seven questions the draft explicitly asks, comment there.
+  one of the questions the draft explicitly asks, comment there.
 
 ## 2. Pick the right route
 
@@ -24,7 +24,7 @@ GitHub account may file an issue or a pull request.
 | :--- | :--- | :--- |
 | **Comment** issue | Something is unclear, wrong, internally inconsistent, or missing. You are not proposing wording. | Triaged, dispositioned, logged |
 | **Change request** issue | You are proposing specific normative wording, a new field, a changed marker, or a removal. | Triaged, dispositioned, logged |
-| **Open question** comment | You are answering one of the 7 questions in § 8. | Feeds the resolution of that question |
+| **Open question** comment | You are answering one of the questions in § 8. | Feeds the resolution of that question |
 | **Implementation feedback** issue | You built against the draft and hit something. **This is the most valuable kind of comment we receive.** | Triaged with priority |
 | **Pull request** | You want to supply the exact diff for a change already discussed. | Reviewed against its issue |
 | **Discussion** | You have a question, or want to think out loud before filing. | No disposition; not part of the formal record |
