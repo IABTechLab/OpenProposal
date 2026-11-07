@@ -128,6 +128,8 @@ issue that caused it, so the comment record and the spec history line up.
   [#75](https://github.com/IABTechLab/OpenProposal/issues/75)).
   Where a `String` value in the binding record conflicts with a typed field of the same
   `version`, the typed field governs ([#155](https://github.com/IABTechLab/OpenProposal/issues/155)).
+  The manifest's `hold_limits` declares the most holds a seller grants at once, per buyer and
+  per advertiser ([#156](https://github.com/IABTechLab/OpenProposal/issues/156)).
 - § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
