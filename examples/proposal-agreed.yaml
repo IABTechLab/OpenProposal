@@ -1,0 +1,108 @@
+# OpenProposal 3.0 — Example: Agreed record (spec § 6.8)
+# Illustrative only. Seller names and rates are fictional. Both line items are
+# agreed at version 2, after the seller countered a later materials_due.
+# record_digest recomputes from this document under § 4.1.1, and it covers the
+# digest of each document in terms_refs[], so the entries bind those exact bytes.
+proposal_id:       "examplepub-agencya-custom-q4-2026"
+version:           2
+spec_version:      "3.0"
+seller:            { domain: "examplepub.example", legal_name: "Example Publisher US",
+                     registry_id: "reg:examplepub-digital" }
+buyer:             { domain: "agency-a.example", legal_name: "Agency A LLC" }
+type:              custom
+brief_id:          "agency-a-brief-q4-2026"
+status:            agreed              # derived: no line item remains offered (§ 4.3.3)
+offer_window:      { start: "2026-09-14T00:00:00Z", end: "2026-12-31T23:59:59Z" }
+
+description: >
+  Display and CTV package for Agency A, built from its brief.
+
+assent:
+  - { role: commitment, version: 2,
+      record_digest: "sha256:f35e6a49f1e10237056bee55a526a6d4e3ecc7d5006dc3687e7eef45d0339067",
+      line_item_ids: ["business-daily-display", "weather-app-ctv"],
+      at: "2026-09-22T10:14:03Z",
+      idempotency_key: "agency-a-camp1-q4-2026-5d10e2c7" }
+  - { role: acceptance, version: 2,
+      record_digest: "sha256:f35e6a49f1e10237056bee55a526a6d4e3ecc7d5006dc3687e7eef45d0339067",
+      line_item_ids: ["business-daily-display", "weather-app-ctv"],
+      at: "2026-09-22T10:31:47Z" }
+
+negotiation_history:
+  - { version: 1, actor: seller, action: published, paths: [],
+      at: "2026-09-14T09:00:00Z" }
+  - { version: 1, actor: buyer, action: requested,
+      paths: [{ line_item_id: "business-daily-display", pointer: "/materials_due",
+                requested_value: { materials_due: { at: "2026-10-01T23:59:59Z" } } }],
+      at: "2026-09-14T09:02:11Z" }
+  - { version: 2, actor: seller, action: countered,     # another value, version 2
+      paths: [{ line_item_id: "business-daily-display", pointer: "/materials_due" }],
+      at: "2026-09-14T09:40:05Z" }
+
+line_items:
+  - line_item_id:   "business-daily-display"
+    status:         agreed
+    channel:        display
+    properties:
+      available:    [{ id: "business-daily", domains: ["business-daily.example"] }]
+      included:     ["business-daily"]
+    formats:
+      available:    ["display/300x250"]
+      included:     ["display/300x250"]
+    creative_delivery: { method: buyer_hosted, protocol: javascript_tag, secure_required: true }
+    materials_due:  { at: "2026-09-28T23:59:59Z" }   # version 1 had "2026-09-24T23:59:59Z"
+    pricing:
+      - { cost_method: CPM, list_rate: 24.00, agreed_rate: 24.00, min_rate: 21.00,
+          price_valid_until: "2026-11-15T23:59:59Z", currency: USD }
+    commitment_bounds: { min_budget: 10000.00, max_budget: 500000.00 }
+    commitment:
+      basis:           spend
+      amount:          80000.00
+      currency:        USD
+      flight: { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
+      advertisers:     [{ domain: "brand-a.example" }]
+      derived_units:   3333333
+    hold_status:    { hold_available: true, hold_duration: "P7D", hold_scope: line_item }
+    transaction_mechanism: { available: ["programmatic_guaranteed"],
+                             included: ["programmatic_guaranteed"], max_select: 1 }
+    buyer_requirements:
+      seats: { dsp: "dsp-a.example", ids: ["seat-99812", "seat-99813"] }   # the buyer's write
+    visibility:    named
+    eligible_buyers: ["agency-a.example"]
+    terms_refs:
+      - { url: "https://examplepub.example/legal/io-terms-2026.pdf",
+          digest: "sha256:83e44f6fa723c35fef1b3528b16cc13a8a19ee34a32b658f6d3cc243ce12592e", version: "2026.1" }
+      - { url: "https://examplepub.example/legal/agency-a-q4-addendum.pdf",
+          digest: "sha256:ab4cac3cb240b5c6eec3d0bf40e8c0b0f21c2026837865d88a5c941702f2eeca" }
+    correlation_id: "ep-q4-2026-agency-a/business-daily-display"
+
+  - line_item_id:   "weather-app-ctv"
+    status:         agreed
+    channel:        ctv
+    properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+    formats:
+      available:    ["ctv/instream-15s"]
+      included:     ["ctv/instream-15s"]
+    creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
+    pricing:
+      - { cost_method: CPM, list_rate: 45.00, agreed_rate: 45.00, min_rate: 39.60,
+          price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
+    commitment_bounds: { min_budget: 25000.00 }
+    commitment:
+      basis:           spend
+      amount:          160000.00
+      currency:        USD
+      flight: { start: "2026-10-06T00:00:00Z", end: "2026-12-21T23:59:59Z" }
+      advertisers:     [{ domain: "brand-a.example" }]
+    hold_status:    { hold_available: false }   # private_auction: no inventory reserved
+    transaction_mechanism: { available: ["private_auction"], included: ["private_auction"], max_select: 1 }
+    buyer_requirements:
+      seats: { dsp: "dsp-a.example", ids: ["seat-99812", "seat-99813"] }   # the buyer's write
+    visibility:    named
+    eligible_buyers: ["agency-a.example"]
+    terms_refs:
+      - { url: "https://examplepub.example/legal/io-terms-2026.pdf",
+          digest: "sha256:83e44f6fa723c35fef1b3528b16cc13a8a19ee34a32b658f6d3cc243ce12592e", version: "2026.1" }
+      - { url: "https://examplepub.example/legal/agency-a-q4-addendum.pdf",
+          digest: "sha256:ab4cac3cb240b5c6eec3d0bf40e8c0b0f21c2026837865d88a5c941702f2eeca" }
+    correlation_id: "ep-q4-2026-agency-a/weather-app-ctv"
