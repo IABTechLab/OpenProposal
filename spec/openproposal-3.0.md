@@ -278,6 +278,7 @@ A seller MAY publish `https://<seller.domain>/.well-known/openproposal.json`, a
 | `generated_at` | Instant | REQUIRED | When the seller generated the file |
 | `spec_version` | String | REQUIRED | The version of this specification the file follows |
 | `proposals[]` | Array[ManifestEntry] | REQUIRED | One per listed proposal |
+| `hold_limits` | HoldLimits | OPTIONAL | The most holds (§ 5.6.2) the seller grants at once across its line items |
 
 **`ManifestEntry`** holds the keys of `ProposalSummary` (§ 2.1) and this one:
 
@@ -296,6 +297,23 @@ A seller MAY publish `https://<seller.domain>/.well-known/openproposal.json`, a
   no authenticated identity gets only `public` line items.
 - Manifest entries MUST match the current version of each proposal. A stale
   entry is a seller error.
+
+A seller that limits concurrent holds SHOULD declare the limit in `hold_limits`.
+
+**`HoldLimits`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `per_buyer` | Integer | OPTIONAL | Holds whose `status` is `held` on proposals issued to one `buyer.domain` |
+| `per_advertiser` | Integer | OPTIONAL | Holds whose `status` is `held` for one advertiser, counted by the `commitment.advertisers[]` in each hold's `requested_terms`. A hold that names several advertisers counts once for each |
+
+- A seller declines a hold request that would exceed a declared limit (§ 5.6.2).
+- A seller that declares `per_advertiser` MAY decline a hold request whose
+  `requested_terms` names no advertiser.
+- Holds that move as a unit under `linked_execution: all` count as one.
+- Lowering a limit doesn't release a hold already granted.
+- A seller that declares `hold_limits` publishes the manifest even when `proposals[]`
+  is empty.
 
 Two-phase flow:
 

@@ -22,6 +22,8 @@ issue that caused it, so the comment record and the spec history line up.
   a hold on a `private_auction` line item. Breaking `held` means reserved inventory, and a hold stays `held` while a `commit` made during it is open. `hold.reference` holds the seller's id for the reservation, and `renewal_right` offers a right to the next cycle.
   ([#66](https://github.com/IABTechLab/OpenProposal/issues/66),
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134)).
+  The manifest's `hold_limits` declares the most holds a seller grants at once, per buyer and
+  per advertiser ([#156](https://github.com/IABTechLab/OpenProposal/issues/156)).
 - § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
