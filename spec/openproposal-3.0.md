@@ -464,7 +464,8 @@ A seller that limits concurrent holds SHOULD declare the limit in `hold_limits`.
 - A seller declines a hold request that would exceed a declared limit (§ 5.6.2).
 - A seller that declares `per_advertiser` MAY decline a hold request whose
   `requested_terms` names no advertiser.
-- Holds that move as a unit under `linked_execution: all` count as one.
+- The holds on the line items in a package's `line_items[]`, which move as a unit
+  (§ 4.1.4), count as one.
 - Lowering a limit doesn't release a hold already granted.
 - A seller that declares `hold_limits` publishes the manifest even when `proposals[]`
   is empty.
@@ -1214,7 +1215,8 @@ them.
 
 A package can't be bought while a line item in its `line_items[]` is `sold_out` or
 `withdrawn`, since that line item can't be committed. Each line item keeps its own
-`status` (§ 5.1). The holds on a package's line items move as a unit (§ 5.6.2).
+`status` (§ 5.1). The holds on the line items in a package's `line_items[]` move as a
+unit (§ 5.6.2).
 
 ### 4.2 Agent comprehension
 
@@ -2330,7 +2332,7 @@ which § 4.1.3 freezes; a seller change is a new `version` under § 4.3.2, rule 
 
 A seller's answer MUST set `status` to `held` or `declined`. A repeated request
 while `requested` or `held` MUST NOT start a second hold. The holds on the line items
-of one package (§ 4.1.4) move as a unit: each
+in one package's `line_items[]` (§ 4.1.4) move as a unit: each
 transition applies to all of them, and `valid_until` is the earliest any of them
 allows.
 
