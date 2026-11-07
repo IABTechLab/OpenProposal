@@ -2070,9 +2070,12 @@ committing.
 | :--- | :--- | :--- | :--- |
 | `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later that holds, under its `separation` and `window`, where and when this line item delivers |
 | `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice is owed |
+| `remedy` | VocabularyTerm | OPTIONAL | What the buyer gets for the delivery a preemption takes, on any `delivery_type`. Core terms: `makegood` \| `credit` \| `none`, where `none` gives nothing for that delivery only. Absent: `shortfall_remedy` (§ 5.7) settles any shortfall the preemption causes |
 
 A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
-its `preemption` doesn't name. Preemption doesn't excuse a shortfall, which `shortfall_remedy` (§ 5.7) settles.
+its `preemption` doesn't name. Preemption doesn't excuse a shortfall, which
+`shortfall_remedy` (§ 5.7) settles. A `remedy` on `preemption` settles the delivery a
+preemption takes instead, on any `delivery_type`.
 
 ### 5.7 Guarantees
 
