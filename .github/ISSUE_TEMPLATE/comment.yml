@@ -34,7 +34,7 @@ body:
         - "5.7 — Guarantees"
         - "5.8 — Transaction eligibility"
         - "5.9 — Execution"
-        - "5.10 — External references and settlement"
+        - "5.10 — External references, agreement, and billing"
         - "6 — Examples"
         - "7 — Why this split"
         - "8 — Open questions"
@@ -47,7 +47,7 @@ body:
     attributes:
       label: Field(s) involved
       description: Comma-separated, if your comment is about specific fields.
-      placeholder: "pricing[].floor, transaction_mechanism"
+      placeholder: "pricing[].min_rate, transaction_mechanism"
   - type: textarea
     id: comment
     attributes:
