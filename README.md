@@ -15,7 +15,7 @@ server.
 | :--- | :--- |
 | **Current draft** | [`spec/openproposal-3.0.md`](spec/openproposal-3.0.md) |
 | **Comment period opens** | 2026-09-22 |
-| **Comment period closes** | 2026-10-22 |
+| **Comment period closes** | 2026-11-10 |
 | **Announcement** | [IAB Tech Lab introduces AAMP 3.0 with OpenProposal](https://iabtechlab.com/press-releases/iab-tech-lab-introduces-aamp-3-0-with-openproposal/) |
 | **Short link** | [iabtechlab.com/AAMPv3](https://iabtechlab.com/AAMPv3) (points to this repository) |
 | **How to comment** | [CONTRIBUTING.md](CONTRIBUTING.md) |
@@ -56,7 +56,7 @@ Pick the route that matches what you have to say:
 | :--- | :--- |
 | Flag something unclear, wrong, or missing | [Open a **Comment**](https://github.com/IABTechLab/OpenProposal/issues/new?template=comment.yml) |
 | Propose specific normative wording | [Open a **Change request**](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml), or send a pull request against `spec/openproposal-3.0.md` |
-| Answer one of the 7 open questions | Comment on that question's [tracking issue](docs/open-questions.md) |
+| Answer one of the open questions | Comment on that question's [tracking issue](docs/open-questions.md) |
 | Report what happened when you tried to implement it | [Open **Implementation feedback**](https://github.com/IABTechLab/OpenProposal/issues/new?template=implementation-feedback.yml) |
 | Ask a question rather than raise an issue | Use [Discussions](https://github.com/IABTechLab/OpenProposal/discussions) |
 
@@ -69,15 +69,15 @@ in [docs/disposition-log.md](docs/disposition-log.md). See
 
 Three things to understand before the field tables make sense:
 
-1. **No inheritance.** Every line item is fully self-contained. A field never
+1. **No inheritance.** Every term of a line item is on the line item. A field never
    takes its value from the parent proposal or a sibling line item.
 2. **Every field carries exactly one mutability marker** (§ 3) — `immutable`,
-   `seller-set`, `selectable`, `settable`, `supplied`, `requestable` or
-   `derived`. The marker is what tells a buying agent whether it can act
-   unilaterally.
-3. **Composition is constraint satisfaction, not negotiation.** Of 71 fields,
-   only 3 require a round trip with the counterparty. That ratio is the design
-   claim the draft is asking you to test.
+   `seller-set`, `selectable`, `settable`, `supplied`, `requestable`, `derived`,
+   `lifecycle`, `recorded`, `asserted` or `mixed`. The marker is what tells a
+   buying agent whether it can act unilaterally.
+3. **Composition is constraint satisfaction, not negotiation.** Only `requestable`
+   fields require a round trip with the counterparty to resolve. Appendix B has the
+   count. That ratio is the design claim the draft is asking you to test.
 
 ## Downstream standards
 
@@ -89,8 +89,8 @@ OpenRTB 2.6). See § 1.1.
 
 Machine-readable schemas are coming. They are not published with this first
 draft, because the comment period is still deciding questions that shape
-them. They will follow the first revision, after the comment period closes on
-2026-10-22. Until then, [`examples/`](examples/) is the best reference for
+them. They will follow the first revision, after the comment period closes.
+Until then, [`examples/`](examples/) is the best reference for
 shape. See [schema/README.md](schema/README.md).
 
 ## Contributors and governance
