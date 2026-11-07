@@ -424,6 +424,7 @@ A seller MAY publish `https://<seller.domain>/.well-known/openproposal.json`, a
 | `generated_at` | Instant | REQUIRED | When the seller generated the file |
 | `spec_version` | String | REQUIRED | The version of this specification the file follows |
 | `proposals[]` | Array[ManifestEntry] | REQUIRED | One per listed proposal |
+| `hold_limits` | HoldLimits | OPTIONAL | The most holds (§ 5.6.2) the seller grants at once across its line items |
 
 **`ManifestEntry`** holds the keys of `ProposalSummary` (§ 2.1) and this one:
 
@@ -442,6 +443,23 @@ A seller MAY publish `https://<seller.domain>/.well-known/openproposal.json`, a
   no authenticated identity gets only `public` line items.
 - Manifest entries MUST match the current version of each proposal. A stale
   entry is a seller error.
+
+A seller that limits concurrent holds SHOULD declare the limit in `hold_limits`.
+
+**`HoldLimits`** keys:
+
+| Key | Type | Required | Meaning |
+| :--- | :--- | :--- | :--- |
+| `per_buyer` | Integer | OPTIONAL | Holds whose `status` is `held` on proposals issued to one `buyer.domain` |
+| `per_advertiser` | Integer | OPTIONAL | Holds whose `status` is `held` for one advertiser, counted by the `commitment.advertisers[]` in each hold's `requested_terms`. A hold that names several advertisers counts once for each |
+
+- A seller declines a hold request that would exceed a declared limit (§ 5.6.2).
+- A seller that declares `per_advertiser` MAY decline a hold request whose
+  `requested_terms` names no advertiser.
+- Holds that move as a unit under `linked_execution: all` count as one.
+- Lowering a limit doesn't release a hold already granted.
+- A seller that declares `hold_limits` publishes the manifest even when `proposals[]`
+  is empty.
 
 Two-phase flow:
 
@@ -941,6 +959,13 @@ space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`, `min` /
 `default`); every `BuyerWrites` value (§ 3.4) and `commitment`, as they stand at `agreed`; `pricing[].agreed_rate`; and every `DocumentRef` (§ 2.2) whole, with any key its publisher
 added, whose `url` and `digest` pin the bytes. A list the buyer delivers after `agreed` is a delivery and does
 not change the agreed record (§ 4.1.2).
+
+**Typed fields govern.** Where a value whose Type cell is `String` (§ 2.6) conflicts
+with a typed field of the same `version` in the binding record, the typed field
+governs. This applies to every such value that is not an identifier or code. A value
+of an `Enum` or of a § 2.2 type, such as an `Instant`, `Duration`, or `VocabularyTerm`,
+is a typed field. A `description` that offers an 8.00 `CPM` doesn't change a
+`list_rate` of 12.00.
 
 **Composed record.** The binding record is cut from the composed record: the Full
 Representation of `version` as the seller published it to this buyer, with the buyer's
@@ -2291,9 +2316,12 @@ committing.
 | :--- | :--- | :--- | :--- |
 | `reason` | VocabularyTerm | REQUIRED | What can preempt this line item. Core term: `exclusivity`, an exclusivity term the seller accepts later that holds, under its `separation` and `window`, where and when this line item delivers |
 | `notice_duration` | Duration | OPTIONAL | The least time from the seller's notice to the first preempted delivery. Absent: no notice is owed |
+| `remedy` | VocabularyTerm | OPTIONAL | What the buyer gets for the delivery a preemption takes, on any `delivery_type`. Core terms: `makegood` \| `credit` \| `none`, where `none` gives nothing for that delivery only. Absent: `shortfall_remedy` (§ 5.7) settles any shortfall the preemption causes |
 
 A seller MUST NOT preempt a line item that has no `preemption`, or for a reason that
-its `preemption` doesn't name. Preemption doesn't excuse a shortfall, which `shortfall_remedy` (§ 5.7) settles.
+its `preemption` doesn't name. Preemption doesn't excuse a shortfall, which
+`shortfall_remedy` (§ 5.7) settles. A `remedy` on `preemption` settles the delivery a
+preemption takes instead, on any `delivery_type`.
 
 ### 5.7 Guarantees
 
@@ -2386,10 +2414,15 @@ its own right. Final delivery below `commitment.amount` is a
 shortfall only where the line item's `delivery_type` (§ 5.9) is `guaranteed`:
 counted in units when `commitment.basis` is `units`, and, when it is `spend`, valued as
 § 5.6.5 values delivery, against `commitment.amount` without `delta_flat` charges. Every
-shortfall follows the `shortfall_remedy` rules below.
+shortfall follows the `shortfall_remedy` rules below. When `preemption` states a `remedy`
+(§ 5.6.7), the delivery a preemption takes, less any delivery the seller adds within
+`commitment.flight` to replace it, is a shortfall on any `delivery_type`. That part
+follows those rules as though its `remedy` were the only option in effect at commit,
+under the `remedy_terms` of `shortfall_remedy`, and there `none` leaves committed levels
+guaranteed. `shortfall_remedy` settles the rest of a shortfall.
 
-`shortfall_remedy`: the options in effect are ordered, first choice first. `none`
-MUST be the only option in effect. It means no remedy for any shortfall, and
+`shortfall_remedy`: the options in effect are ordered, first choice first. When `none`
+is in effect, it MUST be the only option. It means no remedy for any shortfall, and
 committed levels become targets, which an agent MUST NOT present as
 guaranteed. At a shortfall, the seller offers the first remedy. The buyer MAY
 refuse a `makegood`, and the seller then offers the next. If none remains, the
@@ -2786,7 +2819,8 @@ see [docs/open-questions.md](../docs/open-questions.md).
     last `makegood`, and § 5.7.1 then points at `remedy_terms`, whose keys describe only
     a makegood. This draft also doesn't state what a `credit` is worth. Such a shortfall
     could settle under terms the seller states or fall back to a credit, or a sole
-    makegood within the flight could bind the buyer.
+    makegood within the flight could bind the buyer. Nor does this draft say how much
+    delivery a preemption takes (§ 5.6.7).
 11. **Must a manifest response carry both `ETag` and `Last-Modified`, or is either
     enough?** § 2.3 requires at least one, so a buyer's client handles whichever the
     seller sends.
