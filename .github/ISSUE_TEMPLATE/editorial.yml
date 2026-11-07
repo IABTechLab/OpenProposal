@@ -12,7 +12,7 @@ body:
     id: location
     attributes:
       label: Where
-      placeholder: "spec/openproposal-3.0.md § 5.6, Appendix A row for `hold_status`"
+      placeholder: "spec/openproposal-3.0.md § 5.6, Appendix A row for `hold_terms`"
     validations:
       required: true
   - type: textarea
