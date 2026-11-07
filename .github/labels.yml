@@ -10,7 +10,7 @@
   description: Proposes specific normative wording
 - name: open-question
   color: "d93f0b"
-  description: Relates to one of the 7 open questions in § 8
+  description: Relates to one of the open questions in § 8
 - name: implementation-feedback
   color: "0e8a16"
   description: From someone who built against the draft
