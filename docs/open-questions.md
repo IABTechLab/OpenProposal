@@ -74,11 +74,12 @@ proposed fallback behaviour, and which registry a `spec_ref` can name.
 **Issue:** [#6](https://github.com/IABTechLab/OpenProposal/issues/6)  ·  **Spec:** § 2, § 4.1.4
 
 A package (§ 4.1.4) is sold only whole, and its add-ons only with it, so the draft
-needs no `min_line_items` count. It doesn't say what cancelling one line item of an
-agreed package does to the rest.
+needs no `min_line_items` count. A buyer also cancels an agreed package's line items
+only together, as
+[@premesh describes OOH practice](https://github.com/IABTechLab/OpenProposal/issues/6#issuecomment-6704491698).
+A notice on only some of them is a change request the seller may decline.
 
-**What would settle it:** whether sellers merchandise a bundle a package can't express,
-and how a cancellation inside an agreed package works in practice.
+**What would settle it:** whether sellers merchandise a bundle a package can't express.
 
 ---
 

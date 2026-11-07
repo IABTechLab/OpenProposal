@@ -1218,6 +1218,18 @@ A package can't be bought while a line item in its `line_items[]` is `sold_out` 
 `status` (§ 5.1). The holds on the line items in a package's `line_items[]` move as a
 unit (§ 5.6.2).
 
+In an agreed package whose `line_items[]` holds more than one line item, a buyer
+exercises their `cancellation_policy` options only together. It sends one request
+(§ 4.4), whose entries share an `id`, with a `cancellation` (§ 5.6.6) for each. Every
+notice states the same `cancelled_share` and `requested_effective_at`. Each
+cancellation takes effect on the latest effective date any of them yields (§ 5.6.6),
+and cancels no more than the smallest `max_share` that applies on that date. A notice
+on only some of them, or a request whose notices differ in `cancelled_share` or
+`requested_effective_at`, exercises no option. It asks for a change those options don't
+give, and the seller MAY decline it unless `terms_refs[]` (§ 5.8) gives it. Cancelling
+the line items doesn't cancel an add-on: a buyer cancels it under its own
+`cancellation_policy`.
+
 ### 4.2 Agent comprehension
 
 The case a buying agent reads to decide whether to look further.
@@ -3049,10 +3061,9 @@ see [docs/open-questions.md](../docs/open-questions.md).
    (§ 5.4), so half the declared channels have only seller-defined specs today. A
    `spec_ref` names a registry by domain alone: this draft doesn't say which
    registry that is or how to fetch an entry.
-5. **What does cancelling one line item of an agreed package do to the rest?** A
-   package (§ 4.1.4) covers bundle purchases without a `min_line_items` count. Each
-   line item's `cancellation_policy` governs only that line item (§ 5.6.6), and this
-   draft doesn't say whether the package or its add-ons survive it.
+5. **Do packages cover every bundle sellers sell?** A package (§ 4.1.4) covers bundle
+   purchases without a `min_line_items` count. No filing names a bundle that a package
+   and its add-ons can't express.
 6. **Should `billing.payment_terms` and `billing.invoicing_party` be repeated on
    every line item,** given they are usually identical across a seller's shelf?
 7. **`environments.available[]` needs validation against real inventory.** The

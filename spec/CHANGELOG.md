@@ -12,7 +12,9 @@ issue that caused it, so the comment record and the spec history line up.
   `linked_execution` are removed, so no line item names another, and a proposal sold only
   whole is one package. `ProposalSummary` lists packages in place of `has_requires`, and holds
   move as a unit within a package. The bonus line item becomes an add-on in a new example.
-  § 8 question 5 asks what cancelling one line item of an agreed package does to the rest.
+  A buyer cancels an agreed package's line items only together, by the same share from the
+  same requested date. A notice on only some of them exercises no option, and the seller MAY
+  decline it. § 8 question 5 asks whether a package covers every bundle sellers sell.
   Breaking ([#23](https://github.com/IABTechLab/OpenProposal/issues/23),
   [#6](https://github.com/IABTechLab/OpenProposal/issues/6),
   [#50](https://github.com/IABTechLab/OpenProposal/issues/50)).
