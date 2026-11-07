@@ -2169,10 +2169,15 @@ its own right. Final delivery below `commitment.amount` is a
 shortfall only where the line item's `delivery_type` (§ 5.9) is `guaranteed`:
 counted in units when `commitment.basis` is `units`, and, when it is `spend`, valued as
 § 5.6.5 values delivery, against `commitment.amount` without `delta_flat` charges. Every
-shortfall follows the `shortfall_remedy` rules below.
+shortfall follows the `shortfall_remedy` rules below. When `preemption` states a `remedy`
+(§ 5.6.7), the delivery a preemption takes, less any delivery the seller adds within
+`commitment.flight` to replace it, is a shortfall on any `delivery_type`. That part
+follows those rules as though its `remedy` were the only option in effect at commit,
+under the `remedy_terms` of `shortfall_remedy`, and there `none` leaves committed levels
+guaranteed. `shortfall_remedy` settles the rest of a shortfall.
 
-`shortfall_remedy`: the options in effect are ordered, first choice first. `none`
-MUST be the only option in effect. It means no remedy for any shortfall, and
+`shortfall_remedy`: the options in effect are ordered, first choice first. When `none`
+is in effect, it MUST be the only option. It means no remedy for any shortfall, and
 committed levels become targets, which an agent MUST NOT present as
 guaranteed. At a shortfall, the seller offers the first remedy. The buyer MAY
 refuse a `makegood`, and the seller then offers the next. If none remains, the
@@ -2506,7 +2511,8 @@ see [docs/open-questions.md](../docs/open-questions.md).
     last `makegood`, and § 5.7.1 then points at `remedy_terms`, whose keys describe only
     a makegood. This draft also doesn't state what a `credit` is worth. Such a shortfall
     could settle under terms the seller states or fall back to a credit, or a sole
-    makegood within the flight could bind the buyer.
+    makegood within the flight could bind the buyer. Nor does this draft say how much
+    delivery a preemption takes (§ 5.6.7).
 11. **Must a manifest response carry both `ETag` and `Last-Modified`, or is either
     enough?** § 2.3 requires at least one, so a buyer's client handles whichever the
     seller sends.
