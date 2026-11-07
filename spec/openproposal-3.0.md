@@ -924,6 +924,13 @@ space (`available[]`, `included[]`, `deltas`, `max_select`, `allowed[]`, `min` /
 added, whose `url` and `digest` pin the bytes. A list the buyer delivers after `agreed` is a delivery and does
 not change the agreed record (§ 4.1.2).
 
+**Typed fields govern.** Where a value whose Type cell is `String` (§ 2.6) conflicts
+with a typed field of the same `version` in the binding record, the typed field
+governs. This applies to every such value that is not an identifier or code. A value
+of an `Enum` or of a § 2.2 type, such as an `Instant`, `Duration`, or `VocabularyTerm`,
+is a typed field. A `description` that offers an 8.00 `CPM` doesn't change a
+`list_rate` of 12.00.
+
 **Composed record.** The binding record is cut from the composed record: the Full
 Representation of `version` as the seller published it to this buyer, with the buyer's
 writes (§ 3.4) applied. A write sets the key it names and changes nothing else. A stored line
