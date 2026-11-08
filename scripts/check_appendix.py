@@ -60,7 +60,8 @@ LAYOUTS = {
     ("Deals API 1.0", "OpenRTB 2.6", "From the agreed line item"),
     ("Interaction", "Actor", "Effect; history `action`"),
     ("Instant", "Ends", "Effect when passed"),
-    ("Rule", "Profile choice"),
+    ("Rule", "Requests", "Responses"),
+    ("Status", "Meaning", "Basis"),
     # Generated.
     ("Field", "Section", "Type", "Required", "Marker"),
     ("Marker", "Count", "Meaning", "Fields"),
