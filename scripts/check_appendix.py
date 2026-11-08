@@ -51,7 +51,8 @@ LAYOUTS = {
     ("Layer", "Question", "Answered by", "Owner", "In the proposal object"),
     ("Interaction", "Actor", "Effect; history `action`"),
     ("Instant", "Ends", "Effect when passed"),
-    ("Rule", "Profile choice"),
+    ("Rule", "Requests", "Responses"),
+    ("Status", "Meaning", "Basis"),
     # Generated.
     ("Field", "Section", "Type", "Required", "Marker"),
     ("Marker", "Count", "Meaning", "Fields"),
