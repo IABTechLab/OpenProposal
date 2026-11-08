@@ -637,6 +637,11 @@ it before reading the bytes, and `unresolved_reference` (§ 2.4) reports a misma
 people. A party that holds them limits who can read them, in stored records and
 logs as well as in responses. § 5.5 states the disclosure rule for `exclusions`.
 
+**Seller prices.** `pricing[].min_rate` shows a seller's negotiating position. Anyone
+who may read a line item reads its `min_rate` (§ 5.8), so on a `public` line item it is
+public. A seller that treats its floor as confidential leaves `min_rate` off, or states
+it on a `named` line item.
+
 ### 2.8 Web Bot Auth profile
 
 This section is the OpenProposal profile of [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/01/), the IETF
@@ -1585,6 +1590,8 @@ Each option in `available[]`:
 | `name` | String | OPTIONAL | The property's name, for people |
 | `domains[]` | Array[Domain] | REQUIRED when `apps[]` is absent | The property's domains. On a `dooh` line item, the inventory owner's domain, as OpenRTB 2.6 `dooh.domain` |
 | `apps[]` | Array[App] | REQUIRED when `domains[]` is absent | The apps behind a property sold in `app_mobile` or `ctv` (§ 5.2.5) |
+| `tv_channel` | Object | OPTIONAL | The TV channel or station the property carries, as an [AdCOM 1.0 `Channel`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_channel) object in AdCOM's keys and meanings. Properties whose `tv_channel.id` is the same carry the same channel, so a buyer can tell when two sellers offer it |
+| `tv_network` | Object | OPTIONAL | The network that owns the property's channel, as an [AdCOM 1.0 `Network`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_network) object in AdCOM's keys and meanings, matched by `id` the same way |
 | `seller_relationship` | Enum | REQUIRED | `owner` \| `manager` \| `inventory_partner` \| `reseller`, checked as § 5.2.6 states |
 | `inventory_partner_domain` | Domain | OPTIONAL | As OpenRTB 2.6 `site.inventorypartnerdomain` and `app.inventorypartnerdomain` |
 | `seller_accounts[]` | Array[SellerAccount] | REQUIRED when `seller_relationship` is `reseller`, or the line item offers a deal mechanism (§ 5.9) | The accounts that sell the property |

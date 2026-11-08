@@ -87,6 +87,8 @@ PENDING_OBJECTS = {
     "`contacts[]`": "imported: OpenDirect 2.1 Contact",
     "`data_label`": "imported: Data Transparency Standard 1.1",
     "`providerdata`": "imported: OpenDirect 2.1 ChangeRequest",
+    "`tv_channel`": "imported: AdCOM 1.0 Channel",
+    "`tv_network`": "imported: AdCOM 1.0 Network",
 }
 
 BODY_SECTION = re.compile(r"^#{3,4} ((?:4|5)\.\d+(?:\.\d+)?)\s")
