@@ -44,7 +44,9 @@ issue that caused it, so the comment record and the spec history line up.
   the result as it stands. A seller MUST keep a rejection whose `retry` is not `same` until
   `offer_window.end`, or, with no end, as long as it keeps the proposal. An entry travels in the body of an HTTP message signed under the
   OpenProposal profile of Web Bot Auth (§ 2.8). `Content-Digest` covers the body, and requests
-  and responses are both signed. Which signing origins a party accepts is its own configuration,
+  and responses are both signed. § 2.8 defines the profile: an origin as identity, key directories
+  signed by every key they list, the verification order, replay, and the failure statuses, with
+  conformance vectors in a reference implementation. Which signing origins a party accepts is its own configuration,
   and any signed copy of an entry is evidence of it. The evidence is OPTIONAL, and `agreed`
   doesn't depend on it. Each party keeps the agreed record. `terms_ref` and
   `terms_acceptance_required` become `terms_refs[]` of `DocumentRef`, and a `commitment` entry
