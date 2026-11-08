@@ -624,12 +624,12 @@ replaces this section.
 | Rule | Profile choice |
 | :--- | :--- |
 | Identity | An `https` origin. The signer names it in a covered `Signature-Agent` member, as the ASCII serialization of the origin ([RFC 6454 § 6.2](https://www.rfc-editor.org/rfc/rfc6454#section-6.2)): a lowercase host, no default port, and no path, query, fragment, or userinfo |
-| Keys | The origin's key directory, at `/.well-known/http-message-signatures-directory` with the media type `application/http-message-signatures-directory+json`. Each signing key is an Ed25519 key (`kty` `OKP`, `crv` `Ed25519`), and its `kid` is its JWK thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)) |
+| Keys | The origin's key directory, at `/.well-known/http-message-signatures-directory` with the media type `application/http-message-signatures-directory+json`. Each signing key is an Ed25519 key (`kty` `OKP`, `crv` `Ed25519`), and its `kid` is its JWK thumbprint ([RFC 7638](https://www.rfc-editor.org/rfc/rfc7638)). A publisher lists each key once |
 | Signature | One signature, with `tag="web-bot-auth"`, `alg="ed25519"`, `keyid` set to the key's thumbprint, `created`, and `expires` no more than 300 seconds after `created`. A request also carries a `nonce` |
-| Request components | `@method`, `@target-uri`, `@authority`, and `"signature-agent";key=<label>` |
-| Response components | `@status`, `"@method";req`, `"@target-uri";req`, and `"signature-agent";key=<label>` |
+| Request components | `@method`, `@target-uri`, `@authority`, and `"signature-agent";key=<label>`. A requester signs each request for its own target URI and never sends that signature to another URI, such as a redirect target |
+| Response components | `@status`, `"@method";req`, `"@target-uri";req`, and `"signature-agent";key=<label>`. The responder's `Signature-Agent` names the origin of the host the request was sent to, whatever the request URL's scheme and port |
 | Body | A message with a body carries `Content-Digest` ([RFC 9530](https://www.rfc-editor.org/rfc/rfc9530)) with `sha-256`, and its signature also covers `content-type` and `content-digest`. A verifier checks the digest against the body bytes |
-| Failures | A request whose signature fields do not parse gets `400`. One that fails verification or a rule of this profile gets `403`. A party that cannot verify a response MAY refuse to write its own entry (§ 4.1.2) |
+| Failures | A message without `Signature-Input` is unsigned, whatever other signature fields it carries. A request whose signature fields do not parse gets `400`. One that fails verification or a rule of this profile gets `403`. A party that cannot verify a response MAY refuse to write its own entry (§ 4.1.2) |
 
 Requests and responses are both signed, so the seller's answers carry the same
 evidence as the buyer's entries. A standard Web Bot Auth verifier configured with
