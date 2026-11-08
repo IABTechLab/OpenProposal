@@ -632,6 +632,11 @@ it before reading the bytes, and `unresolved_reference` (§ 2.4) reports a misma
 people. A party that holds them limits who can read them, in stored records and
 logs as well as in responses. § 5.8 states the disclosure rule for `exclusions`.
 
+**Seller prices.** `pricing[].min_rate` shows a seller's negotiating position. Anyone
+who may read a line item reads its `min_rate` (§ 5.8), so on a `public` line item it is
+public. A seller that treats its floor as confidential leaves `min_rate` off, or states
+it on a `named` line item.
+
 ### 2.8 Web Bot Auth profile
 
 This section is the OpenProposal profile of [Web Bot Auth](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/01/), the IETF
