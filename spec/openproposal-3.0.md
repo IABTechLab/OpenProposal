@@ -2228,7 +2228,8 @@ inside the screen's operating hours, that ends no more than
 `play_tolerance_ms` short of the ad's full duration and that the
 proof-of-play log records. On a sync group (§ 5.2.8), a display that
 meets those conditions on at least `min_screens_per_play` of its screens is
-one play, not one per screen. An **impression** is a play times the
+one play, not one per screen. A play is inside a window, such as the operating hours,
+a `daypart` window or `commitment.flight`, when it starts inside it. An **impression** is a play times the
 multiplier for that screen or sync group at that time. Every impression
 count on the line item (`pricing[]`, `commitment`, `availability`,
 `committed_metrics[]`) counts these. A line item counts impressions when any of those
@@ -2265,6 +2266,7 @@ without a loop, plays are also reported. A `committed_metrics[]` tuple commits i
 | `source_type` | Integer | REQUIRED | Who supplies the multiplier. AdCOM 1.0 List: DOOH Multiplier Measurement Source Types: Measurement Vendor Provided (`1`), Publisher Provided (`2`), or Exchange Provided (`3`). The value OpenRTB 2.6 `imp.qty.sourcetype` carries |
 | `vendor` | RegistrableDomain | REQUIRED when `source_type` is not Publisher Provided (`2`) | The domain of the vendor or exchange that supplies the multipliers, as OpenRTB 2.6 `imp.qty.vendor` names a vendor |
 | `dataset` | String | REQUIRED | The source's named data release the multipliers come from. A new release is a new `dataset` |
+| `demographic` | VocabularyTerm | OPTIONAL | The demographic whose value settles when `dataset` gives a value per demographic. The same kind of term as `cost_parameters.demographic` (§ 5.6.5) |
 | `settles_on` | Enum | REQUIRED | `declared` \| `restated`. `declared`: the value `dataset` gives that screen, or sync group, and hour when the play runs. Under a deal mechanism (§ 5.9), the bid request carries it as OpenRTB 2.6 `imp.qty.multiplier`. `restated`: that value after any reissue of `dataset` by its source before the count is final (§ 5.7.1) |
 
 The multiplier's source controls the count of impressions: `seller` when `source_type`
@@ -2340,9 +2342,10 @@ that reads `commitment.amount` on such an entry reads them: the seller total whe
 `agreed_rate` plus those charges. `commitment.basis` MUST be `spend`, and
 `derived_units` is absent.
 
-**`TIME`.** `derived_units` is the whole `rate_unit`s elapsed from
-`commitment.flight.start` through `commitment.flight.end`, inclusive, and the seller
-total is `derived_units` × `agreed_rate` plus those charges.
+**`TIME`.** `derived_units` is the time from `commitment.flight.start` through
+`commitment.flight.end`, inclusive, in `rate_unit`s rounded to the nearest whole unit,
+so a clock change inside the flight doesn't change it. The seller total is
+`derived_units` × `agreed_rate` plus those charges.
 
 **Delivery** is counted in the entry's unit, and each unit is worth `agreed_rate` ÷ rate
 per, with rate per as above. A `FLAT` entry has no unit, so its
