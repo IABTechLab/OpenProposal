@@ -1758,8 +1758,8 @@ Each option in `available[]`:
 | `name` | String | OPTIONAL | The property's name, for people |
 | `domains[]` | Array[Domain] | REQUIRED when `apps[]` is absent | The property's domains. On a `dooh` line item, the inventory owner's domain, as OpenRTB 2.6 `dooh.domain` |
 | `apps[]` | Array[App] | REQUIRED when `domains[]` is absent | The apps behind a property sold in `app_mobile` or `ctv` (§ 5.2.5) |
-| `tv_channel` | Object | OPTIONAL | The TV channel or station the property carries, as an [AdCOM 1.0 `Channel`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_channel) object in AdCOM's keys and meanings. Properties whose `tv_channel.id` is the same carry the same channel, so a buyer can tell when two sellers offer it |
-| `tv_network` | Object | OPTIONAL | The network that owns the property's channel, as an [AdCOM 1.0 `Network`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_network) object in AdCOM's keys and meanings, matched by `id` the same way |
+| `tv_channel` | Object | OPTIONAL | The TV channel or station the property carries, as an [AdCOM 1.0 `Channel`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_channel) object in AdCOM's keys and meanings. It SHOULD carry `domain`. Properties whose `tv_channel.domain` is the same carry the same channel, so a buyer can tell when two sellers offer it. Each seller assigns its own `id`, so `id` matches only within one seller |
+| `tv_network` | Object | OPTIONAL | The network that owns the property's channel, as an [AdCOM 1.0 `Network`](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#object_network) object in AdCOM's keys and meanings, matched by `domain` the same way |
 | `seller_relationship` | Enum | REQUIRED | `owner` \| `manager` \| `inventory_partner` \| `reseller`, checked as § 5.2.6 states |
 | `inventory_partner_domain` | Domain | OPTIONAL | As OpenRTB 2.6 `site.inventorypartnerdomain` and `app.inventorypartnerdomain` |
 | `seller_accounts[]` | Array[SellerAccount] | REQUIRED when `seller_relationship` is `reseller`, or the line item offers a deal mechanism (§ 5.9) | The accounts that sell the property |
@@ -2539,7 +2539,8 @@ inside the screen's operating hours, that ends no more than
 `play_tolerance_ms` short of the ad's full duration and that the
 proof-of-play log records. On a sync group (§ 5.2.8), a display that
 meets those conditions on at least `min_screens_per_play` of its screens is
-one play, not one per screen. An **impression** is a play times the
+one play, not one per screen. A play is inside a window, such as the operating hours,
+a `daypart` window or `commitment.flight`, when it starts inside it. An **impression** is a play times the
 multiplier for that screen or sync group at that time. Every impression
 count on the line item (`pricing[]`, `commitment`, `availability`,
 `committed_metrics[]`) counts these. A line item counts impressions when any of those
@@ -2576,6 +2577,7 @@ without a loop, plays are also reported. A `committed_metrics[]` tuple commits i
 | `source_type` | Integer | REQUIRED | Who supplies the multiplier. A value from AdCOM 1.0 [List: DOOH Multiplier Measurement Source Types](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_doohmultipliermeasurementmourcetypes) other than Unknown (`0`), such as Publisher Provided (`2`). The value OpenRTB 2.6 `imp.qty.sourcetype` carries |
 | `vendor` | RegistrableDomain | REQUIRED when `source_type` is not Publisher Provided (`2`) | The domain of the vendor or exchange that supplies the multipliers, as OpenRTB 2.6 `imp.qty.vendor` names a vendor |
 | `dataset` | String | REQUIRED | The source's named data release the multipliers come from. A new release is a new `dataset` |
+| `demographic` | VocabularyTerm | OPTIONAL | The demographic whose value settles when `dataset` gives a value per demographic. The same kind of term as `cost_parameters.demographic` (§ 5.6.5) |
 | `settles_on` | Enum | REQUIRED | `declared` \| `restated`. `declared`: the value `dataset` gives that screen, or sync group, and hour when the play runs. Under a deal mechanism (§ 5.9), the bid request carries it as OpenRTB 2.6 `imp.qty.multiplier`. `restated`: that value after any reissue of `dataset` by its source before the count is final (§ 5.7.1) |
 
 The multiplier's source controls the count of impressions: `seller` when `source_type`
@@ -2651,9 +2653,10 @@ that reads `commitment.amount` on such an entry reads them: the seller total whe
 `agreed_rate` plus those charges. `commitment.basis` MUST be `spend`, and
 `derived_units` is absent.
 
-**`TIME`.** `derived_units` is the whole `rate_unit`s elapsed from
-`commitment.flight.start` through `commitment.flight.end`, inclusive, and the seller
-total is `derived_units` × `agreed_rate` plus those charges.
+**`TIME`.** `derived_units` is the time from `commitment.flight.start` through
+`commitment.flight.end`, inclusive, in `rate_unit`s rounded to the nearest whole unit,
+so a clock change inside the flight doesn't change it. The seller total is
+`derived_units` × `agreed_rate` plus those charges.
 
 **Delivery** is counted in the entry's unit, and each unit is worth `agreed_rate` ÷ rate
 per, with rate per as above. A `FLAT` entry has no unit, so its
@@ -2944,7 +2947,7 @@ an agent is the origin that signs its messages. Neither is expressed through
 | `sov_basis` | Enum | REQUIRED when an option's `delivery_type` is `share_of_voice` | seller-set | `impressions` \| `loop_time`. `impressions`: a share of the line item's eligible impressions (digital placements, pooled DOOH products). `loop_time`: a share of each named screen's loop time (fixed-loop DOOH spots) |
 | `sov_share` | Fraction | REQUIRED when `sov_basis` is `impressions` | seller-set | Absent under `loop_time`. The promised share, greater than 0 |
 | `serving_mode` | VocabularyTerm | OPTIONAL | seller-set | How the ad reaches the content or the player. Core terms: `dai` \| `scheduled` \| `embedded`, defined below. `placement.ssai` states server-side insertion |
-| `retention` | Range[Duration] | REQUIRED when `serving_mode` is `embedded` | seller-set | From release or air. The ad stays in every copy of the content the seller distributes for at least `min` and is removed by `max`. No `max`: indefinitely. When `placement.feed` is present, only copies in that feed count toward delivery |
+| `retention` | Range[Duration] | REQUIRED when `serving_mode` is `embedded` | requestable | From release or air. The ad stays in every copy of the content the seller distributes for at least `min` and is removed by `max`. No `max`: indefinitely. When `placement.feed` is present, only copies in that feed count toward delivery |
 | `deal_origin` | RegistrableDomain | REQUIRED when the line item offers a deal mechanism | seller-set | Absent otherwise. The advertising system domain whose namespace holds the deal ID and that pushes the deal, as the Deals API 1.0 `origin`: typically an SSP, or the ad server for a deal it books itself |
 | `buyer_requirements` | BuyerRequirements | OPTIONAL | mixed | See below |
 | `serving_platform` | Domain | OPTIONAL | seller-set | The ad platform that serves the line item, such as the seller's ad server, by its domain. For a deal sold through a separate SSP it differs from `deal_origin` |
@@ -3365,7 +3368,7 @@ body is normative.**
 | `sov_basis` | 5.9 Execution | Enum | REQUIRED when an option's `delivery_type` is `share_of_voice` | seller-set |
 | `sov_share` | 5.9 Execution | Fraction | REQUIRED when `sov_basis` is `impressions` | seller-set |
 | `serving_mode` | 5.9 Execution | VocabularyTerm | OPTIONAL | seller-set |
-| `retention` | 5.9 Execution | Range[Duration] | REQUIRED when `serving_mode` is `embedded` | seller-set |
+| `retention` | 5.9 Execution | Range[Duration] | REQUIRED when `serving_mode` is `embedded` | requestable |
 | `deal_origin` | 5.9 Execution | RegistrableDomain | REQUIRED when the line item offers a deal mechanism | seller-set |
 | `buyer_requirements` | 5.9 Execution | BuyerRequirements | OPTIONAL | mixed |
 | `serving_platform` | 5.9 Execution | Domain | OPTIONAL | seller-set |
@@ -3380,11 +3383,11 @@ body is normative.**
 | Marker | Count | Meaning | Fields |
 | :--- | :--- | :--- | :--- |
 | immutable | 10 | Set once at creation. Neither party may change it. | `proposal_id`, `seller`, `buyer`, `type`, `proposal_template_id`, `issued_from`, `brief_id`, `line_item_id`, `channel`, `pricing[].pricing_id` |
-| seller-set | 46 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `packages[]`, `ext` (proposal), `description`, `media_kit_detail`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `episodes`, `placement`, `format_specs`, `creative_delivery`, `approval`, `creative_policy`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `renewal_right`, `preemption`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `retention`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
+| seller-set | 45 | The seller sets it and MAY revise it while the `status` of the object that carries it is `draft`, `published` or `under_review`. § 4.3.2 states what a revision does to a line item `under_review`. The buyer cannot change it directly. | `spec_version`, `offer_window`, `line_items[]`, `packages[]`, `ext` (proposal), `description`, `media_kit_detail`, `best_for[]`, `not_suitable_for[]`, `seasonality_notes`, `ext` (line item), `episodes`, `placement`, `format_specs`, `creative_delivery`, `approval`, `creative_policy`, `time_zone`, `accepted_exclusions`, `pricing[].cost_method`, `pricing[].rate_per`, `pricing[].unit_label`, `pricing[].cost_definition`, `pricing[].cost_parameters`, `pricing[].transaction_mechanisms[]`, `pricing[].price_valid_until`, `pricing[].currency`, `pricing[].price_type`, `pricing[].min_rate`, `delivery_counting`, `hold_terms`, `renewal_right`, `preemption`, `visibility`, `required_credentials[]`, `eligible_buyers[]`, `eligible_seats[]`, `terms_refs[]`, `sov_basis`, `sov_share`, `serving_mode`, `deal_origin`, `serving_platform`, `agreement`, `billing` |
 | selectable | 16 | The buyer chooses from a seller-declared set. Each option MAY carry a price delta. Resolves without a round trip. | `properties`, `programs`, `environments`, `break_position`, `audiences`, `activation_route`, `formats`, `production`, `markets`, `cancellation_policy`, `exclusivity`, `measurement_source`, `controlling_measurement`, `shortfall_remedy`, `reporting`, `transaction_mechanism` |
 | settable | 4 | The buyer supplies a value within seller-declared bounds. Resolves without a round trip. | `geo`, `device`, `daypart`, `frequency_cap` |
 | supplied | 1 | The buyer provides data or an artifact. The seller does not pre-populate it. | `exclusions` |
-| requestable | 5 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `pricing[].unit_bounds`, `commitment_bounds`, `committed_metrics[]` |
+| requestable | 6 | The buyer MAY ask for a value outside the declared space. An ask changes the value only through a seller `grant` or `counter` (§ 4.3.1). A change on the seller's own initiative follows § 4.1.3. | `materials_due`, `pricing[].list_rate`, `pricing[].unit_bounds`, `commitment_bounds`, `committed_metrics[]`, `retention` |
 | derived | 3 | Computed by a rule this specification states. Neither party sets it directly. | `version`, `status` (proposal), `pricing[].agreed_rate` |
 | lifecycle | 2 | Live state of the object. The party its section names moves it between the stated values. Not a term. | `status` (line item), `hold` |
 | recorded | 4 | Written by the party that acted. Append-only: an entry is never edited or removed. Not a term. | `assent[]`, `negotiation_history[]`, `change_requests[]`, `external_references[]` |
