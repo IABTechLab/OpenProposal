@@ -3396,13 +3396,13 @@ body is normative.**
 
 ### What the distribution says
 
-Of 98 fields, **26 are touched by the buyer** — 16 `selectable`, 4 `settable`, 1
-`supplied` and 5 `requestable`. The remaining 72 are `seller-set`, `immutable`,
+Of 98 fields, **27 are touched by the buyer** — 16 `selectable`, 4 `settable`, 1
+`supplied` and 6 `requestable`. The remaining 71 are `seller-set`, `immutable`,
 `derived`, `lifecycle`, `recorded`, `asserted` or `mixed`. The buyer also writes some of
 those: its own entries in `assent[]` and `change_requests[]`, its `hold`, and its keys of
 `commitment`, `assets[]`, `buyer_supplied`, and `buyer_requirements`.
 
-Only the 5 `requestable` fields require a round trip to resolve (§ 5.6.1).
+Only the 6 `requestable` fields require a round trip to resolve (§ 5.6.1).
 Everything else the buyer touches — 21 fields — resolves against bounds the seller
 declared up front. That ratio is the design claim: composition is constraint
 satisfaction, and negotiation is the exception.
