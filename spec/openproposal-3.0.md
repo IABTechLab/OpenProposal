@@ -2148,9 +2148,10 @@ that reads `commitment.amount` on such an entry reads them: the seller total whe
 `agreed_rate` plus those charges. `commitment.basis` MUST be `spend`, and
 `derived_units` is absent.
 
-**`TIME`.** `derived_units` is the whole `rate_unit`s elapsed from
-`commitment.flight.start` through `commitment.flight.end`, inclusive, and the seller
-total is `derived_units` × `agreed_rate` plus those charges.
+**`TIME`.** `derived_units` is the time from `commitment.flight.start` through
+`commitment.flight.end`, inclusive, in `rate_unit`s rounded to the nearest whole unit,
+so a clock change inside the flight doesn't change it. The seller total is
+`derived_units` × `agreed_rate` plus those charges.
 
 **Delivery** is counted in the entry's unit, and each unit is worth `agreed_rate` ÷ rate
 per, with rate per as above. A `FLAT` entry has no unit, so its
