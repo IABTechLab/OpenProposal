@@ -471,6 +471,23 @@ class Spec:
         self._read_exclusion_types()
         self._read_channels()
         self._read_rules()
+        self._follow_term_references()
+
+    def _follow_term_references(self):
+        """A row that is "the same kind of term as `a.b`" takes the core terms of that row."""
+        for table in list(self.tables.values()):
+            for row in table.values():
+                m = re.search(r"[Tt]he same kind of term as `([^`]+)`", row["description"])
+                if not m or row["core"] is not None:
+                    continue
+                head, *rest = m.group(1).split(".")
+                found = [r for t in self.tables.values() for k, r in t.items() if k == head]
+                target = found[0] if found else None
+                for key in rest:
+                    target = self.tables.get(target["type"], {}).get(key) if target else None
+                if target is None:
+                    raise SystemExit(f"spec: `{m.group(1)}` names no row")
+                row["core"] = target["core"]
 
     def _read_fields(self):
         target, in_table = None, False
