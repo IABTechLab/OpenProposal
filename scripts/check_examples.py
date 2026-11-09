@@ -160,6 +160,13 @@ def _has_sync_groups(item):
     return any("sync_groups" in o for o in options)
 
 
+def instant(value):
+    """An Instant as a datetime, or None when it isn't one (the type check reports that)."""
+    if isinstance(value, str) and INSTANT.match(value):
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    return None
+
+
 def _has_order_reference(entry, proposal):
     """Whether the line item a change_requests[] entry names has an order id."""
     named = (entry.get("baseline") or {}).get("line_item_id")
@@ -1162,9 +1169,9 @@ class Checker:
             self.err(file, path, "agreed_rate", "agreed_rate is negative")
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
         size = RATE_UNIT_SECONDS.get((committed.get("cost_parameters") or {}).get("rate_unit"))
-        if method == "TIME" and starts and ends and size:
-            parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
-            elapsed = int(((parse(ends) - parse(starts)).total_seconds() + 1) // size)
+        if method == "TIME" and instant(starts) and instant(ends) and size:
+            seconds = (instant(ends) - instant(starts)).total_seconds() + 1
+            elapsed = int((seconds + size / 2) // size)  # section 5.6.5: the nearest whole unit
         if method == "FLAT":
             if basis != "spend":
                 self.err(file, path, "a FLAT commitment has basis spend")
@@ -1733,15 +1740,18 @@ def check_shared(checker, file, doc):
 
 def applicable_max_share(terms, notice):
     """Section 5.6.6: the range holding the effective date, or the top-level max_share."""
-    parse = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ")
-    effective = parse(notice["requested_effective_at"])
+    effective = instant(notice.get("requested_effective_at"))
+    if effective is None:
+        return terms.get("max_share", 1)
     length = re.fullmatch(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", terms.get("notice_duration", "P0D"))
     if length:  # a length in months or years has no fixed span; the requested date stands
         days, hours, minutes, seconds = (int(part or 0) for part in length.groups())
-        earliest = parse(notice["notice_received_at"]) + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-        effective = max(effective, earliest)
+        received = instant(notice.get("notice_received_at"))
+        if received is not None:
+            effective = max(effective, received + timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds))
     for span in terms.get("dated_shares", []):
-        if parse(span["window"]["start"]) <= effective <= parse(span["window"]["end"]):
+        start, end = instant(span["window"].get("start")), instant(span["window"].get("end"))
+        if start is not None and end is not None and start <= effective <= end:
             return span["max_share"]
     return terms.get("max_share", 1)
 
