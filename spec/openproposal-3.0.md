@@ -1131,6 +1131,10 @@ excluding those events from production measurement and delivery diagnostics. An
 inspector's own test flag is insufficient unless the receiving service supports
 it.
 
+A preview served through server-side ad insertion MUST use a session in which the
+insertion service sends no production notifications. If the service cannot provide
+such a session, the creative MUST be inspected outside the stitched stream.
+
 Inspection failures MUST be reported through diagnostics, without firing a
 production VAST `<Error>` or `verificationNotExecuted` URL. An implementation
 MUST NOT report a check that was skipped or could not finish as passed.
