@@ -2025,6 +2025,13 @@ that doesn't know a term treats that format as unavailable. An asset whose
 `provenance.synthetic` is true doesn't conform to a spec whose `voice` is
 `human_only`.
 
+A receiver that finds a seller-built asset synthetic under a spec whose `voice` is
+`human_only`, from the record or from its own check of the asset, reports that mismatch
+instead of treating the asset as conforming. The report names the asset's `asset_id`, the
+`Digest` of the bytes the receiver reviewed, the `spec` key the asset conflicts with, and
+what was observed. It is the receiver's own record and never changes the asset's
+`provenance`.
+
 **`MaterialsDue`** holds exactly one key:
 
 | Key | Type | Required | Meaning |
