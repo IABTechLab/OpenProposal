@@ -72,12 +72,15 @@ issue that caused it, so the comment record and the spec history line up.
   `at` or `before_start`. Owned value lists are lower snake case, every term compares
   byte for byte, and `cost_method` writes `FLAT`. Headings are numbered, and normative
   text cites no issue. `scripts/check_examples.py` checks the examples against the
-  tables. Breaking
+  tables. A preview served through server-side ad insertion uses a session in which the
+  insertion service sends no production notifications. If the service can't provide one, the
+  creative is inspected outside the stitched stream. Breaking
   ([#121](https://github.com/IABTechLab/OpenProposal/issues/121),
   [#31](https://github.com/IABTechLab/OpenProposal/issues/31),
   [#33](https://github.com/IABTechLab/OpenProposal/issues/33),
   [#2](https://github.com/IABTechLab/OpenProposal/issues/2),
-  [#3](https://github.com/IABTechLab/OpenProposal/issues/3)).
+  [#3](https://github.com/IABTechLab/OpenProposal/issues/3),
+  [#42](https://github.com/IABTechLab/OpenProposal/issues/42)).
 - § 2.1, § 5.1, § 5.2 — `channel` and `environments` defined in AdCOM 1.0
   terms, with a first-match channel table, a skip rule for unknown channels
   and a channel and environment consistency rule. `audio_streaming` removed;
