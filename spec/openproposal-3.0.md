@@ -69,6 +69,9 @@ values from the agreed line item:
 | `seller` | | The proposal's `seller.domain` |
 | `wseat` | `Deal.wseat` | `buyer_requirements.seats.ids[]` |
 | `adtypes` | | From `channel`: `display` 1, `video` 2, `audio` 3, `native` 4, and `ctv` 2 when `placement.plcmt` is present. Otherwise unset: the record doesn't state the ad's type |
+| `pubcount` | | On a `dooh` line item, `1` when the properties in effect belong to one inventory owner and `2` when they belong to more. `domains[]` names each owner (§ 5.2.4). Otherwise unset |
+| `dinventory` | | On a `dooh` line item, `1` when at least one property is in effect and each property in effect lists its `screens[]`. Otherwise unset |
+| `inventory.inclinventory` | | `[3]` when `dinventory` is `1`. Otherwise unset |
 | `terms.startdate`, `terms.enddate` | | `commitment.flight.start`, `commitment.flight.end` |
 | `terms.countries` | | The countries of `geo` or `markets` in effect, in alpha-3 (below), without a country excluded whole. Unset when the line item declares neither |
 | `terms.dealfloor` | `Deal.bidfloor` | `agreed_rate` of the committed `pricing[]` entry |
@@ -1851,7 +1854,7 @@ When `channel` is `dooh`, a property is a set of screens of one venue type.
 
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
-| `length_s` | Integer | REQUIRED | Loop length, in seconds |
+| `length_s` | Integer | REQUIRED | Loop length, in seconds, counting every item the loop plays, paid or not |
 | `slot_s` | Integer | REQUIRED | Slot length, in seconds |
 
 **`SyncGroup`** keys:
@@ -2629,10 +2632,11 @@ open: the term sets its keys.
 | `view_fraction` | Fraction | REQUIRED when `cost_method` is `CPV` and `view_s` is absent | The fraction of the creative played that makes a view. Absent when `view_s` is present |
 | `demographic` | VocabularyTerm | REQUIRED when `cost_method` is `CPP` | The rated demographic, such as `ratings.example:adults_25_54`. Its definition states whether co-viewers and impressions of unknown age count, or says `unknown`. This version lists no core terms |
 | `rating_source` | Measurer | REQUIRED when `cost_method` is `CPP` | Who supplies the ratings |
-| `action_type` | VocabularyTerm | REQUIRED when `cost_method` is `CPA` | The kind of action counted, such as `shop.example:purchase`. This version lists no core terms |
+| `action_type` | VocabularyTerm | REQUIRED when `cost_method` is `CPA` | The kind of action counted. Core terms in [IAB Tech Lab ECAPI 1.0](https://github.com/InteractiveAdvertisingBureau/ecapi/blob/4b43b0334c2aa41b13e302f2fa3ffc03012b3648/ecapi_1.0.md#eventtypes): its `event_type` values other than `custom`, such as `purchase` or `install`. Any other action is an extension term, such as `shop.example:store_visit` |
 | `attribution_window` | Duration | REQUIRED when `cost_method` is `CPA` | How long after exposure an action counts |
 | `action_source` | Measurer | REQUIRED when `cost_method` is `CPA` | Who reports the action |
-| `rate_unit` | Enum | REQUIRED when `cost_method` is `TIME` | `hour` \| `day` \| `week`. The unit the rate buys, counted in elapsed units |
+| `rate_unit` | Enum | REQUIRED when `cost_method` is `TIME` | `hour` \| `day` \| `week`. The unit the rate buys, counted in elapsed units unless `calendar_zone` is present |
+| `calendar_zone` | IanaZone | OPTIONAL | Absent unless `rate_unit` is `day`. The zone whose calendar days the rate buys: each calendar day in that zone that the flight touches is one unit |
 
 A seller's own extension terms MUST use its `seller.domain` as the `<domain>`. The host
 of `cost_definition.url` MUST be the term's `<domain>` or a subdomain of it.
@@ -2659,14 +2663,17 @@ that reads `commitment.amount` on such an entry reads them: the seller total whe
 
 **`TIME`.** `derived_units` is the time from `commitment.flight.start` through
 `commitment.flight.end`, inclusive, in `rate_unit`s rounded to the nearest whole unit,
-half up, so a clock change inside the flight doesn't change it. The seller total is
-`derived_units` × `agreed_rate` plus those charges.
+half up, so a clock change inside the flight doesn't change it. When `calendar_zone` is
+present, `derived_units` is instead the number of calendar days in that zone from the
+day of `commitment.flight.start` through the day of `commitment.flight.end`. The seller
+total is `derived_units` × `agreed_rate` plus those charges.
 
 **Delivery** is counted in the entry's unit, and each unit is worth `agreed_rate` ÷ rate
-per, with rate per as above. A `FLAT` entry has no unit, so its
-delivery is the days of `commitment.flight` delivered, counted in elapsed days from
-`commitment.flight.start`. Each day is worth `agreed_rate` ÷ the flight's length in
-days, and a last part day is worth its fraction of that.
+per, with rate per as above. With `calendar_zone`, a `TIME` entry counts one delivered
+unit for each of those calendar days on which the line item runs. A `FLAT` entry has no
+unit, so its delivery is the days of `commitment.flight` delivered, counted in elapsed
+days from `commitment.flight.start`. Each day is worth `agreed_rate` ÷ the flight's
+length in days, and a last part day is worth its fraction of that.
 
 A seller fee is never a `pricing[]` entry. A receiver MUST treat an extension entry
 that breaks these rules as unavailable, not the line item as invalid.
@@ -2811,7 +2818,7 @@ its standard. Core terms: `viewable_rate` \| `completion_rate` \| `ivt_rate` \|
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `id` | String | REQUIRED | Option id (§ 3.1) |
-| `counted_by` | Measurer | REQUIRED | Who counts. When `channel` is `dooh` and the line item counts impressions, `counted_by` MUST be the source of the line item's `delivery_counting.impression_multiplier`. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source` |
+| `counted_by` | Measurer | REQUIRED | Who counts. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source`. When it has `cost_method` `CPA`, `counted_by` MUST be its `cost_parameters.action_source`. Otherwise, when `channel` is `dooh` and the line item counts impressions, `counted_by` MUST be the source of the line item's `delivery_counting.impression_multiplier` |
 | `qualifier` | String | OPTIONAL | A product or method of `counted_by`, such as a named ad server |
 | `discrepancy_threshold` | Fraction | OPTIONAL | A fraction of the controlling count. When the other measurement, a party's own count of the same units, exceeds the controlling count by more than this over an invoice period, reconciliation opens |
 | `final_after` | Duration | OPTIONAL | Such as `P30D` (30 days). A count is final that long after its invoice period ends. Committed values, whichever source measures them, are final that long after `commitment.flight.end` |
