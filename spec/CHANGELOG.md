@@ -27,11 +27,15 @@ issue that caused it, so the comment record and the spec history line up.
   and `delivery_mechanism` becomes `delivery_method`. `provided_metrics[]` takes the § 5.6.5
   `unit` terms and the § 5.7.1 rate terms.
   `billing.invoice_period` points at § 5.7.1, and § 8 gains question 10, on a shortfall with
-  no remedy left. Breaking
+  no remedy left. When `preemption` states a `remedy`, the delivery a preemption takes, less any
+  replacement within `commitment.flight`, is a shortfall on any `delivery_type` and settles under
+  that `remedy`. Question 10 also asks how much delivery a preemption takes. On a `CPA` entry,
+  `counted_by` MUST be `cost_parameters.action_source`. Breaking
   ([#93](https://github.com/IABTechLab/OpenProposal/issues/93),
   [#95](https://github.com/IABTechLab/OpenProposal/issues/95),
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134),
-  [#38](https://github.com/IABTechLab/OpenProposal/issues/38)).
+  [#38](https://github.com/IABTechLab/OpenProposal/issues/38),
+  [#80](https://github.com/IABTechLab/OpenProposal/issues/80)).
 
 - § 1.1, § 2.1, § 2.2, § 2.4, § 2.5, § 3.1 to § 3.3, § 4.1, § 4.3.2, § 4.4, § 5.6, § 5.6.1, § 5.6.3,
   § 5.6.5 to § 5.6.7, § 6, § 8, appendices, examples, docs, checkers, pricing fixtures — pricing.
