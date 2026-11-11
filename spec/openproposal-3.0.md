@@ -1057,6 +1057,7 @@ form its row states. `pointer` says which `pricing[]` entry.
 | `commitment_bounds` | CommitmentBounds | OPTIONAL | The line item's `commitment_bounds` |
 | `materials_due` | MaterialsDue | OPTIONAL | The line item's `materials_due` |
 | `committed_metrics[]` | Array[CommittedMetric] | OPTIONAL | The line item's `committed_metrics[]` |
+| `retention` | Range[Duration] | OPTIONAL | The line item's `retention` |
 
 `proposal_template_id` MUST NOT be required for a buyer to transact. Buyers never
 resolve it.
