@@ -77,7 +77,7 @@ import sys
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, available_timezones
 
 import yaml
 
@@ -1185,10 +1185,22 @@ class Checker:
         if rate < 0:
             self.err(file, path, "agreed_rate", "agreed_rate is negative")
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
-        size = RATE_UNIT_SECONDS.get((committed.get("cost_parameters") or {}).get("rate_unit"))
+        params = committed.get("cost_parameters") or {}
+        size = RATE_UNIT_SECONDS.get(params.get("rate_unit"))
+        if "calendar_zone" in params and params.get("rate_unit") != "day":
+            self.err(file, path, "cost_parameters", "calendar_zone without rate_unit day")
         if method == "TIME" and instant(starts) and instant(ends) and size:
-            seconds = (instant(ends) - instant(starts)).total_seconds() + 1
-            elapsed = int((seconds + size / 2) // size)  # section 5.6.5: the nearest whole unit
+            if "calendar_zone" in params and params.get("rate_unit") == "day":
+                name = params["calendar_zone"]
+                if not isinstance(name, str) or name not in available_timezones():
+                    self.err(file, path, "cost_parameters", "calendar_zone isn't an IANA time zone")
+                    return  # no unit count to check the amount against
+                zone, utc = ZoneInfo(name), ZoneInfo("UTC")  # section 5.6.5: calendar days in the zone
+                first, last = (instant(v).replace(tzinfo=utc).astimezone(zone).date() for v in (starts, ends))
+                elapsed = (last - first).days + 1
+            else:
+                seconds = (instant(ends) - instant(starts)).total_seconds() + 1
+                elapsed = int((seconds + size / 2) // size)  # section 5.6.5: the nearest whole unit
         if method == "FLAT":
             if basis != "spend":
                 self.err(file, path, "a FLAT commitment has basis spend")
@@ -1264,8 +1276,10 @@ class Checker:
             source = "seller" if own else vendor
             expected = {c.get("id"): source for c in counters}
         committed = _committed_entry(item)
-        if committed and committed.get("cost_method") == "CPP":
-            source = (committed.get("cost_parameters") or {}).get("rating_source")
+        source_key = {"CPP": "rating_source", "CPA": "action_source"}.get((committed or {}).get("cost_method"))
+        if source_key:  # section 5.7.1: the rated or reported source counts
+            expected = {}
+            source = (committed.get("cost_parameters") or {}).get(source_key)
             for name in selection.get("selected", selection.get("included", [])):
                 expected[name] = source
         for counter in counters:
