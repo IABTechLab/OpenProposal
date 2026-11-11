@@ -5,7 +5,7 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
-- § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
+- § 1.1, § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
   examples, checker — DOOH properties, plays, and impressions. When `channel` is `dooh`, a
   property is a set of screens of one venue type. It carries `venue_type`, `allocation`,
   `min_screens`, `screens[]`, `slots_per_loop`, and `sync_groups[]`, and a summary lists
@@ -20,7 +20,13 @@ issue that caused it, so the comment record and the spec history line up.
   rule, in § 5.6.4: it is in the committed entry's `unit`. The multiplier's source controls
   the count of impressions, and `metric` gains the count term `impressions`. A `loop_time`
   share derives from the loop, a domination is `guaranteed` with sole exclusivity, and a
-  share's eligible screens are the line item's screen set. Breaking
+  share's eligible screens are the line item's screen set. A domination can cover a location or
+  its paid zone, with the matching `separation`. A play is inside a window when it starts inside
+  it, and the multiplier MAY name the `demographic` whose value settles. A loop's `length_s`
+  counts every item the loop plays, paid or not. Unless the committed entry is `CPP` or `CPA`, a
+  line item that counts impressions has the multiplier's source as `counted_by`. § 1.1 maps a
+  `dooh` line item's owners and screens to Deals API 1.0 `pubcount`, `dinventory`, and
+  `inventory.inclinventory`. Breaking
   ([#92](https://github.com/IABTechLab/OpenProposal/issues/92),
   [#96](https://github.com/IABTechLab/OpenProposal/issues/96),
   [#79](https://github.com/IABTechLab/OpenProposal/issues/79),
