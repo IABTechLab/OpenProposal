@@ -53,7 +53,9 @@ issue that caused it, so the comment record and the spec history line up.
   `Availability`, whose keys the `availability` row lists until its key table lands.
   `hold_scope` is removed: under `linked_execution: all`, holds move as a unit. The re-offer
   is a listed transition, and `valid_until` states its cap. The CTV example no longer offers
-  a hold on a `private_auction` line item. Breaking `held` means reserved inventory, and a hold stays `held` while a `commit` made during it is open. `hold.reference` holds the seller's id for the reservation, and `renewal_right` offers a right to the next cycle.
+  a hold on a `private_auction` line item. `held` means reserved inventory, and a hold stays
+  `held` while a `commit` made during it is open. `hold.reference` holds the seller's id for the
+  reservation, and `renewal_right` offers a right to the next cycle. Breaking
   ([#66](https://github.com/IABTechLab/OpenProposal/issues/66),
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134)).
 - § 1.1, § 2.1, § 2.6, § 5.4, § 5.5, § 5.6, § 5.9, § 5.10, § 6.2, § 8, appendices, examples,
@@ -73,7 +75,8 @@ issue that caused it, so the comment record and the spec history line up.
   `creative_delivery.method` is defined, and it routes the creative under any mechanism:
   `assets[]` and `materials_due` read only where creative reaches the seller. `buying_route`
   and `supported_order_systems[]` are removed, and `serving_platform` is a `Domain`. The bonus
-  example sells as `direct_io`. Breaking A `VersionRef` outside its proposal carries `seller_domain`, and a Deals API push may carry the agreed baseline in `ext.baseline`.
+  example sells as `direct_io`. A `VersionRef` outside its proposal carries `seller_domain`,
+  and a Deals API push may carry the agreed baseline in `ext.baseline`. Breaking
   ([#132](https://github.com/IABTechLab/OpenProposal/issues/132),
   [#133](https://github.com/IABTechLab/OpenProposal/issues/133),
   [#93](https://github.com/IABTechLab/OpenProposal/issues/93),
@@ -126,7 +129,9 @@ issue that caused it, so the comment record and the spec history line up.
   `terms_acceptance_required` become `terms_refs[]` of `DocumentRef`, and a `commitment` entry
   accepts them all. An absent list accepts no document. A `DocumentRef`'s `url` is an `HttpsUrl`,
   a new type, and `list_ref` is a `DocumentRef`. `commitment.proposal_id` and
-  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking A `commitment` names at least one advertiser, a `decline` states its `ground`, and a seller answers a `commit` under a firm entry while the entry holds.
+  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. A
+  `commitment` names at least one advertiser, a `decline` states its `ground`, and a seller
+  answers a `commit` under a firm entry while the entry holds. Breaking
   ([#63](https://github.com/IABTechLab/OpenProposal/issues/63),
   [#27](https://github.com/IABTechLab/OpenProposal/issues/27),
   [#24](https://github.com/IABTechLab/OpenProposal/issues/24),
