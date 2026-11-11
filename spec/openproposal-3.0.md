@@ -1673,8 +1673,8 @@ When `channel` is `dooh`, a property is a set of screens of one venue type.
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `screen_id` | String | REQUIRED | The seller's id for the screen, as its proof-of-play log carries it. When the bid request's `device.ifa_type` is `ppid`, as the [OpenRTB 2.6 implementation guide](https://github.com/InteractiveAdvertisingBureau/openrtb2.x/blob/1debba8001f40eb14597102dec3205afddf811d4/implementation.md#7925-key-object-attributes-to-use-for-dooh-device-reference-in-openrtb) (§ 7.9.2.5) uses it, `device.ifa` carries the same id |
-| `lat` | Number | OPTIONAL | Latitude, as OpenRTB 2.6 `geo.lat`. Absent when `movable` is true |
-| `lon` | Number | OPTIONAL | Longitude, as OpenRTB 2.6 `geo.lon`. Absent when `movable` is true |
+| `lat` | Number | OPTIONAL | Latitude, as OpenRTB 2.6 `geo.lat`. Absent when `movable` is `true` |
+| `lon` | Number | OPTIONAL | Longitude, as OpenRTB 2.6 `geo.lon`. Absent when `movable` is `true` |
 | `movable` | Boolean | OPTIONAL | True when the screen has no fixed location, as AdCOM 1.0 `Dooh.fixed` value 2 (movable) |
 | `time_zone` | IanaZone | OPTIONAL | The screen's time zone |
 | `operating_hours[]` | Array[ClockWindow] | OPTIONAL | `ClockWindow` entries (§ 5.5), in the screen's `time_zone` |
