@@ -5,7 +5,7 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
-- § 1.1, § 2.1, § 2.6, § 3.3, § 4.1.1, § 5.2, § 5.2.2, § 5.2.3, § 5.2.9, § 5.4, § 5.6.4, § 5.7,
+- § 1.1, § 2.1, § 2.6, § 3.3, § 4.1, § 4.1.1, § 5.2, § 5.2.2, § 5.2.3, § 5.2.9, § 5.4, § 5.6.4, § 5.7,
   § 5.7.1, § 5.9, § 6.3, § 6.4, § 6.7, § 6.10, § 6.11, § 7, appendices, examples, checker — video
   and audio inventory. `break_position` sells position and pod slot as priced
   `BreakPositionOption`s (§ 5.2.3). `programs` makes content selectable: a `ProgramOption` nests
@@ -22,7 +22,8 @@ issue that caused it, so the comment record and the spec history line up.
   `creative_delivery.protocol` and `third_party_tags` become `protocols[]` of AdCOM Creative
   Subtypes codes and `other_protocols[]` of terms. `production.available[].cost` is removed:
   `deltas` prices a build. `build_owner` becomes `built_by`, and `production` says what nothing
-  in effect means. Breaking
+  in effect means. `retention` is `requestable`, and a request carries the retention it asks for
+  in `RequestedValue`. Breaking
   ([#99](https://github.com/IABTechLab/OpenProposal/issues/99),
   [#100](https://github.com/IABTechLab/OpenProposal/issues/100),
   [#101](https://github.com/IABTechLab/OpenProposal/issues/101),
