@@ -1183,17 +1183,17 @@ class Checker:
         starts, ends = flight.get("start"), flight.get("end")
         total, units, elapsed = amount, None, None
         if rate < 0:
-            self.err(file, path, "agreed_rate", "agreed_rate is negative")
+            self.err(file, path, "agreed_rate is negative")
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
         params = committed.get("cost_parameters") or {}
         size = RATE_UNIT_SECONDS.get(params.get("rate_unit"))
         if "calendar_zone" in params and params.get("rate_unit") != "day":
-            self.err(file, path, "cost_parameters", "calendar_zone without rate_unit day")
+            self.err(file, path, "calendar_zone without rate_unit day")
         if method == "TIME" and instant(starts) and instant(ends) and size:
             if "calendar_zone" in params and params.get("rate_unit") == "day":
                 name = params["calendar_zone"]
                 if not isinstance(name, str) or name not in available_timezones():
-                    self.err(file, path, "cost_parameters", "calendar_zone isn't an IANA time zone")
+                    self.err(file, path, "calendar_zone isn't an IANA time zone")
                     return  # no unit count to check the amount against
                 zone, utc = ZoneInfo(name), ZoneInfo("UTC")  # section 5.6.5: calendar days in the zone
                 first, last = (instant(v).replace(tzinfo=utc).astimezone(zone).date() for v in (starts, ends))
@@ -1218,7 +1218,7 @@ class Checker:
             if rate > 0:
                 units = int((amount - charges) / rate * rate_per)
             else:
-                self.err(file, path, "agreed_rate", "a spend commitment on this entry needs an agreed_rate above 0")
+                self.err(file, path, "a spend commitment on this entry needs an agreed_rate above 0")
         else:
             total, units = amount / rate_per * rate + charges, amount
         if units is not None and "derived_units" in commitment and commitment["derived_units"] != units:
