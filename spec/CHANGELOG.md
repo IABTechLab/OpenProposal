@@ -22,7 +22,12 @@ issue that caused it, so the comment record and the spec history line up.
   `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
   exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
   names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
-  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall. A `remedy` on `preemption` states what the buyer gets for the delivery a preemption takes.
+  `version`, so `accepted_counter` and `selection_key` are removed. `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall. A `remedy` on `preemption` states what the buyer gets for the delivery a preemption takes.
+  A `TIME` entry's `derived_units` rounds to the nearest whole `rate_unit`, half up. On a `day`
+  rate, `calendar_zone` makes it count the calendar days in that zone that the flight touches,
+  and `calendar_zone` is absent on any other rate. `action_type` takes its core terms from
+  ECAPI 1.0: the `event_type` values in its Standard Events and Additional Events tables, other
+  than `custom`. Breaking
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -31,7 +36,8 @@ issue that caused it, so the comment record and the spec history line up.
   [#70](https://github.com/IABTechLab/OpenProposal/pull/70),
   [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
   [#125](https://github.com/IABTechLab/OpenProposal/issues/125),
-  [#121](https://github.com/IABTechLab/OpenProposal/issues/121)).
+  [#121](https://github.com/IABTechLab/OpenProposal/issues/121),
+  [#80](https://github.com/IABTechLab/OpenProposal/issues/80)).
 
 - § 2.4, § 3.4, § 4.1.1, § 4.1.3, § 4.3, § 4.3.1, § 4.3.2, § 4.3.4, § 5.6, § 5.6.1, § 5.6.2,
   appendices, examples, checkers — holds. `hold_status` splits in two: `hold_terms`,
