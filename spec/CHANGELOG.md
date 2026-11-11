@@ -28,7 +28,7 @@ issue that caused it, so the comment record and the spec history line up.
   [#101](https://github.com/IABTechLab/OpenProposal/issues/101),
   [#89](https://github.com/IABTechLab/OpenProposal/issues/89)).
 
-- § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
+- § 1.1, § 2.1, § 2.2, § 2.6, § 3.3, § 5.2, § 5.5, § 5.6, § 5.6.4, § 5.7.1, § 5.9, § 6.9, appendices,
   examples, checker — DOOH properties, plays, and impressions. When `channel` is `dooh`, a
   property is a set of screens of one venue type. It carries `venue_type`, `allocation`,
   `min_screens`, `screens[]`, `slots_per_loop`, and `sync_groups[]`, and a summary lists
@@ -43,7 +43,13 @@ issue that caused it, so the comment record and the spec history line up.
   rule, in § 5.6.4: it is in the committed entry's `unit`. The multiplier's source controls
   the count of impressions, and `metric` gains the count term `impressions`. A `loop_time`
   share derives from the loop, a domination is `guaranteed` with sole exclusivity, and a
-  share's eligible screens are the line item's screen set. Breaking
+  share's eligible screens are the line item's screen set. A domination can cover a location or
+  its paid zone, with the matching `separation`. A play is inside a window when it starts inside
+  it, and the multiplier MAY name the `demographic` whose value settles. A loop's `length_s`
+  counts every item the loop plays, paid or not. Unless the committed entry is `CPP` or `CPA`, a
+  line item that counts impressions has the multiplier's source as `counted_by`. § 1.1 maps a
+  `dooh` line item's owners and screens to Deals API 1.0 `pubcount`, `dinventory`, and
+  `inventory.inclinventory`. Breaking
   ([#92](https://github.com/IABTechLab/OpenProposal/issues/92),
   [#96](https://github.com/IABTechLab/OpenProposal/issues/96),
   [#79](https://github.com/IABTechLab/OpenProposal/issues/79),
@@ -71,11 +77,15 @@ issue that caused it, so the comment record and the spec history line up.
   and `delivery_mechanism` becomes `delivery_method`. `provided_metrics[]` takes the § 5.6.5
   `unit` terms and the § 5.7.1 rate terms.
   `billing.invoice_period` points at § 5.7.1, and § 8 gains question 10, on a shortfall with
-  no remedy left. Breaking
+  no remedy left. When `preemption` states a `remedy`, the delivery a preemption takes, less any
+  replacement within `commitment.flight`, is a shortfall on any `delivery_type` and settles under
+  that `remedy`. Question 10 also asks how much delivery a preemption takes. On a `CPA` entry,
+  `counted_by` MUST be `cost_parameters.action_source`. Breaking
   ([#93](https://github.com/IABTechLab/OpenProposal/issues/93),
   [#95](https://github.com/IABTechLab/OpenProposal/issues/95),
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134),
-  [#38](https://github.com/IABTechLab/OpenProposal/issues/38)).
+  [#38](https://github.com/IABTechLab/OpenProposal/issues/38),
+  [#80](https://github.com/IABTechLab/OpenProposal/issues/80)).
 
 - § 1.1, § 2.1, § 2.2, § 2.4, § 2.5, § 3.1 to § 3.3, § 4.1, § 4.3.2, § 4.4, § 5.6, § 5.6.1, § 5.6.3,
   § 5.6.5 to § 5.6.7, § 6, § 8, appendices, examples, docs, checkers, pricing fixtures — pricing.
@@ -94,7 +104,12 @@ issue that caused it, so the comment record and the spec history line up.
   `dated_shares[]`, and a `change_requests[]` entry's `cancellation` is a `CancellationNotice`. An
   exclusivity option is an `ExclusivityOption`, with a `window`. The pricing vectors use these
   names and round as § 5.6 and § 5.6.5 state. A granted rate is the `list_rate` of the next
-  `version`, so `accepted_counter` and `selection_key` are removed. Breaking `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall. A `remedy` on `preemption` states what the buyer gets for the delivery a preemption takes.
+  `version`, so `accepted_counter` and `selection_key` are removed. `agreed_rate` is never negative, and is above 0 under `spend` on an entry other than `FLAT` or `TIME`. A `counter` of `list_rate` may also change `included[]`. `separation` adds `location` and `paid_zone`, and a `demographic` term states how it treats co-viewers and unknown age. A line item MAY state `preemption`: what can preempt its delivery, and with what notice. A line item whose `preemption` names `exclusivity` doesn't block a later exclusivity term once its notice has run, and preemption doesn't excuse a shortfall. A `remedy` on `preemption` states what the buyer gets for the delivery a preemption takes.
+  A `TIME` entry's `derived_units` rounds to the nearest whole `rate_unit`, half up. On a `day`
+  rate, `calendar_zone` makes it count the calendar days in that zone that the flight touches,
+  and `calendar_zone` is absent on any other rate. `action_type` takes its core terms from
+  ECAPI 1.0: the `event_type` values in its Standard Events and Additional Events tables, other
+  than `custom`. Breaking
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -103,7 +118,8 @@ issue that caused it, so the comment record and the spec history line up.
   [#70](https://github.com/IABTechLab/OpenProposal/pull/70),
   [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
   [#125](https://github.com/IABTechLab/OpenProposal/issues/125),
-  [#121](https://github.com/IABTechLab/OpenProposal/issues/121)).
+  [#121](https://github.com/IABTechLab/OpenProposal/issues/121),
+  [#80](https://github.com/IABTechLab/OpenProposal/issues/80)).
 
 - § 2.4, § 3.4, § 4.1.1, § 4.1.3, § 4.3, § 4.3.1, § 4.3.2, § 4.3.4, § 5.6, § 5.6.1, § 5.6.2,
   appendices, examples, checkers — holds. `hold_status` splits in two: `hold_terms`,
@@ -204,7 +220,7 @@ issue that caused it, so the comment record and the spec history line up.
   `version`, the typed field governs ([#155](https://github.com/IABTechLab/OpenProposal/issues/155)).
   The manifest's `hold_limits` declares the most holds a seller grants at once, per buyer and
   per advertiser ([#156](https://github.com/IABTechLab/OpenProposal/issues/156)).
-- § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
+- § 1.1, § 2.1, § 2.2, § 2.6, § 2.7, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
   `selected[]` is the complete set of options in effect and replaces `included[]`; `value`
@@ -222,12 +238,14 @@ issue that caused it, so the comment record and the spec history line up.
   availability read, and § 3.4 names `BuyerWrites` and `LineItemWrites`. `geo` holds
   `GeoCode` entries as a `settable` field, and the selectable form becomes `markets`.
   `device` holds AdCOM codes, a `daypart` window is a `ClockWindow` that ends `before` a
-  minute, and `supported_formats` is removed. Breaking
+  minute, and `supported_formats` is removed. A `min_rate` is as readable as its line item,
+  so on a `public` line item it is public. Breaking
   ([#22](https://github.com/IABTechLab/OpenProposal/issues/22),
   [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
   [#58](https://github.com/IABTechLab/OpenProposal/issues/58),
   [#14](https://github.com/IABTechLab/OpenProposal/issues/14),
-  [#111](https://github.com/IABTechLab/OpenProposal/issues/111)).
+  [#111](https://github.com/IABTechLab/OpenProposal/issues/111),
+  [#47](https://github.com/IABTechLab/OpenProposal/issues/47)).
 - § 1.2, § 2.2, § 2.3, § 2.4, § 3, § 4.1, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 5.1, § 5.4,
   § 5.6, § 5.6.1, § 5.6.3, § 5.8, § 5.9, § 6, § 7, appendices, examples, checkers — who
   moves each status, and when an offer goes stale. The `seller-set` gate reads the `status`
@@ -323,12 +341,15 @@ issue that caused it, so the comment record and the spec history line up.
   `at` or `before_start`. Owned value lists are lower snake case, every term compares
   byte for byte, and `cost_method` writes `FLAT`. Headings are numbered, and normative
   text cites no issue. `scripts/check_examples.py` checks the examples against the
-  tables. Breaking
+  tables. A preview served through server-side ad insertion uses a session in which the
+  insertion service sends no production notifications. If the service can't provide one, the
+  creative is inspected outside the stitched stream. Breaking
   ([#121](https://github.com/IABTechLab/OpenProposal/issues/121),
   [#31](https://github.com/IABTechLab/OpenProposal/issues/31),
   [#33](https://github.com/IABTechLab/OpenProposal/issues/33),
   [#2](https://github.com/IABTechLab/OpenProposal/issues/2),
-  [#3](https://github.com/IABTechLab/OpenProposal/issues/3)).
+  [#3](https://github.com/IABTechLab/OpenProposal/issues/3),
+  [#42](https://github.com/IABTechLab/OpenProposal/issues/42)).
 - § 2.1, § 5.1, § 5.2 — `channel` and `environments` defined in AdCOM 1.0
   terms, with a first-match channel table, a skip rule for unknown channels
   and a channel and environment consistency rule. `audio_streaming` removed;
