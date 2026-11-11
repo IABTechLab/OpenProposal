@@ -34,7 +34,9 @@ issue that caused it, so the comment record and the spec history line up.
   `terms_acceptance_required` become `terms_refs[]` of `DocumentRef`, and a `commitment` entry
   accepts them all. An absent list accepts no document. A `DocumentRef`'s `url` is an `HttpsUrl`,
   a new type, and `list_ref` is a `DocumentRef`. `commitment.proposal_id` and
-  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. Breaking A `commitment` names at least one advertiser, a `decline` states its `ground`, and a seller answers a `commit` under a firm entry while the entry holds.
+  `commitment.version` go, because the entry pins the version. `seller_rate` is removed. A
+  `commitment` names at least one advertiser, a `decline` states its `ground`, and a seller
+  answers a `commit` under a firm entry while the entry holds. Breaking
   ([#63](https://github.com/IABTechLab/OpenProposal/issues/63),
   [#27](https://github.com/IABTechLab/OpenProposal/issues/27),
   [#24](https://github.com/IABTechLab/OpenProposal/issues/24),
