@@ -2311,7 +2311,7 @@ its standard. Core terms: `viewable_rate` \| `completion_rate` \| `ivt_rate`.
 | Key | Type | Required | Meaning |
 | :--- | :--- | :--- | :--- |
 | `id` | String | REQUIRED | Option id (§ 3.1) |
-| `counted_by` | Measurer | REQUIRED | Who counts. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source` |
+| `counted_by` | Measurer | REQUIRED | Who counts. When the `pricing[]` entry the buyer commits under has `cost_method` `CPP`, `counted_by` MUST be its `cost_parameters.rating_source`. When it has `cost_method` `CPA`, `counted_by` MUST be its `cost_parameters.action_source` |
 | `qualifier` | String | OPTIONAL | A product or method of `counted_by`, such as a named ad server |
 | `discrepancy_threshold` | Fraction | OPTIONAL | A fraction of the controlling count. When the other measurement, a party's own count of the same units, exceeds the controlling count by more than this over an invoice period, reconciliation opens |
 | `final_after` | Duration | OPTIONAL | Such as `P30D` (30 days). A count is final that long after its invoice period ends. Committed values, whichever source measures them, are final that long after `commitment.flight.end` |

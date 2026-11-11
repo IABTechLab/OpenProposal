@@ -856,8 +856,10 @@ class Checker:
         counters = selection.get("available", [])
         expected = {}
         committed = _committed_entry(item)
-        if committed and committed.get("cost_method") == "CPP":
-            source = (committed.get("cost_parameters") or {}).get("rating_source")
+        source_key = {"CPP": "rating_source", "CPA": "action_source"}.get((committed or {}).get("cost_method"))
+        if source_key:  # section 5.7.1: the rated or reported source counts
+            expected = {}
+            source = (committed.get("cost_parameters") or {}).get(source_key)
             for name in selection.get("selected", selection.get("included", [])):
                 expected[name] = source
         for counter in counters:
