@@ -1575,8 +1575,9 @@ venue type, and `domains[]` holds the inventory owner's domain, as OpenRTB 2.6
   request's `device.ifa_type` is `ppid`, `device.ifa` carries the same id. `lat` and
   `lon` are absent when `movable` is true. `time_zone` is an `IanaZone`.
   `operating_hours[]` holds `ClockWindow` entries (§ 5.5), in the screen's
-  `time_zone`. `loop` is `{ length_s, slot_s }`, in integer seconds: loop length and
-  slot length. It is absent when the screen schedules ads without a loop.
+  `time_zone`. `loop` is `{ length_s, slot_s }`, in integer seconds: loop length,
+  counting every item the loop plays, paid or not, and slot length. It is absent when
+  the screen schedules ads without a loop.
 - `slots_per_loop`: OPTIONAL. The slots per loop the line item buys on each screen of
   the property that has a `loop`.
 - `sync_groups[]`: OPTIONAL. Screens that show the same ad at the same moment, sold as
