@@ -9,11 +9,12 @@ issue that caused it, so the comment record and the spec history line up.
   examples, checker — DOOH properties, plays, and impressions. When `channel` is `dooh`, a
   property is a set of screens of one venue type. It carries `venue_type`, `allocation`,
   `min_screens`, `screens[]`, `slots_per_loop`, and `sync_groups[]`, and a summary lists
-  `venue_type`. `viewer_local` is each screen's own zone. `frequency_cap.per` is a
+  `venue_type` and the multiplier's type, source, and accreditation. `viewer_local` is each screen's own zone. `frequency_cap.per` is a
   `VocabularyTerm` with the core term `screen`, and `availability.unit` gains
   `slots_per_loop`. § 5.6.4 defines a play and an impression. `delivery_counting`, REQUIRED
   on a `dooh` line item, holds `play_tolerance_ms`, `proof_of_performance`,
-  `partial_play_credit`, and a nested `impression_multiplier`. A line item that counts only
+  `partial_play_credit`, and a nested `impression_multiplier`, which MAY state its source's
+  `accreditation` (`industry_currency` or `publisher_reported`). A line item that counts only
   plays needs the outer object alone. `proof_of_performance` has a key table, and
   `evidence[]` is a `VocabularyTerm`. The committed quantity on a `dooh` line item has one
   rule, in § 5.6.4: it is in the committed entry's `unit`. The multiplier's source controls
