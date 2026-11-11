@@ -276,6 +276,7 @@ addressable_scale
 committed_metrics[]
 delivery_counting.impression_multiplier.impression_type
 delivery_counting.impression_multiplier.source_type
+delivery_counting.impression_multiplier.accreditation
 required_credentials[]
 buyer_requirements.allowed_dsps[]
 transaction_mechanism.available[]
@@ -2327,6 +2328,7 @@ without a loop, plays are also reported. A `committed_metrics[]` tuple commits i
 | `impression_type` | Enum | REQUIRED | `gross` \| `viewable` \| `lts` \| `audience`: Gross, Viewable (OTS), Likelihood-to-See, or Audience impressions, as the MRC Out-of-Home Measurement Standards (Phase 1 & 2 Combined, December 2025) define them |
 | `source_type` | Integer | REQUIRED | Who supplies the multiplier. A value from AdCOM 1.0 [List: DOOH Multiplier Measurement Source Types](https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/26c59ba1b235cd8d938c9877409e506f1b8d3f0c/AdCOM%20v1.0%20FINAL.md#list_doohmultipliermeasurementmourcetypes) other than Unknown (`0`), such as Publisher Provided (`2`). The value OpenRTB 2.6 `imp.qty.sourcetype` carries |
 | `vendor` | RegistrableDomain | REQUIRED when `source_type` is not Publisher Provided (`2`) | The domain of the vendor or exchange that supplies the multipliers, as OpenRTB 2.6 `imp.qty.vendor` names a vendor |
+| `accreditation` | VocabularyTerm | OPTIONAL | The standing of the multiplier's source in the market. Core terms: `industry_currency` (the market's joint industry currency, such as Geopath in the US or Route in the UK) \| `publisher_reported` (the publisher's own figure). A receiver that doesn't know a term reads the multiplier without it |
 | `dataset` | String | REQUIRED | The source's named data release the multipliers come from. A new release is a new `dataset` |
 | `demographic` | VocabularyTerm | OPTIONAL | The demographic whose value settles when `dataset` gives a value per demographic. The same kind of term as `cost_parameters.demographic` (§ 5.6.5) |
 | `settles_on` | Enum | REQUIRED | `declared` \| `restated`. `declared`: the value `dataset` gives that screen, or sync group, and hour when the play runs. Under a deal mechanism (§ 5.9), the bid request carries it as OpenRTB 2.6 `imp.qty.multiplier`. `restated`: that value after any reissue of `dataset` by its source before the count is final (§ 5.7.1) |
