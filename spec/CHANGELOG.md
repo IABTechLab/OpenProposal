@@ -24,7 +24,7 @@ issue that caused it, so the comment record and the spec history line up.
   [#134](https://github.com/IABTechLab/OpenProposal/issues/134)).
   The manifest's `hold_limits` declares the most holds a seller grants at once, per buyer and
   per advertiser ([#156](https://github.com/IABTechLab/OpenProposal/issues/156)).
-- § 1.1, § 2.1, § 2.2, § 2.6, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
+- § 1.1, § 2.1, § 2.2, § 2.6, § 2.7, § 3, § 3.1 to § 3.4, § 4.1, § 4.1.1, § 4.1.3, § 4.3.1,
   § 4.3.2, § 5.1.1, § 5.2, § 5.2.1, § 5.4, § 5.5, § 5.6, § 5.6.1, § 5.6.3, § 5.7, § 5.9,
   § 6, appendices, examples, checker — what the buyer writes, and how the rate is computed.
   `selected[]` is the complete set of options in effect and replaces `included[]`; `value`
@@ -42,12 +42,14 @@ issue that caused it, so the comment record and the spec history line up.
   availability read, and § 3.4 names `BuyerWrites` and `LineItemWrites`. `geo` holds
   `GeoCode` entries as a `settable` field, and the selectable form becomes `markets`.
   `device` holds AdCOM codes, a `daypart` window is a `ClockWindow` that ends `before` a
-  minute, and `supported_formats` is removed. Breaking
+  minute, and `supported_formats` is removed. A `min_rate` is as readable as its line item,
+  so on a `public` line item it is public. Breaking
   ([#22](https://github.com/IABTechLab/OpenProposal/issues/22),
   [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
   [#58](https://github.com/IABTechLab/OpenProposal/issues/58),
   [#14](https://github.com/IABTechLab/OpenProposal/issues/14),
-  [#111](https://github.com/IABTechLab/OpenProposal/issues/111)).
+  [#111](https://github.com/IABTechLab/OpenProposal/issues/111),
+  [#47](https://github.com/IABTechLab/OpenProposal/issues/47)).
 - § 1.2, § 2.2, § 2.3, § 2.4, § 3, § 4.1, § 4.1.1, § 4.1.2, § 4.1.3, § 4.3, § 5.1, § 5.4,
   § 5.6, § 5.6.1, § 5.6.3, § 5.8, § 5.9, § 6, § 7, appendices, examples, checkers — who
   moves each status, and when an offer goes stale. The `seller-set` gate reads the `status`
@@ -143,12 +145,15 @@ issue that caused it, so the comment record and the spec history line up.
   `at` or `before_start`. Owned value lists are lower snake case, every term compares
   byte for byte, and `cost_method` writes `FLAT`. Headings are numbered, and normative
   text cites no issue. `scripts/check_examples.py` checks the examples against the
-  tables. Breaking
+  tables. A preview served through server-side ad insertion uses a session in which the
+  insertion service sends no production notifications. If the service can't provide one, the
+  creative is inspected outside the stitched stream. Breaking
   ([#121](https://github.com/IABTechLab/OpenProposal/issues/121),
   [#31](https://github.com/IABTechLab/OpenProposal/issues/31),
   [#33](https://github.com/IABTechLab/OpenProposal/issues/33),
   [#2](https://github.com/IABTechLab/OpenProposal/issues/2),
-  [#3](https://github.com/IABTechLab/OpenProposal/issues/3)).
+  [#3](https://github.com/IABTechLab/OpenProposal/issues/3),
+  [#42](https://github.com/IABTechLab/OpenProposal/issues/42)).
 - § 2.1, § 5.1, § 5.2 — `channel` and `environments` defined in AdCOM 1.0
   terms, with a first-match channel table, a skip rule for unknown channels
   and a channel and environment consistency rule. `audio_streaming` removed;
