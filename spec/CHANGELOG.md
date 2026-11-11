@@ -17,8 +17,11 @@ issue that caused it, so the comment record and the spec history line up.
   rather than the device, stated once. A block list's `app_bundle[]` becomes `apps[]` of
   `AppId`. A summary lists each property's apps, `child_audience`, and `seller_relationship`.
   Absent `properties` promises no property, and the audio example names one. A key table
-  follows a lead-in that names its type, and an object option's type ends `Option`. Breaking
+  follows a lead-in that names its type, and an object option's type ends `Option`. A property
+  MAY carry `tv_channel` and `tv_network`, AdCOM 1.0 `Channel` and `Network` objects matched by
+  `domain`. Breaking
   ([#88](https://github.com/IABTechLab/OpenProposal/issues/88),
+  [#8](https://github.com/IABTechLab/OpenProposal/issues/8),
   [#15](https://github.com/IABTechLab/OpenProposal/issues/15),
   [#96](https://github.com/IABTechLab/OpenProposal/issues/96),
   [#97](https://github.com/IABTechLab/OpenProposal/issues/97),
