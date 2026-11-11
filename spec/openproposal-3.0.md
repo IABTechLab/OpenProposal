@@ -2127,7 +2127,8 @@ open: the term sets its keys.
 | `action_type` | VocabularyTerm | REQUIRED when `cost_method` is `CPA` | The kind of action counted. Core terms in [IAB Tech Lab ECAPI 1.0](https://github.com/InteractiveAdvertisingBureau/ecapi/blob/4b43b0334c2aa41b13e302f2fa3ffc03012b3648/ecapi_1.0.md#eventtypes): its `event_type` values other than `custom`, such as `purchase` or `install`. Any other action is an extension term, such as `shop.example:store_visit` |
 | `attribution_window` | Duration | REQUIRED when `cost_method` is `CPA` | How long after exposure an action counts |
 | `action_source` | Measurer | REQUIRED when `cost_method` is `CPA` | Who reports the action |
-| `rate_unit` | Enum | REQUIRED when `cost_method` is `TIME` | `hour` \| `day` \| `week`. The unit the rate buys, counted in elapsed units |
+| `rate_unit` | Enum | REQUIRED when `cost_method` is `TIME` | `hour` \| `day` \| `week`. The unit the rate buys, counted in elapsed units unless `calendar_zone` is present |
+| `calendar_zone` | IanaZone | OPTIONAL | Absent unless `rate_unit` is `day`. The zone whose calendar days the rate buys: each calendar day in that zone that the flight touches is one unit |
 
 A seller's own extension terms MUST use its `seller.domain` as the `<domain>`. The host
 of `cost_definition.url` MUST be the term's `<domain>` or a subdomain of it.
@@ -2154,14 +2155,17 @@ that reads `commitment.amount` on such an entry reads them: the seller total whe
 
 **`TIME`.** `derived_units` is the time from `commitment.flight.start` through
 `commitment.flight.end`, inclusive, in `rate_unit`s rounded to the nearest whole unit,
-half up, so a clock change inside the flight doesn't change it. The seller total is
-`derived_units` × `agreed_rate` plus those charges.
+half up, so a clock change inside the flight doesn't change it. When `calendar_zone` is
+present, `derived_units` is instead the number of calendar days in that zone from the
+day of `commitment.flight.start` through the day of `commitment.flight.end`. The seller
+total is `derived_units` × `agreed_rate` plus those charges.
 
 **Delivery** is counted in the entry's unit, and each unit is worth `agreed_rate` ÷ rate
-per, with rate per as above. A `FLAT` entry has no unit, so its
-delivery is the days of `commitment.flight` delivered, counted in elapsed days from
-`commitment.flight.start`. Each day is worth `agreed_rate` ÷ the flight's length in
-days, and a last part day is worth its fraction of that.
+per, with rate per as above. With `calendar_zone`, a `TIME` entry counts one delivered
+unit for each of those calendar days on which the line item runs. A `FLAT` entry has no
+unit, so its delivery is the days of `commitment.flight` delivered, counted in elapsed
+days from `commitment.flight.start`. Each day is worth `agreed_rate` ÷ the flight's
+length in days, and a last part day is worth its fraction of that.
 
 A seller fee is never a `pricing[]` entry. A receiver MUST treat an extension entry
 that breaks these rules as unavailable, not the line item as invalid.
