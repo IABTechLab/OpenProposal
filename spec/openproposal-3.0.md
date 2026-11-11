@@ -69,6 +69,9 @@ values from the agreed line item:
 | `seller` | | The proposal's `seller.domain` |
 | `wseat` | `Deal.wseat` | `buyer_requirements.seats.ids[]` |
 | `adtypes` | | From `channel`: `display` 1, `video` 2, `audio` 3, `native` 4. Otherwise unset: the record doesn't state the ad's type |
+| `pubcount` | | On a `dooh` line item, `1` when the properties in effect belong to one inventory owner and `2` when they belong to more. `domains[]` names each owner (§ 5.2). Otherwise unset |
+| `dinventory` | | On a `dooh` line item, `1` when at least one property is in effect and each property in effect lists its `screens[]`. Otherwise unset |
+| `inventory.inclinventory` | | `[3]` when `dinventory` is `1`. Otherwise unset |
 | `terms.startdate`, `terms.enddate` | | `commitment.flight.start`, `commitment.flight.end` |
 | `terms.countries` | | The countries of `geo` or `markets` in effect, in alpha-3 (below), without a country excluded whole. Unset when the line item declares neither |
 | `terms.dealfloor` | `Deal.bidfloor` | `agreed_rate` of the committed `pricing[]` entry |
