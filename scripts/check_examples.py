@@ -446,7 +446,7 @@ def core_terms(meaning):
     only ever passes a term it should have refused, and never refuses a core term.
     """
     m = re.search(r"[Cc]ore terms?\b:?\s*(.*)$", meaning)
-    if not m or m.group(1).startswith("in §"):
+    if not m or m.group(1).startswith(("in §", "in [")):
         return None
     return set(re.findall(r"`([^`]+)`", m.group(1)))
 
