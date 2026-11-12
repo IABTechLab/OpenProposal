@@ -792,7 +792,8 @@ class Checker:
         if rate < 0:
             self.err(file, path, "agreed_rate", "agreed_rate is negative")
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
-        params = committed.get("cost_parameters") or {}
+        params = committed.get("cost_parameters")
+        params = params if isinstance(params, dict) else {}  # the type check reports a non-object
         size = RATE_UNIT_SECONDS.get(params.get("rate_unit"))
         if method == "TIME" and instant(starts) and instant(ends) and size:
             if "calendar_zone" in params and params.get("rate_unit") == "day":
