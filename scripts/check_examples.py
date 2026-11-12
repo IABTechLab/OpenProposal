@@ -286,7 +286,8 @@ SCALARS = {
     "String": (lambda v: isinstance(v, str)),
     "Url": (lambda v: isinstance(v, str) and v.startswith(("http://", "https://"))),
     "HttpsUrl": (lambda v: isinstance(v, str) and v.startswith("https://")),
-    "Integer": (lambda v: isinstance(v, int) and not isinstance(v, bool)),
+    "Integer": (lambda v: (isinstance(v, int) and not isinstance(v, bool))
+                or (isinstance(v, float) and v.is_integer())),  # JSON's integer: JCS writes 3.0 as 3
     "IntegerFlag": (lambda v: v in (0, 1) and not isinstance(v, bool)),
     "Number": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
     "Amount": (lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)),
