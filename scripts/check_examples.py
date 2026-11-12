@@ -799,6 +799,24 @@ class Checker:
                 if name not in committed["transaction_mechanisms"]:
                     self.err(file, path, name, f"the committed entry does not price {name}")
 
+    def check_cost_presence(self, file, path, item):
+        """Section 5.6.5: cost_parameters keys that apply under one rate unit or cost method."""
+        base = "" if path in ("", "(root)") else f"{path}."
+        for i, entry in enumerate(item.get("pricing") or []):
+            params = entry.get("cost_parameters") if isinstance(entry, dict) else None
+            if not isinstance(params, dict):
+                continue
+            where = f"{base}pricing[{i}].cost_parameters"
+            if "calendar_zone" in params:
+                if params.get("rate_unit") != "day":
+                    self.err(file, f"{where}.rate_unit", "rate_unit", "calendar_zone without rate_unit day")
+                name = params["calendar_zone"]
+                if isinstance(name, str) and name not in available_timezones():
+                    self.err(file, f"{where}.calendar_zone", "calendar_zone", "calendar_zone isn't an IANA time zone")
+            method = entry.get("cost_method")
+            if "action_definition" in params and method != "CPA" and ":" not in str(method):
+                self.err(file, f"{where}.action_definition", "action_definition", "action_definition on a core term other than CPA")
+
     def check_commitment(self, file, path, item):
         """A commitment's arithmetic and its bounds (sections 5.6.1 and 5.6.5)."""
         for entry in item.get("pricing") or []:
@@ -825,14 +843,11 @@ class Checker:
         rate_per = decimal(committed.get("rate_per", RATE_PER.get(method) or 1))
         params = committed.get("cost_parameters") or {}
         size = RATE_UNIT_SECONDS.get(params.get("rate_unit"))
-        if "calendar_zone" in params and params.get("rate_unit") != "day":
-            self.err(file, path, "cost_parameters", "calendar_zone without rate_unit day")
         if method == "TIME" and instant(starts) and instant(ends) and size:
             if "calendar_zone" in params and params.get("rate_unit") == "day":
                 name = params["calendar_zone"]
                 if not isinstance(name, str) or name not in available_timezones():
-                    self.err(file, path, "cost_parameters", "calendar_zone isn't an IANA time zone")
-                    return  # no unit count to check the amount against
+                    return  # check_cost_presence reports the zone; no unit count to check
                 zone, utc = ZoneInfo(name), ZoneInfo("UTC")  # section 5.6.5: calendar days in the zone
                 first, last = (instant(v).replace(tzinfo=utc).astimezone(zone).date() for v in (starts, ends))
                 elapsed = (last - first).days + 1
@@ -947,6 +962,7 @@ class Checker:
                     self.check_value(file, sub, doc[key], row)
         if "line_item_id" in doc:
             self.check_agreed_rate(file, path or "(root)", doc)
+            self.check_cost_presence(file, path, doc)
             self.check_commitment(file, path or "(root)", doc)
             self.check_mechanisms(file, path or "(root)", doc)
             self.check_measurement(file, path or "(root)", doc)
