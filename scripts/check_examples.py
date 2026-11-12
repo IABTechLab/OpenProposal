@@ -758,8 +758,9 @@ class Checker:
                 continue
             where = f"{base}pricing[{i}].cost_parameters"
             if "calendar_zone" in params:
-                if params.get("rate_unit") != "day":
-                    self.err(file, f"{where}.rate_unit", "rate_unit", "calendar_zone without rate_unit day")
+                if params.get("rate_unit") != "day":  # at the object when rate_unit is missing
+                    at = f"{where}.rate_unit" if "rate_unit" in params else where
+                    self.err(file, at, "rate_unit", "calendar_zone without rate_unit day")
                 name = params["calendar_zone"]
                 if isinstance(name, str) and name not in available_timezones():
                     self.err(file, f"{where}.calendar_zone", "calendar_zone", "calendar_zone isn't an IANA time zone")
