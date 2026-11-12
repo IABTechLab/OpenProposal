@@ -110,7 +110,8 @@ issue that caused it, so the comment record and the spec history line up.
   rate, `calendar_zone` makes it count the calendar days in that zone that the flight touches,
   and `calendar_zone` is absent on any other rate. `action_type` takes its core terms from
   ECAPI 1.0: the `event_type` values in its Standard Events and Additional Events tables, other
-  than `custom`. Breaking
+  than `custom`. A `CPA` entry MAY name `action_definition`, a `DocumentRef` to the rules that
+  make an action billable. Breaking
   ([#94](https://github.com/IABTechLab/OpenProposal/issues/94),
   [#98](https://github.com/IABTechLab/OpenProposal/issues/98),
   [#117](https://github.com/IABTechLab/OpenProposal/pull/117),
@@ -120,7 +121,8 @@ issue that caused it, so the comment record and the spec history line up.
   [#30](https://github.com/IABTechLab/OpenProposal/issues/30),
   [#125](https://github.com/IABTechLab/OpenProposal/issues/125),
   [#121](https://github.com/IABTechLab/OpenProposal/issues/121),
-  [#80](https://github.com/IABTechLab/OpenProposal/issues/80)).
+  [#80](https://github.com/IABTechLab/OpenProposal/issues/80),
+  [#161](https://github.com/IABTechLab/OpenProposal/issues/161)).
 
 - § 2.4, § 3.4, § 4.1.1, § 4.1.3, § 4.3, § 4.3.1, § 4.3.2, § 4.3.4, § 5.6, § 5.6.1, § 5.6.2,
   appendices, examples, checkers — holds. `hold_status` splits in two: `hold_terms`,
