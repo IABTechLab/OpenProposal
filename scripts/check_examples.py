@@ -824,6 +824,14 @@ class Checker:
             if "action_definition" in params and method != "CPA" and ":" not in str(method):
                 self.err(file, f"{where}.action_definition", "action_definition", "action_definition on a core term other than CPA")
 
+    def check_screen_location(self, file, path, item):
+        """Section 5.2: a movable screen has no fixed coordinates."""
+        base = "" if path in ("", "(root)") else f"{path}."
+        for i, prop in enumerate((item.get("properties") or {}).get("available") or []):
+            for j, screen in enumerate((prop.get("screens") or []) if isinstance(prop, dict) else []):
+                if isinstance(screen, dict) and screen.get("movable") is True and ("lat" in screen or "lon" in screen):
+                    self.err(file, f"{base}properties.available[{i}].screens[{j}].movable", "movable", "lat or lon on a movable screen")
+
     def check_commitment(self, file, path, item):
         """A commitment's arithmetic and its bounds (sections 5.6.1 and 5.6.5)."""
         for entry in item.get("pricing") or []:
@@ -969,6 +977,7 @@ class Checker:
                     self.check_value(file, sub, doc[key], row)
         if "line_item_id" in doc:
             self.check_agreed_rate(file, path or "(root)", doc)
+            self.check_screen_location(file, path, doc)
             self.check_cost_presence(file, path, doc)
             self.check_commitment(file, path or "(root)", doc)
             self.check_mechanisms(file, path or "(root)", doc)
