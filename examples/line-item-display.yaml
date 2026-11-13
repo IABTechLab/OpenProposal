@@ -49,6 +49,7 @@ materials_due:     "2026-09-24"
 
 geo:            { allowed: ["US-NY", "US-CA", "US-IL", "US-TX"] }
 frequency_cap:  { max: { min: 1, max: 5 }, period: "day", basis: device }
+time_zone:      "America/New_York"
 
 pricing:
   - cost_method:       CPM

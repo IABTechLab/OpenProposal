@@ -10,6 +10,7 @@ formats:        { available: ["ctv/instream-15s", "ctv/instream-30s"],
 creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
 
 frequency_cap:  { max: { min: 1, max: 4 }, period: "day", basis: household }
+time_zone:      viewer_local
 
 pricing:
   - { cost_method: CPM, gross_rate: 45.00, floor: 39.60,
