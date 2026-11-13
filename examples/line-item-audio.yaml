@@ -21,6 +21,8 @@ pricing:
 
 commitment_bounds: { min_budget: 5000.00 }
 commitment:
+  proposal_id: "examplepub-us-q4-2026-omni"
+  version: 1
   basis: spend
   amount: 60000.00
   currency: USD
