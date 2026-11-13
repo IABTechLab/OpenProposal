@@ -52,7 +52,7 @@ unchecked are outstanding.
 
 ## Tracking issues
 
-- [ ] **File the seven open-question issues** and fill the links in
+- [ ] **File the open-question issues** and fill the links in
       [`open-questions.md`](open-questions.md). Label each `open-question` and
       pin them. These are where you most want comments to land, so they need to
       exist before anyone arrives.
@@ -82,7 +82,7 @@ were closed.
 - [ ] State the closing date.
 - [ ] State explicitly that non-members may comment — otherwise most of the
       market assumes it cannot.
-- [ ] Point at the seven open questions, not just the spec. Asking a specific
+- [ ] Point at the open questions, not just the spec. Asking a specific
       question gets a specific answer; "thoughts welcome" gets silence.
 
 ## During the period
