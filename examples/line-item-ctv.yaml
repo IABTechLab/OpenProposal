@@ -33,3 +33,5 @@ buying_route:      SSP_PLATFORM
 transaction_mechanism: { available: ["PRIVATE_AUCTION"], included: ["PRIVATE_AUCTION"] }
 serving_mode:      ssai
 correlation_id:    "ep-q4-2026-commitment/weather-app-ctv"
+
+# Inspecting this line item's VAST creative is subject to spec section 5.4.

@@ -248,6 +248,45 @@ channel.
 | `approval` | Object | seller-set | Review SLA and revision policy |
 | `production` | Object | selectable | Custom units. `available[]` of build options with `pricing` and `lead_time`; `{ custom_unit, build_owner, lead_time, cost }` |
 
+#### Creative inspection and previews
+
+For this section, inspection means evaluating a creative outside live campaign
+delivery, including discovery, composition, submission checks and previews. A
+production notification is an event report intended for a campaign's live
+measurement or delivery diagnostics.
+
+An implementation performing inspection MUST NOT send any production
+notification. This includes requesting an event URL solely to check its
+availability, regardless of the HTTP method used.
+
+An implementation MAY retrieve creative documents, follow VAST wrappers and
+inspect referenced media as needed for its checks. Permission to retrieve these
+resources does not extend to firing their event URLs. Retrieval can itself be
+logged by the resource owner; this requirement does not imply that inspection
+produces no server activity.
+
+A landing-page inspection remains subject to the same notification prohibition,
+including any redirect requests. The presence of a URL in VAST `<ClickThrough>`
+does not establish that requesting it is safe for inspection. The inspector
+MUST NOT request a destination or redirect that sends a production notification;
+it MAY use a separate inspection URL or the receiving service's documented test
+mode under the conditions below.
+
+A preview that executes creative or verification code MUST prevent that code
+from sending production notifications. Synthetic events MAY be sent to test
+endpoints, or through a test mode that the receiving service documents as
+excluding those events from production measurement and delivery diagnostics. An
+inspector's own test flag is insufficient unless the receiving service supports
+it.
+
+Inspection failures MUST be reported through diagnostics, without firing a
+production VAST `<Error>` or `verificationNotExecuted` URL. An implementation
+MUST NOT report a check that was skipped or could not finish as passed.
+
+These requirements apply to inspection only. During live delivery,
+implementations remain subject to the tracking and error-reporting requirements
+of the applicable execution standard.
+
 ### 5.5 Targeting envelope
 
 Each field declares bounds, not a value. A bare value means the field is
@@ -370,6 +409,8 @@ buyer commitment, and `settable` bounds. See
 ### 6.3 CTV line item
 
 See [`examples/line-item-ctv.yaml`](../examples/line-item-ctv.yaml).
+
+Inspecting this line item's VAST creative is subject to section 5.4.
 
 ### 6.4 Audio line item
 
