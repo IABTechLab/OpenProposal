@@ -89,8 +89,8 @@ body:
       label: Before you submit
       options:
         - label: >-
-            I have read [CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md) and agree my
-            contribution may be published under this repository's licence.
+            I have read and agree to the [Contribution Terms in CONTRIBUTING.md](https://github.com/IABTechLab/OpenProposal/blob/main/CONTRIBUTING.md#ipr),
+            including the patent license, on behalf of myself and any entity I represent.
           required: true
         - label: This comment contains no confidential or commercially sensitive information.
           required: true
