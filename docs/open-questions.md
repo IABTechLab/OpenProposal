@@ -1,7 +1,7 @@
 # Open questions
 
-The draft asks seven questions it does not answer. These are the highest-value
-places to comment, because the working group is genuinely undecided.
+These are the questions the draft asks and does not answer. They are the
+highest-value places to comment, because the working group is genuinely undecided.
 
 Each has its own tracking issue, labelled
 [`open-question`](https://github.com/IABTechLab/OpenProposal/issues?q=label%3Aopen-question).
@@ -24,13 +24,14 @@ whether resolving inside one is worth the modelling cost.
 
 ---
 
-### OQ-2 — Do seller catalogs (`catalog_ref`) belong in 3.0?
+### OQ-2 — Is a fetchable reference to a seller catalog needed?
 
-**Issue:** [#3](https://github.com/IABTechLab/OpenProposal/issues/3)  ·  **Spec:** § 2.2
+**Issue:** [#3](https://github.com/IABTechLab/OpenProposal/issues/3)  ·  **Spec:** § 2.1
 
-Or should the object stay fully inline until a later version? `catalog_ref`
-buys compactness across a large shelf at the cost of a resolution step during
-discovery and a versioning regime sellers must operate.
+The object is fully inline. A seller reuses catalog entries in its own systems, and
+a summary lists what § 2.1 names. A reference a buyer could fetch would buy
+compactness across a large shelf at the cost of a fetch rule, a resolution step
+during discovery, and a versioning regime sellers must operate.
 
 **What would settle it:** how large a real shelf gets, and whether sellers
 already maintain versioned, immutable catalog entries or would have to build
@@ -65,26 +66,24 @@ proposed fallback behaviour.
 
 ---
 
-### OQ-5 — Is a `min_line_items` field needed?
+### OQ-5 — Do `linked_execution` and `requires` cover bundle purchases?
 
 **Issue:** [#6](https://github.com/IABTechLab/OpenProposal/issues/6)  ·  **Spec:** § 2, § 4
 
-The draft makes proposals subsettable unless binding terms mandate linked
-execution. Does the proposal need an explicit `min_line_items` to require a
-bundle purchase, or is that left to buyer discretion and the binding terms?
+The draft makes proposals subsettable unless `linked_execution` is `all`, and a line
+item can state `requires`. Does the proposal also need a `min_line_items` field?
 
-**What would settle it:** whether sellers actually merchandise bundles that must
-be bought whole, and whether "binding terms" is a precise enough hook.
+**What would settle it:** whether sellers merchandise a bundle these two fields
+can't express.
 
 ---
 
-### OQ-6 — Should `payment_terms` and `invoicing_party` be catalog references?
+### OQ-6 — Should `payment_terms` and `invoicing_party` repeat on every line item?
 
 **Issue:** [#7](https://github.com/IABTechLab/OpenProposal/issues/7)  ·  **Spec:** § 5.10
 
-Rather than repeated on every line item, given they are usually identical across
-a seller's shelf. Note this is in tension with the no-inheritance rule (§ 2) —
-a `catalog_ref` is explicitly not inheritance, but the ergonomics are similar.
+They are usually identical across a seller's shelf. Note this is in tension with the
+no-inheritance rule (§ 2): sharing them would need another mechanism.
 
 **What would settle it:** whether `billing` genuinely varies per line item in
 practice (different supplier of record, different invoicing entity per
@@ -92,15 +91,40 @@ property).
 
 ---
 
-### OQ-7 — `environments[]` needs validation against real inventory
+### OQ-7 — `environments.available[]` needs validation against real inventory
 
 **Issue:** [#8](https://github.com/IABTechLab/OpenProposal/issues/8)  ·  **Spec:** § 5.2
 
-The enum — `web_desktop`, `web_mobile`, `app_mobile`, `ctv`, `dooh`,
-`audio_streaming` — is proposed, not derived from implementation experience.
+The enum — `web_desktop`, `web_mobile`, `app_mobile`, `ctv`, `dooh`, each
+defined in § 5.2.1 — is proposed, not derived from implementation experience.
 
 **What would settle it:** sellers mapping their real inventory onto the enum and
 reporting what does not fit.
+
+---
+
+### OQ-8 — How does a receiver read a document from a later release?
+
+**Issue:** [#131](https://github.com/IABTechLab/OpenProposal/issues/131)  ·  **Spec:** § 2.5, § 4.1
+
+`spec_version` names the release a document follows, and § 2.5 makes a key the
+receiver's release does not list invalid. Nothing says whether a receiver rejects a
+release it does not know, or keeps and ignores keys it does not list.
+
+**What would settle it:** how an implementer upgrades a seller and its buyers when
+they don't move at the same time, and whether unread keys can reach an assent.
+
+---
+
+### OQ-11 — Must a manifest response carry both `ETag` and `Last-Modified`?
+
+**Issue:** [#29](https://github.com/IABTechLab/OpenProposal/issues/29)  ·  **Spec:** § 2.3
+
+The draft requires at least one, so a buyer's client handles whichever the seller
+sends.
+
+**What would settle it:** which validator polling clients use, and what the hosts
+that serve the manifest send by default.
 
 ---
 
@@ -108,5 +132,5 @@ reporting what does not fit.
 
 If you think the draft has a problem it has not asked about, file it as a
 [Comment](https://github.com/IABTechLab/OpenProposal/issues/new?template=comment.yml) or a
-[Change request](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml). The seven
+[Change request](https://github.com/IABTechLab/OpenProposal/issues/new?template=change-request.yml). The questions
 above are where we know we are undecided, not the limit of what we will consider.
