@@ -1,0 +1,33 @@
+# OpenProposal 3.0 — Example: Bonus line item (spec § 6.5)
+# Illustrative only. A CTV bonus unlocked when the buyer commits to the display
+# and CTV line items together, with at least 50,000 USD on display. Its price is
+# its own: nothing is inherited from the line items it requires.
+line_item_id:   "weather-app-ctv-bonus"
+status:         published
+channel:        ctv
+properties:     { available: [{ id: "weather-app" }], included: ["weather-app"] }
+environments:   { available: ["ctv"], included: ["ctv"] }
+formats:        { available: ["ctv/instream-15s"], included: ["ctv/instream-15s"] }
+creative_delivery: { method: seller_hosted, protocol: vast_4_2, secure_required: true }
+
+frequency_cap:  { count: { min: 1, max: 2, default: 1 }, period: day, per: household }
+time_zone:      viewer_local
+
+requires:
+  all_of:  ["business-daily-display", "weather-app-ctv"]
+  min_commitments:
+    - { line_item_id: "business-daily-display", basis: spend, amount: 50000.00, currency: USD }
+
+pricing:
+  - { cost_method: FLAT, list_rate: 0.00,
+      price_valid_until: "2026-12-01T23:59:59Z", currency: USD }
+
+commitment_bounds: { max_impressions: 500000 }
+
+visibility:   registry_gated     # its requires names the gated display line item
+
+transaction_mechanism:
+  available:  [{ id: direct_io, delivery_type: non_guaranteed }]
+  included:   ["direct_io"]
+  max_select: 1
+serving_mode:      ssai
