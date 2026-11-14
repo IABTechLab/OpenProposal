@@ -5,6 +5,10 @@ issue that caused it, so the comment record and the spec history line up.
 
 ## [Unreleased]
 
+- § 5.2 — Properties can carry `apps[]` for app and CTV inventory, keyed as
+  OpenRTB 2.6 `app`, and the Summary Representation lists the app identifier
+  ([#15](https://github.com/IABTechLab/OpenProposal/issues/15)).
+
 ## [3.0-draft-1] — 2026-09-22
 
 Initial draft published for public comment. Ported from the working-group
